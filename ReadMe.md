@@ -180,3 +180,5 @@ It's optimized for intuitive node-based GUI interactions, providing an efficient
 
 11.0 이상 버전에서 에러남 에러나는 버전은 11.0.7, 11.0.10 확인됨 그 이하 버전은 아직 확인하지 못함. 
 일단, 이문제는 나중에 보고를 하던, 내 코드의 문제인지 판단 하기로 함. 일단 버그인거 같음.
+
+https://flowiseai.com/
