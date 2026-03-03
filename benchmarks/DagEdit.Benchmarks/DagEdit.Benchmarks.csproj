@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- BenchmarkDotNet은 Release 모드에서만 의미 있는 결과를 생성한다. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- 벤치마크 프로젝트에서는 정적 분석 경고 억제 -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <!-- 모델 레이어 벤치마크 전용: Avalonia.Point는 struct이므로 UI 초기화 불필요 -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../DagEdit.csproj" />
+  </ItemGroup>
+
+</Project>
