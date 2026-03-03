@@ -85,13 +85,68 @@
 
 ---
 
+---
+
+### [Step 6] 성능 지속적 감시 체계 구축
+- **날짜**: 2026-03-03
+- **수행 내용**:
+  - `scripts/compare_benchmarks.py`: BDN JSON 비교 스크립트 (소수점 2자리, 10% 임계값)
+  - `scripts/visualize_performance.py`: matplotlib 성능 추이 PNG 생성
+  - `benchmarks/history/`: GitHub Cache 기반 날짜별 JSON 히스토리 누적
+  - `benchmarks/DagEdit.Benchmarks/Program.cs`: `JsonExporter.Full` 추가
+  - `verify.yml` 벤치마크 섹션 재설계: Dry Run → Short Job + 회귀 가드 + 히스토리
+- **검증 지표**:
+  - `compare_benchmarks.py` 단위 기능 검증 완료
+  - `verify.yml` 구문 유효성 확인
+- **문제/해결**: `grep -c ... || echo 0` 패턴이 GITHUB_OUTPUT에 개행 포함 "0\n0" 출력 → `grep | wc -l` 로 수정
+
+---
+
+### [Step 7] Go-like 무타협 린트 환경 구축
+- **날짜**: 2026-03-03
+- **수행 내용**:
+  - `.editorconfig`에 핵심 규칙 Error 격상 (SA1503, CS8600-8625, SA1400, IDE0059/0060 등)
+  - 기존 SA1503 위반 코드 전 파일 수정 (BaseNode, Connection, Dag, DagEditor, Extension, Node, PointerGesture, SourceConnector)
+- **검증 지표**: 빌드 0 Error, 295 Warning, 32/32 테스트 통과
+- **결정 참조**: DEC-005 (Error 격상 규칙 목록)
+
+---
+
+### [Step 8] CodeQL 보안 분석 CI 연동
+- **날짜**: 2026-03-03
+- **수행 내용**:
+  - `verify.yml`에 `codeql` job 추가 (별도 job으로 격리)
+  - `security-extended` 쿼리 팩 설정
+  - GitHub Security 탭에 SARIF 자동 업로드
+- **검증 지표**: CodeQL job CI 실행 성공 (2m15s)
+- **결정 참조**: DEC-011
+
+---
+
+### [Step 9] ReactiveUI WhenAnyValue 도입 (첫 번째 Rx 작업)
+- **날짜**: 2026-03-03
+- **수행 내용**:
+  - `NodeDragState.cs` 신규 생성 (`ReactiveObject`, `Position` 프로퍼티)
+  - `Node.cs` 리팩토링:
+    - `_disposable: IDisposable` → `_disposables: CompositeDisposable`
+    - `HandlePointerMoved`: 그리드 스냅 + `_dragState.Position` 설정으로 단순화
+    - `WhenAnyValue(x => x.Position).Skip(1).DistinctUntilChanged()` 체인으로 앵커/이벤트 처리
+  - `docs/rx-patterns/node-drag-reactive.md`: [What it does], [Go Analogy], [Operator Breakdown] 형식 설명서
+- **검증 지표**: 32/32 테스트 통과 (기존 회귀 없음)
+- **결정 참조**: DEC-010
+- **다음 Rx 작업**: PendingConnection 드래그, DagEditorViewModel, ReactiveList
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
 |---------|------|
-| High | StyleCop 경고 0건 달성 (severity warning → error 격상) |
+| High | StyleCop 경고 0건 달성 (295 → 0, 전체 Error 격상 가능 시점) |
 | High | `DelDagNodeItem` 해피패스 테스트 (Node 인스턴스 분리 필요) |
-| Medium | 커버리지 목표 설정 (목표: 80% 이상) |
-| Medium | 벤치마크 기준선(baseline) 저장 및 회귀 감지 |
+| Medium | 커버리지 목표 설정 (목표: 80% 이상, 현재 4%) |
+| Medium | ReactiveUI: PendingConnection 드래그 Observable.FromEventPattern 전환 |
+| Medium | ReactiveUI: DagEditorViewModel 분리 |
 | Low | Zoom 기능 구현 후 해당 테스트 추가 |
 | Low | Connection 삭제 기능 구현 후 테스트 추가 |
+| Low | `docs/performance_trend.png` 생성 (히스토리 3회 이상 누적 후) |

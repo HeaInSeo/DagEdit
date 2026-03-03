@@ -63,8 +63,9 @@ jobs:
 
           BUILD_EXIT=${PIPESTATUS[0]}
 
-          SA_WARN=$(grep -c ": warning SA" /tmp/build_output.txt 2>/dev/null || echo 0)
-          CS_WARN=$(grep -c ": warning CS" /tmp/build_output.txt 2>/dev/null || echo 0)
+          # grep -c exits 1 when no matches → "0\n0" 개행 버그 방지용 wc -l 사용
+          SA_WARN=$(grep ": warning SA" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
+          CS_WARN=$(grep ": warning CS" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
           TOTAL_WARN=$((SA_WARN + CS_WARN))
 
           echo "sa_warning_count=$SA_WARN"       >> "$GITHUB_OUTPUT"

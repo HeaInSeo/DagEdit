@@ -57,15 +57,19 @@
 
 ---
 
-### [DEC-005] 정적 분석 초기 severity: warning (error 아님)
-- **날짜**: 2026-03-02
-- **결정**: StyleCop 규칙 severity=warning으로 초기 설정
-- **이유**:
-  - 기존 코드베이스에 SA* 위반 사항 다수 존재
-  - 즉시 error로 격상 시 모든 빌드 실패 → 개발 흐름 차단
-  - 단계적 적용: warning 확인 → 코드 수정 → error 격상 순으로 진행
-- **목표**: SA 경고 수를 점진적으로 0으로 줄인 후 error로 격상
-- **CI 연동**: verify.yml에서 경고 수를 수치로 보고하여 회귀 추적
+### [DEC-005] 정적 분석 핵심 규칙 Error 격상 (Go-like 무타협 환경)
+- **날짜**: 2026-03-03 (2026-03-02 기존 결정 업데이트)
+- **결정**: 핵심 안전 규칙 → `error`, 나머지 SA* → `warning` 유지
+- **Error 격상 규칙**:
+  - `SA1503` — 중괄호 생략 금지 (Heartbleed 류 버그 방지)
+  - `CS8600-CS8625` — nullable 안전성 강제 (Go nil-panic 방지)
+  - `SA1400` — 접근 한정자 명시 강제 (Go 가시성 원칙)
+  - `SA1106` — 빈 구문 금지
+  - `IDE0059`, `IDE0060`, `CS0168`, `CS0219` — 미사용 코드 금지 (Go 컴파일 에러와 동일)
+  - private 필드 `_camelCase` 네이밍, `int`/`string` 타입 키워드
+- **이유**: "성능은 기능만큼 중요하다"와 동일하게 "코드 품질은 기능만큼 중요하다". 즉각적인 규칙 위반 탐지로 리뷰 부담 감소
+- **영향**: 기존 SA1503 위반 30건 즉시 수정 (전 파일 중괄호 추가). 빌드 0 Error 확인.
+- **목표**: 현재 295 SA* 경고를 점진적으로 0으로 감소 → 전체 Error 격상
 
 ---
 
@@ -82,15 +86,51 @@
 
 ---
 
-### [DEC-007] CI 벤치마크 실행 모드: Dry Run
-- **날짜**: 2026-03-02
-- **결정**: CI에서 `--job Dry --filter "*"` 사용
-- **대안**: 실제 벤치마크 실행, 완전 스킵
+### [DEC-007] CI 벤치마크 실행 모드: Short Job (Dry Run에서 업그레이드)
+- **날짜**: 2026-03-03 (2026-03-02 기존 결정 변경)
+- **결정**: CI에서 `--job Short --filter "*"` + `JsonExporter.Full` 사용
+- **변경 이유**:
+  - Dry Run은 컴파일/실행 검증만 가능, 실측값 없어 회귀 감지 불가
+  - Short Job: 실제 통계적 측정값 수집하면서 Full Job보다 빠름 (~2-4분)
+  - JsonExporter.Full로 BDN JSON 출력 → 이전 실행과 자동 비교 가능
+- **기대 효과**: CI에서 10% 이상 성능 회귀 시 빌드 실패로 즉시 탐지
+- **연관 결정**: DEC-009 (성능 회귀 가드)
+
+---
+
+### [DEC-009] 성능 회귀 가드: GitHub Cache 기반 기준선 비교
+- **날짜**: 2026-03-03
+- **결정**: `benchmark-baseline.json`을 GitHub Cache에 저장, 매 CI 실행 시 비교
+- **대안**: 아티팩트 다운로드, 브랜치 커밋, 외부 스토리지
 - **이유**:
-  - 실제 벤치마크는 수 분~수십 분 소요 → CI 속도 저하
-  - 완전 스킵 시 컴파일 오류 미탐지 위험
-  - Dry Run: 각 벤치마크를 1회만 실행하여 컴파일/런타임 오류만 탐지
-- **기대 효과**: CI는 빠르게 통과, 실제 성능 측정은 로컬/주간 전용 파이프라인에서 수행
+  - GitHub Cache: 브랜치별 자동 격리, 7일 TTL, 10GB 무료 용량
+  - Artifact API 대비 단순한 restore-keys 기반 최신 기준선 탐색
+  - master 브랜치 push + 회귀 없음 조건에서만 기준선 갱신 → 회귀가 기준선을 오염시키지 않음
+- **임계값**: Mean 또는 Allocated +10% 이상 악화 시 빌드 실패 (소수점 2자리 정밀도)
+- **기대 효과**: 성능 저하를 코드 변경과 즉시 연결하여 회귀 원인 추적 용이
+
+---
+
+### [DEC-010] ReactiveUI WhenAnyValue: NodeDragState 분리 패턴
+- **날짜**: 2026-03-03
+- **결정**: `Node` (ContentControl) 내에 별도 `NodeDragState : ReactiveObject`를 두어 WhenAnyValue 사용
+- **대안**: Avalonia `GetObservable(Property)` 직접 사용, Node에 IReactiveObject 구현
+- **이유**:
+  - `AvaloniaObject`는 `IReactiveObject`를 구현하지 않아 `WhenAnyValue` 직접 사용 불가
+  - `ReactiveObject`를 별도로 분리하면 ReactiveUI 핵심 패턴(WhenAnyValue)을 명확히 시연 가능
+  - Go 채널 비유: `NodeDragState` = 채널, `HandlePointerMoved` = 생산자, `WhenAnyValue` 구독 = 소비자
+- **기대 효과**: 입력 처리(HandlePointerMoved)와 부수 효과(앵커 재계산, 이벤트 발행) 분리 → 단위 테스트 용이
+
+---
+
+### [DEC-011] CodeQL 보안 분석: 별도 Job 격리
+- **날짜**: 2026-03-03
+- **결정**: `codeql` job을 `verify` job과 분리하여 병렬 실행
+- **이유**:
+  - CodeQL은 빌드 추적이 필요하여 `verify` job의 NuGet 캐시와 독립적인 환경 필요
+  - 별도 job으로 격리 시 한 job의 실패가 다른 job에 영향 없음
+  - `security-extended` 쿼리 팩: CWE 분류 기반 보안 취약점 탐지 (SQL Injection, Path Traversal 등)
+- **기대 효과**: 보안 취약점을 PR 단계에서 자동 탐지, GitHub Security 탭에 결과 자동 게시
 
 ---
 
