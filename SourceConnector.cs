@@ -60,14 +60,20 @@ namespace DagEdit
         // Panning 하면 좌표계가 달라짐.
         protected override void HandlePointerMoved(object? sender, PointerEventArgs args)
         {
-            if (sender == null || !IsPointerPressed || PreviousConnector == null) return;
+            if (sender == null || !IsPointerPressed || PreviousConnector == null)
+            {
+                return;
+            }
 
             // PART_TopLayer 는 DAGlynEditor.axaml 에 있다. 이녀석이 없으면 기능을 하지 않는다.
             // 이거 나중에 바인딩으로 연결하자.
             //var parent = this.GetParentVisualByName<Canvas>("PART_TopLayer");
             // TODO 이벤트 올때 마다 계산하게 하면 좀 힘들 듯. 이거 계선 해야 함.
             var parent = this.GetParentVisualByName<Canvas>("PART_ItemsHost");
-            if (parent == null) return;
+            if (parent == null)
+            {
+                return;
+            }
             var currentPosition = args.GetPosition(parent);
 
             // 마우스 이동중 새로운 Connector 에 들어가면 null 이 아님.
@@ -87,9 +93,13 @@ namespace DagEdit
             PreviousConnector = null;
 
             if (elementUnderPointer is TargetConnector okConnector)
+            {
                 RaiseConnectionCompletedEvent(okConnector, Anchor, NodeId, okConnector.Anchor, okConnector.NodeId);
+            }
             else
+            {
                 RaiseConnectionCompletedEvent(null, null, null, null, null);
+            }
         }
 
         #endregion

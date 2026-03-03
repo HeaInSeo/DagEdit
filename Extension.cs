@@ -26,7 +26,9 @@ namespace DagEdit
             while (current != null)
             {
                 if (current is T target)
+                {
                     return target;
+                }
 
                 current = current.GetVisualParent() as Control;
             }
@@ -41,7 +43,9 @@ namespace DagEdit
             while (current != null)
             {
                 if (current is T target)
+                {
                     return target;
+                }
 
                 current = current.GetVisualParent();
             }
@@ -57,7 +61,9 @@ namespace DagEdit
             while (current != null)
             {
                 if (current is T target && target.Name == name)
+                {
                     return target;
+                }
 
                 current = current.GetVisualParent();
             }
@@ -73,7 +79,9 @@ namespace DagEdit
             foreach (var visual in container.GetVisualDescendants())
             {
                 if (visual.Name == name && visual is T foundElement)
+                {
                     return foundElement;
+                }
             }
 
             return null;
@@ -98,7 +106,9 @@ namespace DagEdit
 
                         // 변환된 좌표가 visual의 Bounds 내에 있는지 확인
                         if (visual.Bounds.Contains(transformedPosition))
+                        {
                             return foundElement;
+                        }
                     }
                 }
             }
@@ -118,7 +128,9 @@ namespace DagEdit
                     {
                         var transformedPosition = matrix.Value.Transform(pointerPosition);
                         if (control.Bounds.Contains(transformedPosition))
+                        {
                             return foundElement;
+                        }
                     }
                 }
             }
@@ -190,7 +202,9 @@ namespace DagEdit
         public static void LogPerformance(string message)
         {
             if (!Directory.Exists(logDirectory))
+            {
                 Directory.CreateDirectory(logDirectory);
+            }
 
             Process currentProcess = Process.GetCurrentProcess();
             long memoryUsage = currentProcess.WorkingSet64; // 메모리 사용량

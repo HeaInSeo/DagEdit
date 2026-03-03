@@ -26,7 +26,10 @@ namespace DagEdit
 
         public bool AddDagConnectionItem(Point? source, Guid? sourceNodeId, Point? target, Guid? targetNodeId)
         {
-            if (source is null || target is null) return false;
+            if (source is null || target is null)
+            {
+                return false;
+            }
 
             var newItem = new DagItems();
             newItem.CreateDagConnection(source, sourceNodeId, target, targetNodeId);
@@ -36,7 +39,10 @@ namespace DagEdit
 
         public bool AddDagNodeItem(Point? location)
         {
-            if (!location.HasValue) return false;
+            if (!location.HasValue)
+            {
+                return false;
+            }
 
             var newItem = new DagItems();
             newItem.CreateDagNode(location);

@@ -140,7 +140,9 @@ namespace DagEdit
         public void Hide()
         {
             if (IsVisible)
+            {
                 IsVisible = false;
+            }
         }
 
         // 종료자

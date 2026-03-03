@@ -1,14 +1,76 @@
-﻿using System;
+using System;
 using System.Diagnostics;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using ReactiveUI;
 
 namespace DagEdit
 {
+    /// <summary>
+    /// 드래그 가능한 DAG 노드 컨트롤.
+    ///
+    /// ─── ReactiveUI WhenAnyValue 패턴 (노드 드래그 좌표 업데이트) ───────────────
+    ///
+    /// [What it does]
+    /// 노드를 드래그할 때 마우스 이동 이벤트(PointerMoved)는 매우 빈번하게 발생한다.
+    /// 과거 코드는 HandlePointerMoved 안에서 Transform 갱신·앵커 재계산·이벤트 발행을
+    /// 순차적으로 수행했다. 관심사가 뒤섞여 테스트와 유지보수가 어려웠다.
+    ///
+    /// 리팩토링 후에는 HandlePointerMoved가 '입력 처리'(그리드 스냅 계산 + 위치 확정)만
+    /// 담당하고, 그 결과(_dragState.Position)를 구독하는 Rx 체인이 '부수 효과'
+    /// (TranslateTransform 갱신, Anchor 재계산, ConnectionChangedEvent 발행)를
+    /// 반응형으로 처리한다.
+    ///
+    /// [Go Analogy]
+    /// Go 채널 관점에서 이 패턴을 이해하면:
+    ///
+    ///   // 생산자 (HandlePointerMoved)
+    ///   posCh := make(chan Point, 1)
+    ///   go func() {
+    ///       posCh &lt;- newPosition   // 그리드 스냅 후 새 위치만 전달
+    ///   }()
+    ///
+    ///   // 소비자 (WhenAnyValue 구독)
+    ///   go func() {
+    ///       for pos := range posCh {
+    ///           updateTransform(pos)    // 렌더링 갱신
+    ///           recalcAnchors(pos)      // 커넥션 앵커 재계산
+    ///           raiseEvent(pos)         // 이벤트 발행
+    ///       }
+    ///   }()
+    ///
+    ///   DistinctUntilChanged ≈ "채널에 이전과 동일한 값은 보내지 않는다"
+    ///
+    /// [Operator Breakdown]
+    ///
+    ///   WhenAnyValue(x => x.Position)
+    ///     → _dragState.Position 프로퍼티의 변경 스트림을 IObservable&lt;Point&gt;로 변환.
+    ///       ReactiveObject가 RaiseAndSetIfChanged를 호출할 때마다 새 값을 방출.
+    ///       구독 시 현재 값(기본값 Point())을 즉시 한 번 방출한다.
+    ///
+    ///   Skip(1)
+    ///     → 구독 직후 방출되는 초기값(Point())을 무시.
+    ///       드래그가 시작되기 전 초기화 상태의 빈 좌표가 처리되는 것을 방지.
+    ///
+    ///   DistinctUntilChanged()
+    ///     → 이전과 동일한 위치가 연속으로 들어올 경우 무시.
+    ///       그리드 스냅으로 인해 Position이 실제로 바뀌지 않으면 구독자를 호출하지 않음.
+    ///       Go 채널의 "값이 바뀔 때만 보낸다" 관용구와 동일한 의미.
+    ///
+    ///   Subscribe(UpdateFromDragPosition)
+    ///     → 새 위치가 확정될 때마다 TranslateTransform 갱신, 앵커 재계산,
+    ///       ConnectionChangedEvent 발행을 순서대로 수행.
+    ///
+    ///   DisposeWith(_disposables)
+    ///     → Node가 소멸할 때 구독을 자동 해제. 메모리 누수 방지.
+    ///        Go의 defer cancel() 패턴과 동일한 역할.
+    /// </summary>
     public class Node : BaseNode
     {
         #region Dependency Properties
@@ -21,14 +83,14 @@ namespace DagEdit
             get => GetValue(ParentControlProperty);
             set => SetValue(ParentControlProperty, value);
         }
-        
+
         public static readonly DirectProperty<Node, Guid> IdProperty =
             AvaloniaProperty.RegisterDirect<Node, Guid>(
                 nameof(Id),
                 o => o.Id,
                 (o, v) => o.Id = v);
 
-        // TODO 중요. 아래 내용 잊지말자. 기존 Node(GUID) 와 StartNode(int type), EndNode(int type) 는 다른 ID 쳬계를 가져갈려고 한다. 
+        // TODO 중요. 아래 내용 잊지말자. 기존 Node(GUID) 와 StartNode(int type), EndNode(int type) 는 다른 ID 쳬계를 가져갈려고 한다.
         // Id 추가 BaseNode 에 않넣는 이유는 StartNode, EndNode 는 다른 ID 체계로 사용할려고 한다.
         private Guid _id;
 
@@ -42,32 +104,52 @@ namespace DagEdit
 
         #region fields
 
-        // Node 의 움직임을 위해
-        private readonly IDisposable _disposable;
-        private readonly TranslateTransform _translateTransform = new TranslateTransform();
-        private Point _initialPointerPosition; // 드래그 시작 시 마우스 포인터의 위치
-        private Point _initialNodePosition; // 드래그 시작 시 노드의 위치
-        private Point _temporaryNewPosition; // 노드의 임시 위치
-        private Vector _dragAccumulator; // 드래그 동안의 누적 이동 거리
-        // TODO 이름 조정
-        private const int GridCellSize = 15; // 그리드 셀 크기, 필요에 따라 조정
+        // ── 드래그 상태 ──────────────────────────────────────────────────────
+        // _dragState: 드래그 중인 절대 위치(Point)를 보관하는 ReactiveObject.
+        //   Position 이 바뀔 때마다 아래 WhenAnyValue 체인이 반응한다.
+        private readonly NodeDragState _dragState = new();
+
+        // _disposables: 모든 Rx 구독을 수명 관리한다.
+        //   Node가 Dispose될 때 일괄 해제 → 메모리 누수 방지.
+        private readonly CompositeDisposable _disposables = new();
+
+        private readonly TranslateTransform _translateTransform = new();
+        private Point _initialPointerPosition;  // 드래그 시작 시 포인터 위치
+        private Point _initialNodePosition;     // 드래그 시작 시 노드 위치
+        private Vector _dragAccumulator;         // 그리드 스냅을 위한 누적 이동량
+        private Point _temporaryNewPosition;    // 그리드 스냅 후 확정된 새 위치
+
+        private const int GridCellSize = 15;
 
         #endregion
 
-        //TODO Node 삭제되는 것도 신경써야 한다.
         #region Constructor
 
         public Node()
         {
             Focusable = true;
             RenderTransform = _translateTransform;
-            _disposable = ParentControlProperty.Changed.Subscribe(HandleParentControlChanged);
+
+            // ── ParentControl 변경 감지 ──────────────────────────────────────
+            ParentControlProperty.Changed
+                .Subscribe(HandleParentControlChanged)
+                .DisposeWith(_disposables);
+
+            // ── WhenAnyValue: 드래그 위치 변경 → 부수 효과 처리 ─────────────
+            //
+            // _dragState.Position이 변경될 때마다 이 체인이 실행된다.
+            // HandlePointerMoved는 그리드 스냅 계산과 위치 확정만 담당하고,
+            // 실제 렌더링·앵커·이벤트 처리는 이 체인이 반응형으로 수행한다.
+            _dragState
+                .WhenAnyValue(x => x.Position)
+                .Skip(1)                    // 구독 시 방출되는 기본값(Point()) 무시
+                .DistinctUntilChanged()     // 그리드 스냅으로 인한 중복 값 필터
+                .Subscribe(UpdateFromDragPosition)
+                .DisposeWith(_disposables);
         }
 
         public Node(Point location) : this()
         {
-            // 생성자에서만 id 설정하도록 하였음.
-            //_id = Guid.NewGuid();
             Location = location;
             (SourceAnchor, TargetAnchor) = FindAnchors(location);
         }
@@ -101,7 +183,7 @@ namespace DagEdit
 
         #endregion
 
-        #region Evnet Handlers
+        #region Event Handlers
 
         protected override void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
@@ -111,14 +193,11 @@ namespace DagEdit
 
             if (args.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
-                //Focus();
                 args.Pointer.Capture(this);
                 Debug.Print("Dragging Start");
-                // 드래그 시작 시의 마우스 포인터 위치와 노드의 현재 위치를 저장.
                 _initialPointerPosition = args.GetPosition(ParentControl);
-                _initialNodePosition = this.Location; // 현재 노드의 위치를 초기 위치로 설정
-                // 여기서 초기화 시켜주는 것이 바람직할 것같다.
-                _dragAccumulator = new Vector(); // 드래그 누적 거리 초기화
+                _initialNodePosition = Location;
+                _dragAccumulator = new Vector();
                 IsDragging = true;
                 args.Handled = true;
             }
@@ -130,71 +209,94 @@ namespace DagEdit
                 throw new InvalidOperationException(
                     "Node cannot move because a DAGlynEditorCanvas parent is not found.");
 
-            if (!IsDragging || !this.Equals(args.Pointer.Captured)) return;
+            if (!IsDragging || !Equals(args.Pointer.Captured))
+            {
+                return;
+            }
 
             Debug.Print("Dragging...");
+
+            // ── 1. 그리드 스냅 계산 ──────────────────────────────────────────
+            // 포인터 이동량을 누적하여 GridCellSize(15px) 단위로만 이동을 확정한다.
             var currentPointerPosition = args.GetPosition(ParentControl);
-            // 드래그 시작 위치와 현재 포인터 위치의 차이(delta)를 계산
             var delta = currentPointerPosition - _initialPointerPosition;
-            // 노드의 새 위치를 드래그 시작 시 노드 위치 + delta로 계산
             _dragAccumulator += delta;
-            // 그리드 크기에 맞추어 효과적인 델타 계산
+
             var effectiveDelta = new Vector(
                 Math.Floor(_dragAccumulator.X / GridCellSize) * GridCellSize,
                 Math.Floor(_dragAccumulator.Y / GridCellSize) * GridCellSize);
 
             if (effectiveDelta != Vector.Zero)
             {
+                // 적용된 만큼만 누적량에서 차감
+                _dragAccumulator -= effectiveDelta;
+
+                // ── 2. 새 위치 확정 → WhenAnyValue 체인 트리거 ─────────────
+                // _translateTransform은 초기 위치 기준의 오프셋을 추적한다.
                 _translateTransform.X += effectiveDelta.X;
                 _translateTransform.Y += effectiveDelta.Y;
-                _dragAccumulator -= effectiveDelta; // 적용된 델타만큼 누적 이동 거리 조정
-                // 임시 새 위치 계산
+
                 _temporaryNewPosition = new Point(
                     _initialNodePosition.X + _translateTransform.X,
                     _initialNodePosition.Y + _translateTransform.Y);
+
+                // Position 설정 → _dragState.WhenAnyValue 체인이 반응한다.
+                // (TranslateTransform은 이미 위에서 갱신했으므로 체인에서는 앵커/이벤트만 처리)
+                _dragState.Position = _temporaryNewPosition;
             }
 
-            _initialPointerPosition = currentPointerPosition; // 포인터 위치 업데이트
-            // TODO oldData 기록할 필요 있을듯
-            // 아래와 같이 null check는 해야 하지 않을까??
-            Point? oldSourceAnchor = SourceAnchor;
-            Point? oldTargetAnchor = TargetAnchor;
-
-            (SourceAnchor, TargetAnchor) = FindAnchors(_temporaryNewPosition);
-            // TODO 이렇게 event 에 또 event 를 계속 보내는 것 생각해보자.
-            RaiseConnectionChangedEvent(_id, this.Location, SourceAnchor, oldSourceAnchor, TargetAnchor,
-                oldTargetAnchor,
-                DagItemsType.RunnerNode);
-            
+            _initialPointerPosition = currentPointerPosition;
             args.Handled = true;
         }
 
         protected override void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
         {
-            if (this.ParentControl == null)
+            if (ParentControl == null)
                 throw new InvalidOperationException(
                     "Node cannot move because a DAGlynEditorCanvas parent is not found.");
 
-            if (sender != null && this.Equals(args.Pointer.Captured) && this.IsDragging)
+            if (sender != null && Equals(args.Pointer.Captured) && IsDragging)
             {
                 Debug.Print("Finish");
                 args.Pointer.Capture(null);
-                this.IsDragging = false;
+                IsDragging = false;
                 args.Handled = true;
             }
         }
-        
+
         private void HandleParentControlChanged(AvaloniaPropertyChangedEventArgs e)
         {
             if (e.NewValue is DagEditorCanvas editorCanvas)
+            {
                 ParentControl = editorCanvas;
+            }
             else
+            {
                 ParentControl = this.GetParentVisualOfType<DagEditorCanvas>();
+            }
         }
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// WhenAnyValue 구독자: 새 드래그 위치가 확정될 때 호출된다.
+        /// TranslateTransform은 HandlePointerMoved에서 이미 갱신되었으므로,
+        /// 이 메서드는 앵커 재계산과 ConnectionChangedEvent 발행만 담당한다.
+        /// </summary>
+        private void UpdateFromDragPosition(Point newPosition)
+        {
+            Point? oldSourceAnchor = SourceAnchor;
+            Point? oldTargetAnchor = TargetAnchor;
+            (SourceAnchor, TargetAnchor) = FindAnchors(newPosition);
+
+            RaiseConnectionChangedEvent(
+                _id, Location,
+                SourceAnchor, oldSourceAnchor,
+                TargetAnchor, oldTargetAnchor,
+                DagItemsType.RunnerNode);
+        }
 
         private void NodeMove(Point point)
         {
@@ -209,7 +311,7 @@ namespace DagEdit
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
-            this.ParentControl = this.GetParentVisualOfType<DagEditorCanvas>();
+            ParentControl = this.GetParentVisualOfType<DagEditorCanvas>();
         }
 
         public bool CanNodeMove()
@@ -217,46 +319,37 @@ namespace DagEdit
             var parentControl = this.GetParentVisualOfType<DagEditorCanvas>();
             if (parentControl != null)
             {
-                this.ParentControl = parentControl;
+                ParentControl = parentControl;
                 return true;
             }
             else
             {
-                this.ParentControl = null;
+                ParentControl = null;
                 return false;
             }
         }
 
         public void SetLocation(Point location)
         {
-            this.Location = location;
+            Location = location;
         }
 
-        // TODO 살펴보자.
+        /// <inheritdoc />
         public override void Dispose(bool disposing)
         {
-            _disposable.Dispose();
+            if (disposing)
+            {
+                _disposables.Dispose();
+            }
+
             base.Dispose(disposing);
         }
 
-        // TODO (Thinking!!) Node 의 width 와 height 는 고정된걸로 처리한다.
-        // Node 의 width, height 는 일단 값을 axaml 에 넣어둔다. 향후 이게 정해지면
-        // cs 코드에 넣을 예정임. 현재는 Constants 에 넣어 놓기만 해놓았다.
         private (Point sourceAnchor, Point targetAnchor) FindAnchors(Point location)
         {
-            var offset = location;
-
-            var sourceAnchorX = offset.X + Constants.NodeWidth;
-            var sourceAnchorY = offset.Y + Constants.NodeHeight / 2;
-
-            var targetAnchorX = offset.X;
-            var targetAnchorY = offset.Y + Constants.NodeHeight / 2;
-
-            Point sourceAnchor = new Point(sourceAnchorX, sourceAnchorY);
-            Point targetAnchor = new Point(targetAnchorX, targetAnchorY);
-
+            var sourceAnchor = new Point(location.X + Constants.NodeWidth, location.Y + (Constants.NodeHeight / 2));
+            var targetAnchor = new Point(location.X, location.Y + (Constants.NodeHeight / 2));
             return (sourceAnchor, targetAnchor);
         }
-        
     }
 }

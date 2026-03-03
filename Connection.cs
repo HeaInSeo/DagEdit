@@ -407,7 +407,9 @@ namespace DagEdit
         private static Vector GetCircleModeOffset(Vector delta, Size offset)
         {
             if (delta.SquaredLength > 0d)
+            {
                 delta.Normalize();
+            }
 
             return new Vector(delta.X * offset.Width, delta.Y * offset.Height);
         }
@@ -415,7 +417,9 @@ namespace DagEdit
         private static Vector GetRectangleModeOffset(Vector delta, Size offset)
         {
             if (delta.SquaredLength > 0d)
+            {
                 delta.Normalize();
+            }
 
             var angle = Math.Atan2(delta.Y, delta.X);
 

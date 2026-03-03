@@ -44,7 +44,9 @@ namespace DagEdit
         {
             // source가 Visual 타입이 아니면, 조건에 맞지 않으므로 바로 false 반환
             if (source is not Visual targetElement)
+            {
                 return false;
+            }
 
             // 이벤트로부터 필요한 정보 추출
             var pointerProperties = eventArgs.GetCurrentPoint(targetElement).Properties;

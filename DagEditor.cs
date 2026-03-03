@@ -291,7 +291,9 @@ namespace DagEdit
                 {
                     IsPanning = false;
                     if (this.Equals(args.Pointer.Captured))
+                    {
                         args.Pointer.Capture(null);
+                    }
                     _IsRightBtnClicked = false;
                     return;
                 }
@@ -312,9 +314,14 @@ namespace DagEdit
                     SourceAnchor = args.SourceAnchor.Value;
                     // TODO 아래 코드 살펴봐야 함.
                     if (args.Offset.HasValue)
+                    {
                         TargetAnchor = new Point(SourceAnchor.Value.X + args.Offset.Value.X,
                             SourceAnchor.Value.Y + args.Offset.Value.Y);
-                    else TargetAnchor = SourceAnchor;
+                    }
+                    else
+                    {
+                        TargetAnchor = SourceAnchor;
+                    }
                 }
                 else
                 {
@@ -335,7 +342,9 @@ namespace DagEdit
             if (IsVisiblePendingConnection)
             {
                 if (args.Offset.HasValue)
+                {
                     TargetAnchor = new Point(args.Offset.Value.X, args.Offset.Value.Y);
+                }
                 args.Handled = true;
             }
         }
@@ -420,7 +429,10 @@ namespace DagEdit
             if (args.Source is Node node && EditorGestures.Delete.Matches(args))
             {
                 var r = Dag.DelDagNodeItem(node.Id);
-                if (!r) Debug.WriteLine("Failed");
+                if (!r)
+                {
+                    Debug.WriteLine("Failed");
+                }
                 args.Handled = true;
             }
         }
@@ -438,7 +450,11 @@ namespace DagEdit
         // 외부에 바인딩해야 해야 함. 입력 파라미터는 없어야 함.
         public void AddNode()
         {
-            if (ContextMenuPoint is null) return;
+            if (ContextMenuPoint is null)
+            {
+                return;
+            }
+
             Dag.AddDagNodeItem(ContextMenuPoint);
         }
 
@@ -453,7 +469,9 @@ namespace DagEdit
 
             topLayer = e.NameScope.Find<Canvas>("PART_TopLayer");
             if (topLayer == null)
+            {
                 throw new InvalidOperationException("PART_TopLayer cannot be found in the template.");
+            }
         }
 
         /// <inheritdoc />

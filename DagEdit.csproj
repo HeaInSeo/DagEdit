@@ -6,6 +6,12 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- 정적 분석 설정 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+    <!-- 기존 코드 위반으로 인해 경고를 에러로 처리하지 않음. 점진적으로 0건 달성 목표. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
 
@@ -15,13 +21,27 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.0" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.0" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.0" />
+    <!--PrivateAssets="all": 이 패키지의 의존성이 참조 프로젝트(Tests, Benchmarks)로 전파되지 않도록 격리-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="ReactiveUI" Version="19.6.1" />
     <PackageReference Include="System.Reactive" Version="6.0.0" />
+    <!-- 정적 분석기 -->
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.507">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 
   <ItemGroup>
     <UpToDateCheckInput Remove="Styles.axaml" />
+  </ItemGroup>
+
+  <!-- tests/ 와 benchmarks/ 서브디렉토리는 별도 프로젝트이므로 메인 프로젝트에서 명시적으로 제외 -->
+  <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
+    <Compile Remove="benchmarks/**/*.cs" />
   </ItemGroup>
 </Project>
