@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StyleInclude Source="/Connector.axaml" />
     <StyleInclude Source="/Node.axaml" />
-    <StyleInclude Source="/PendingConnection.axaml" />
+
     <StyleInclude Source="/DagEditor.axaml" />
     <!--<StyleInclude Source="/EditorMenuItem.axaml" /> -->
 </Styles>

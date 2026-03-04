@@ -143,3 +143,48 @@
   - 파일 탐색 및 `.gitignore` 관리 용이
   - 미래 확장 시 (`tests/DagEdit.IntegrationTests/` 등) 구조 명확
 - **기대 효과**: 장기적 유지보수성 향상
+
+---
+
+### [DEC-012] PendingConnection AXAML 완전 제거 + ReactiveUI 전환
+- **날짜**: 2026-03-04
+- **결정**:
+  1. `PendingConnection.axaml` 삭제 → 스타일·템플릿을 C# `FuncControlTemplate`으로 완전 이관
+  2. `PendingConnectionState : ReactiveObject` 신규 생성 (`NodeDragState` 패턴 적용)
+  3. `IDisposable _disposable` → `CompositeDisposable _disposables` 전환
+  4. `AvaloniaProperty.GetObservable()` + `WhenAnyValue` + `DisposeWith` 체인으로 모든 상태 반응형 처리
+- **수정된 버그**:
+  - B-1: `_disposable` 두 번 덮어쓰기 → 첫 번째 구독 영구 누수 (Critical)
+  - B-2: `ViewportLocationProperty.Register<DagEditorCanvas, Point>` 오너 타입 오류
+  - B-3: `SetFillAndStrokePropertyChanged`의 `Sender is Connection` 체크 → dead code (sender는 항상 `PendingConnection`)
+- **대안**:
+  - AXAML 유지 + C# 버그 수정만: 템플릿 유지비용, XAML-C# 이중 관리 부담 잔존
+  - Avalonia `GetObservable(Property)` 직접 사용 (상태 클래스 없이): 테스트 용이성 낮음, NodeDragState 패턴 불일치
+- **이유**:
+  - "XAML to C# Migration" 원칙: 컨트롤 임베딩 용이성 + 단일 파일 관리
+  - `PendingConnectionState` 분리: 향후 스냅-투-커넥터, 연결 가능 여부 검사 등 확장점 확보
+  - `CompositeDisposable`은 구독 수 증가에 무관하게 안전한 수명 관리를 보장
+  - `TemplateProperty.OverrideDefaultValue<PendingConnection>(BuildTemplate())`: 런타임 스타일 오버라이드 없이 C# 기본값으로 고정
+- **데이터 흐름**:
+  ```
+  DagEditor (AXAML 바인딩) → PendingConnection.SourceAnchor (AvaloniaProperty)
+    → GetObservable() → _state.SourceAnchor (ReactiveObject)
+      → WhenAnyValue.Skip(1).DistinctUntilChanged()
+        → _partConnection.Source  (OnApplyTemplate 이후)
+  ```
+- **기대 효과**:
+  - 메모리 누수 3건 즉시 해소
+  - 반응형 파이프라인 일관성 (Node.cs, PendingConnection.cs 동일 패턴)
+  - `PendingConnectionState` 단독 단위 테스트 가능
+- **검증 결과**: 빌드 0 Error / 295 Warning (기존 동일), 32/32 테스트 통과, BDN dry-run 24 benchmarks 성공
+
+---
+
+### [DEC-013] VirtualCanvas_ref 빌드 제외
+- **날짜**: 2026-03-04
+- **결정**: `DagEdit.csproj`에 `<Compile Remove="VirtualCanvas_ref/**/*.cs" />` 추가
+- **이유**:
+  - `VirtualCanvas_ref/src/` 는 WPF 의존 참조 코드 (`System.Windows.*`)
+  - Avalonia 프로젝트에서 컴파일 시 다수의 CS0234/CS0246 에러 발생
+  - 심볼릭 링크 특성상 글로브 패턴이 자동으로 파일을 포함하게 됨
+- **영향**: 참조 분석(VirtualCanvas 이식 로드맵)은 파일 직접 열람으로 수행 — 빌드에 포함 불필요

@@ -138,6 +138,30 @@
 
 ---
 
+### [Step 10] PendingConnection.cs 리팩토링 (ReactiveUI 전환 + AXAML 완전 제거)
+- **날짜**: 2026-03-04
+- **수행 내용**:
+  - `PendingConnectionState.cs` 신규 생성: `ReactiveObject` 기반, `SourceAnchor`/`TargetAnchor` 프로퍼티 (`NodeDragState` 패턴 적용)
+  - `PendingConnection.cs` 완전 재작성:
+    - B-1 수정: `IDisposable _disposable` 두 번 덮어쓰기 → `CompositeDisposable _disposables`
+    - B-2 수정: `ViewportLocationProperty.Register<DagEditorCanvas, Point>` → `Register<PendingConnection, Point>`
+    - B-3 수정: dead code `SetFillAndStrokePropertyChanged` 제거 (sender 타입 오판)
+    - static constructor: 모든 default 값 이관 (IsHitTestVisible, EnablePreview, EnableSnapping, StrokeThickness, Direction)
+    - `BuildTemplate()`: `FuncControlTemplate<PendingConnection>` — TemplateLayoutCanvas + Connection
+    - 생성자: `GetObservable(SourceAnchorProperty)` → `_state.SourceAnchor`, ViewportLocation → TranslateTransform, SetFillAndStroke → `_partConnection`
+    - `OnApplyTemplate`: PART_Connection 참조 획득 + `_state.WhenAnyValue.Skip(1).DistinctUntilChanged()` 체인
+  - `PendingConnection.axaml` 삭제 (C#으로 완전 이관)
+  - `Styles.axaml`: `<StyleInclude Source="/PendingConnection.axaml" />` 제거
+  - `DagEdit.csproj`: `<Compile Remove="VirtualCanvas_ref/**/*.cs" />` 추가 (WPF 의존 코드 빌드 제외)
+- **검증 지표**:
+  - 빌드: **0 Error, 295 Warning** (기존 동일, 신규 에러/경고 없음)
+  - 테스트: **32/32 통과** (기존 회귀 없음)
+  - 벤치마크: **BDN dry-run 24 benchmarks 성공** (exit code 0, 4m39s)
+- **결정 참조**: DEC-012 (AXAML 제거 + ReactiveUI), DEC-013 (VirtualCanvas_ref 빌드 제외)
+- **다음 Rx 작업**: DagEditorViewModel 분리, ReactiveList 도입
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
@@ -145,7 +169,7 @@
 | High | StyleCop 경고 0건 달성 (295 → 0, 전체 Error 격상 가능 시점) |
 | High | `DelDagNodeItem` 해피패스 테스트 (Node 인스턴스 분리 필요) |
 | Medium | 커버리지 목표 설정 (목표: 80% 이상, 현재 4%) |
-| Medium | ReactiveUI: PendingConnection 드래그 Observable.FromEventPattern 전환 |
+| Medium | ~~ReactiveUI: PendingConnection 드래그 Observable.FromEventPattern 전환~~ ✅ Step 10 완료 |
 | Medium | ReactiveUI: DagEditorViewModel 분리 |
 | Low | Zoom 기능 구현 후 해당 테스트 추가 |
 | Low | Connection 삭제 기능 구현 후 테스트 추가 |

@@ -39,9 +39,11 @@
     <UpToDateCheckInput Remove="Styles.axaml" />
   </ItemGroup>
 
-  <!-- tests/ 와 benchmarks/ 서브디렉토리는 별도 프로젝트이므로 메인 프로젝트에서 명시적으로 제외 -->
+  <!-- tests/, benchmarks/, VirtualCanvas_ref/ 는 별도 프로젝트/참조용이므로 메인 프로젝트에서 명시적 제외 -->
+  <!-- VirtualCanvas_ref: WPF 의존 참조 코드 — Avalonia 프로젝트에서 컴파일 불가 -->
   <ItemGroup>
     <Compile Remove="tests/**/*.cs" />
     <Compile Remove="benchmarks/**/*.cs" />
+    <Compile Remove="VirtualCanvas_ref/**/*.cs" />
   </ItemGroup>
 </Project>
