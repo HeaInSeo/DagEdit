@@ -7,8 +7,7 @@ using Xunit;
 /// <see cref="Dag"/> 클래스의 단위 테스트.
 ///
 /// 테스트 설계 원칙:
-/// - Dag() 생성자는 테스트용 노드 3개를 자동으로 추가한다 (TODO: 추후 제거 예정).
-///   따라서 초기 Count는 3이며, 각 테스트는 이를 기준으로 검증한다.
+/// - Dag() 생성자는 빈 상태로 시작한다 (seed data 없음).
 /// - DagItems.CreateDagNode()는 Node UI 컨트롤을 생성하지 않으므로
 ///   Avalonia 초기화 없이 [Fact]로 실행 가능하다.
 /// - DelDagNodeItem()의 해피패스 테스트는 NodeInstance 설정이 필요하여
@@ -177,6 +176,7 @@ public class DagTests
         // 단순 모델 레이어 테스트에서는 항상 false를 반환한다.
         // 해피패스 테스트는 UI와 통합된 [AvaloniaFact] 테스트로 작성 예정.
         var dag = new Dag();
+        dag.AddDagNodeItem(new Point(10, 10)); // 테스트 전제: 노드 1개 명시적 추가
         var firstNodeId = dag.DAGItemsSource[0].NodeItem!.NodeId;
 
         var result = dag.DelDagNodeItem(firstNodeId);
@@ -187,19 +187,10 @@ public class DagTests
     // ─── 생성자 초기 상태 ─────────────────────────────────────
 
     [Fact]
-    public void Constructor_AddsThreeInitialTestNodes()
+    public void Constructor_StartsEmpty()
     {
         var dag = new Dag();
 
-        var nodeCount = 0;
-        foreach (var item in dag.DAGItemsSource)
-        {
-            if (item.NodeItem != null)
-            {
-                nodeCount++;
-            }
-        }
-
-        Assert.Equal(3, nodeCount);
+        Assert.Equal(0, dag.DAGItemsSource.Count);
     }
 }

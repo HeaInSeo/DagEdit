@@ -63,6 +63,9 @@ namespace DagEdit
         protected BaseNode()
         {
             InitializeSubscriptions();
+            // 비주얼 트리에서 제거될 때 Rx 구독을 스스로 해제한다.
+            // Dag 같은 모델 계층이 직접 Dispose를 호출할 필요 없게 만드는 장치.
+            this.Unloaded += (_, _) => Dispose();
         }
 
         #endregion

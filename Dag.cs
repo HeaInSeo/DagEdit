@@ -16,7 +16,6 @@ namespace DagEdit
 
         public ReadOnlyObservableCollection<DagItems> DAGItemsSource => _readOnlyItems;
 
-        // TODO 이거 내용 추가적으로 없애주어야함. 테스트로 넣어둠.
         public Dag()
         {
             _dagItemsSource
@@ -24,11 +23,6 @@ namespace DagEdit
                 .Bind(out _readOnlyItems)
                 .Subscribe()
                 .DisposeWith(_disposables);
-
-            // 테스트 위해 넣어둠.
-            AddDagNodeItem(new Point(10, 10));
-            AddDagNodeItem(new Point(200, 280));
-            AddDagNodeItem(new Point(300, 300));
         }
 
         public bool AddDagConnectionItem(Point? source, Guid? sourceNodeId, Point? target, Guid? targetNodeId)
@@ -57,7 +51,6 @@ namespace DagEdit
             return true;
         }
 
-        // TODO BaseNode 와 Node 의 Dispose 살펴봐야 함.
         // TODO 일단 간단히 Node만 삭제했는데 사실 Connection 도 삭제 해야 한다.
         public bool DelDagNodeItem(Guid? NodeId)
         {
@@ -68,10 +61,11 @@ namespace DagEdit
                 // NodeInstance 가 null 인 상태에서 삭제하는 것은 위험하다.
                 if (itemToDelete.NodeItem!.NodeInstance != null)
                 {
-                    itemToDelete.NodeItem.NodeInstance.Hide(); // 가시성 제거
-                    itemToDelete.NodeItem.NodeInstance.Dispose(true); // Dispose
-                    itemToDelete.NodeItem.NodeInstance = null; // GC 를 위한 참조 해제
+                    // SourceList에서 제거 → Avalonia가 비주얼 트리에서 컨테이너를 제거
+                    // → BaseNode.Unloaded 핸들러가 Node.Dispose()를 직접 호출
+                    // 모델 계층이 UI lifecycle을 직접 건드리지 않는다.
                     _dagItemsSource.Remove(itemToDelete);
+                    itemToDelete.NodeItem.NodeInstance = null; // GC 를 위한 참조 해제
                     return true; // 삭제 성공
                 }
             }
