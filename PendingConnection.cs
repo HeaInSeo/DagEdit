@@ -62,7 +62,7 @@ namespace DagEdit
             Shape.StrokeThicknessProperty.AddOwner<PendingConnection>();
 
         public static readonly StyledProperty<bool> EnableSnappingProperty =
-            AvaloniaProperty.Register<PendingConnection, bool>(nameof(EnableSnapping));
+            AvaloniaProperty.Register<PendingConnection, bool>(nameof(EnableSnapping), true);
 
         public static readonly StyledProperty<ConnectionDirection> DirectionProperty =
             Connection.DirectionProperty.AddOwner<PendingConnection>();
@@ -171,9 +171,11 @@ namespace DagEdit
         static PendingConnection()
         {
             // AXAML <Setter> 이관: 런타임 스타일에 덮어쓰일 수 없는 metadata 기본값.
+            // EnablePreviewProperty / EnableSnappingProperty 는 Register<PendingConnection,...> 로 선언되어
+            // 있으므로 PendingConnection metadata가 Register 시점에 이미 설정된다.
+            // OverrideDefaultValue<PendingConnection> 를 재호출하면 "Metadata is already set" 예외 발생 →
+            // 제거하고 defaultValue를 Register 호출부에서 직접 지정한다.
             IsHitTestVisibleProperty.OverrideDefaultValue<PendingConnection>(false);
-            EnablePreviewProperty.OverrideDefaultValue<PendingConnection>(false);
-            EnableSnappingProperty.OverrideDefaultValue<PendingConnection>(true);
             StrokeThicknessProperty.OverrideDefaultValue<PendingConnection>(3.0);
             DirectionProperty.OverrideDefaultValue<PendingConnection>(ConnectionDirection.Forward);
 
