@@ -180,6 +180,17 @@
 
 ---
 
+### [DEC-014] SourceAnchor/TargetAnchor 타입 계약 변경: Point? → Point
+- **날짜**: 2026-03-05
+- **결정**: `DagEditor.SourceAnchorProperty`, `TargetAnchorProperty`를 `Point?` → `Point`로 변경
+- **이유**:
+  - null의 의미("연결 없음")를 `IsVisiblePendingConnection = false`로 분리 표현하여 단일 책임 명확화
+  - `Point?` → `Point` 전환으로 바인딩 경로에서 nullable 역참조 가드 제거 가능
+  - PendingConnection 내부에서 `Skip(1)` 제거 후 첫 프레임 anchor가 `default(Point)`로 초기화되어도 안전 (IsVisible=false이면 렌더링 안 됨)
+- **상태 계약**: `IsVisiblePendingConnection = true` → SourceAnchor/TargetAnchor 유효 / `false` → 값 무시
+
+---
+
 ### [DEC-013] VirtualCanvas_ref 빌드 제외
 - **날짜**: 2026-03-04
 - **결정**: `DagEdit.csproj`에 `<Compile Remove="VirtualCanvas_ref/**/*.cs" />` 추가
