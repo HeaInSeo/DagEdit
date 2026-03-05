@@ -40,13 +40,13 @@ namespace DagEdit
             // '파일(_F)' 메뉴 아이템 생성
             var fileMenuItem = new EditorMenuItem
             {
-                Header = "바보(_F)"
+                Header = "노드(_N)"
             };
 
             // '새로 만들기' 메뉴 아이템 생성
             var newMenuItem = new EditorMenuItem
             {
-                Header = "_새로 멍충이 만들기",
+                Header = "새 노드 만들기(_N)",
                 InputGesture = new KeyGesture(Key.N, KeyModifiers.Control),
                 HotKey = new KeyGesture(Key.N, KeyModifiers.Control),
             };
