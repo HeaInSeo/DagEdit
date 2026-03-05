@@ -162,15 +162,73 @@
 
 ---
 
+### [Step 11] DagEditorViewModel 분리 + DynamicData SourceList 전환
+- **날짜**: 2026-03-05
+- **수행 내용**:
+  - `DagEditorViewModel.cs` 신규: `sealed ReactiveObject`, Dag 소유, Items 노출
+  - `Dag.cs`: `AvaloniaList<DagItems>` → `DynamicData.SourceList<DagItems>` 전환, `IDisposable` 구현
+  - `DagEditor.cs`: `DataContext = Dag` → `DataContext = DagEditorViewModel`
+  - `DagEditor.axaml`: `x:DataType=DagEditorViewModel`, `Binding Items`
+  - Dag 생성자 seed data 제거 (빈 상태로 시작)
+  - `BaseNode`: `Unloaded += Dispose()` 자기 해제 등록
+  - `DelDagNodeItem`: `.Hide()/.Dispose(true)` 직접 호출 제거 → SourceList.Remove() → Unloaded 경로
+- **검증 지표**: 32/32 테스트 통과
+- **결정 참조**: DEC-014 (SourceAnchor/TargetAnchor Point?→Point 계약 변경)
+
+---
+
+### [Step 12] PendingConnection semantics 복원 + Point? 타입 불일치 해소
+- **날짜**: 2026-03-05
+- **수행 내용**:
+  - `DagEditor.SourceAnchor`/`TargetAnchor`: `Point?` → `Point` (nullable 제거)
+  - "연결 없음" 신호를 `IsVisiblePendingConnection = false`로 명확히 분리
+  - `PendingConnection`: `Skip(1)` 제거 (첫 프레임 anchor 초기화 보장)
+  - `_templateDisposables` 도입 (OnApplyTemplate 재호출 시 구독 누적 방지)
+- **검증 지표**: 빌드 0 Error, 32/32 테스트 통과
+
+---
+
+### [Step 13] Connection 삭제 구현
+- **날짜**: 2026-03-05
+- **수행 내용**:
+  - `Dag.AddDagConnectionItem`: Connection 추가 시 SourceNode.SourceConnections / TargetNode.TargetConnections 등록 (연결 추적)
+  - `Dag.DelDagConnectionItem`: ConnectionId로 Connection 단독 삭제
+  - `Dag.DelDagNodeItem`: 노드 삭제 전 연결된 모든 Connection 자동 삭제
+  - `DagEditorViewModel.DelDagConnectionItem`: 위임 메서드 추가
+  - `Connection`: `ConnectionId` 프로퍼티, `Focusable=true`, `OnPointerPressed → Focus()`
+  - `DagEditor.CreateContainerForItemOverride`: ConnectionId 모델→UI 전파
+  - `DagEditor.HandleKeyDown`: Connection 클릭 후 Delete 키로 삭제 분기 추가
+- **검증 지표**: 빌드 0 Error, 32/32 테스트 통과
+
+---
+
+### [Step 14] PendingConnection static ctor 크래시 수정
+- **날짜**: 2026-03-05
+- **수행 내용**:
+  - 원인: `Register<PendingConnection, T>` 선언 시 PendingConnection metadata가 즉시 등록되므로, static ctor에서 `OverrideDefaultValue<PendingConnection>` 재호출 시 `TypeInitializationException` 발생
+  - `EnablePreviewProperty.OverrideDefaultValue<PendingConnection>(false)` 제거 (bool 기본값과 동일)
+  - `EnableSnappingProperty.OverrideDefaultValue<PendingConnection>(true)` 제거 → `Register` 호출부에서 `defaultValue: true` 지정
+  - `AddOwner<PendingConnection>()` 방식(StrokeThickness, Direction)은 metadata를 별도 등록하지 않으므로 유지
+- **검증 지표**: 빌드 0 Error, 32/32 테스트 통과, startup `TypeInitializationException` 제거 확인
+
+---
+
+### [Step 15] 메뉴 텍스트 정상화
+- **날짜**: 2026-03-05
+- **수행 내용**:
+  - `EditorContextFlyout.cs`: 임시 한글 텍스트("바보", "멍충이") → 영어로 교체
+  - `"Node(_N)"`, `"Add Node(_A)"`, `"Open(_O)"`
+- **검증 지표**: 빌드 0 Error
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
 |---------|------|
 | High | StyleCop 경고 0건 달성 (295 → 0, 전체 Error 격상 가능 시점) |
 | High | `DelDagNodeItem` 해피패스 테스트 (Node 인스턴스 분리 필요) |
+| High | Connection 삭제 테스트 추가 (Step 13 구현에 대한 단위 테스트) |
 | Medium | 커버리지 목표 설정 (목표: 80% 이상, 현재 4%) |
-| Medium | ~~ReactiveUI: PendingConnection 드래그 Observable.FromEventPattern 전환~~ ✅ Step 10 완료 |
-| Medium | ReactiveUI: DagEditorViewModel 분리 |
-| Low | Zoom 기능 구현 후 해당 테스트 추가 |
-| Low | Connection 삭제 기능 구현 후 테스트 추가 |
+| Medium | Zoom 기능 구현 |
 | Low | `docs/performance_trend.png` 생성 (히스토리 3회 이상 누적 후) |
