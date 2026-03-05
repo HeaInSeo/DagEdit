@@ -169,8 +169,7 @@ namespace DagEdit
         private EventHandler<ConnectionChangedEventArgs>? _connectionChangedHandler;
 
         private bool _IsRightBtnClicked;
-        //TODO 이거 일단 private 으로 고칠지 고민한다.
-        public Dag Dag = new Dag();
+        private readonly DagEditorViewModel _viewModel = new();
 
         // TODO 아래 변수들 코드 정리시 지운다.
         private bool _isLoaded = true;
@@ -190,7 +189,7 @@ namespace DagEdit
 
         public DagEditor()
         {
-            DataContext = Dag;
+            DataContext = _viewModel;
             InitializeSubscriptions();
             _contextMenu = new EditorContextFlyout(this);
             this.Unloaded += (_, _) => this.Dispose();
@@ -360,14 +359,14 @@ namespace DagEdit
             Debug.WriteLine("Editor connection end");
             Debug.WriteLine(args.SourceAnchor.Value);
             // 선추가하는 구문.
-            Dag.AddDagConnectionItem(args.SourceAnchor, args.SourceNodeId, args.TargetAnchor, args.TargetNodeId);
+            _viewModel.AddDagConnectionItem(args.SourceAnchor, args.SourceNodeId, args.TargetAnchor, args.TargetNodeId);
             IsVisiblePendingConnection = false;
         }
 
         // TODO 이거 이렇게 하는게 맞는지 살펴보자. 좀더 효율적인 반법이 있을 것 같다.
         private void HandleConnectionChanged(object? sender, ConnectionChangedEventArgs args)
         {
-            foreach (var item in Dag.DAGItemsSource)
+            foreach (var item in _viewModel.Items)
             {
                 // node 도 변경되지만 connection 도 변경됨.
                 // dag 데이터 변경은 node 나 connection 에서는 하지 않음. 명심.
@@ -428,7 +427,7 @@ namespace DagEdit
             // TODO 현재 IsFocused 이 조건이 필요한지는 살펴봐야 함.
             if (args.Source is Node node && EditorGestures.Delete.Matches(args))
             {
-                var r = Dag.DelDagNodeItem(node.Id);
+                var r = _viewModel.DelDagNodeItem(node.Id);
                 if (!r)
                 {
                     Debug.WriteLine("Failed");
@@ -445,6 +444,7 @@ namespace DagEdit
         public void Dispose()
         {
             _disposables.Dispose();
+            _viewModel.Dispose();
         }
 
         // 외부에 바인딩해야 해야 함. 입력 파라미터는 없어야 함.
@@ -455,7 +455,7 @@ namespace DagEdit
                 return;
             }
 
-            Dag.AddDagNodeItem(ContextMenuPoint);
+            _viewModel.AddDagNodeItem(ContextMenuPoint);
         }
 
         // ContextMenu 말고 MenuFlyout 으로 해보자.
