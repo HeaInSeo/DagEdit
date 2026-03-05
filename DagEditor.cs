@@ -116,19 +116,19 @@ namespace DagEdit
             set => SetValue(PendingConnectionProperty, value);
         }
 
-        public static readonly StyledProperty<Point?> SourceAnchorProperty =
-            AvaloniaProperty.Register<DagEditor, Point?>(nameof(SourceAnchor));
+        public static readonly StyledProperty<Point> SourceAnchorProperty =
+            AvaloniaProperty.Register<DagEditor, Point>(nameof(SourceAnchor));
 
-        public Point? SourceAnchor
+        public Point SourceAnchor
         {
             get => GetValue(SourceAnchorProperty);
             set => SetValue(SourceAnchorProperty, value);
         }
 
-        public static readonly StyledProperty<Point?> TargetAnchorProperty =
-            AvaloniaProperty.Register<DagEditor, Point?>(nameof(TargetAnchor));
+        public static readonly StyledProperty<Point> TargetAnchorProperty =
+            AvaloniaProperty.Register<DagEditor, Point>(nameof(TargetAnchor));
 
-        public Point? TargetAnchor
+        public Point TargetAnchor
         {
             get => GetValue(TargetAnchorProperty);
             set => SetValue(TargetAnchorProperty, value);
@@ -314,8 +314,8 @@ namespace DagEdit
                     // TODO 아래 코드 살펴봐야 함.
                     if (args.Offset.HasValue)
                     {
-                        TargetAnchor = new Point(SourceAnchor.Value.X + args.Offset.Value.X,
-                            SourceAnchor.Value.Y + args.Offset.Value.Y);
+                        TargetAnchor = new Point(SourceAnchor.X + args.Offset.Value.X,
+                            SourceAnchor.Y + args.Offset.Value.Y);
                     }
                     else
                     {
@@ -324,8 +324,9 @@ namespace DagEdit
                 }
                 else
                 {
-                    SourceAnchor = null;
-                    TargetAnchor = null;
+                    // null 의미 없음 — IsVisiblePendingConnection = false가 "연결 없음" 신호
+                    SourceAnchor = default;
+                    TargetAnchor = default;
                 }
 
                 args.Handled = true;

@@ -160,6 +160,10 @@ namespace DagEdit
         //   WhenAnyValue 구독의 대상이다.
         private Connection? _partConnection;
 
+        // _templateDisposables: OnApplyTemplate마다 리셋되는 구독 관리.
+        //   템플릿이 재적용될 때 이전 구독을 정리해 누적을 방지한다.
+        private CompositeDisposable _templateDisposables = new();
+
         #endregion
 
         #region Static Constructor — Default Property Values
@@ -270,6 +274,10 @@ namespace DagEdit
         {
             base.OnApplyTemplate(e);
 
+            // 이전 템플릿 구독 정리 — 테마 변경 등으로 재호출 시 누적 방지(#2)
+            _templateDisposables.Dispose();
+            _templateDisposables = new CompositeDisposable();
+
             _partConnection = e.NameScope.Find<Connection>("PART_Connection");
 
             if (_partConnection == null)
@@ -284,36 +292,36 @@ namespace DagEdit
 
             // ── WhenAnyValue: _state 변경 → PART_Connection 갱신 ─────────────
             //
-            // _state.SourceAnchor / TargetAnchor가 바뀔 때마다 이 체인이 실행된다.
-            // Skip(1): 구독 시 방출되는 기본값 Point() 무시.
+            // Skip(1) 제거(#1): 구독 직후 현재 _state 값이 즉시 방출되어
+            //   partConn.Source/Target을 초기화한다.
+            //   템플릿 적용 전에 DagEditor.SourceAnchor가 이미 설정된 경우(드래그 중
+            //   ContentPresenter 지연 렌더링)에도 첫 프레임부터 정확한 좌표가 반영된다.
             // DistinctUntilChanged: 동일 값 연속 수신 시 무시 (불필요한 렌더링 방지).
             //
-            // 여기서 로컬 변수 partConn을 캡처해 null 안전성을 보장한다.
+            // 로컬 변수 partConn을 캡처해 null 안전성을 보장한다.
             var partConn = _partConnection;
 
             _state
                 .WhenAnyValue(x => x.SourceAnchor)
-                .Skip(1)
                 .DistinctUntilChanged()
                 .Subscribe(pt => partConn.Source = pt)
-                .DisposeWith(_disposables);
+                .DisposeWith(_templateDisposables);
 
             _state
                 .WhenAnyValue(x => x.TargetAnchor)
-                .Skip(1)
                 .DistinctUntilChanged()
                 .Subscribe(pt => partConn.Target = pt)
-                .DisposeWith(_disposables);
+                .DisposeWith(_templateDisposables);
 
             // ── Direction 변경 → PART_Connection 갱신 ────────────────────────
             this.GetObservable(DirectionProperty)
                 .Subscribe(dir => partConn.Direction = dir)
-                .DisposeWith(_disposables);
+                .DisposeWith(_templateDisposables);
 
             // ── StrokeThickness 변경 → PART_Connection 갱신 ──────────────────
             this.GetObservable(StrokeThicknessProperty)
                 .Subscribe(thickness => partConn.StrokeThickness = thickness)
-                .DisposeWith(_disposables);
+                .DisposeWith(_templateDisposables);
         }
 
         #endregion
@@ -322,6 +330,7 @@ namespace DagEdit
 
         public void Dispose()
         {
+            _templateDisposables.Dispose();
             _disposables.Dispose();
         }
 
