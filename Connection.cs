@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls.Shapes;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform;
 using System;
@@ -78,6 +79,8 @@ namespace DagEdit
         #region Feilds
 
         private const double BaseOffset = 100d;
+
+        public Guid ConnectionId { get; set; }
         private const double OffsetGrowthRate = 25d;
         private const double Degrees = Math.PI / 180.0d;
         private const double DefaultSpacing = 30d;
@@ -192,12 +195,10 @@ namespace DagEdit
 
         static Connection()
         {
-            // TODO 초기값 설정
-            // 이건 추후 생각하자. 이렇게 전역적으로 만들어줘야 할까? 이렇게 하는게 맞을까?
-            // 아직까지는 바뀌어야 하는 가능성이 적긴한데 고민이 되긴하다.
             StrokeThicknessProperty.OverrideDefaultValue<Connection>(3);
             StrokeProperty.OverrideDefaultValue<Connection>(Brushes.DodgerBlue);
             FillProperty.OverrideDefaultValue<Connection>(Brushes.DodgerBlue);
+            FocusableProperty.OverrideDefaultValue<Connection>(true);
 
             // AffectsGeometry
             AffectsGeometry<Connection>(
@@ -454,6 +455,13 @@ namespace DagEdit
         }
 
         #endregion
+
+        /// <inheritdoc />
+        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        {
+            base.OnPointerPressed(e);
+            Focus();
+        }
 
         /// <inheritdoc />
         protected override Geometry CreateDefiningGeometry()

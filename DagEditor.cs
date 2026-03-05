@@ -422,13 +422,26 @@ namespace DagEdit
             }
         }
 
-        // node 에서 bubble 로 올라옴.
+        // node / connection 에서 bubble 로 올라옴.
         private void HandleKeyDown(object? sender, KeyEventArgs args)
         {
-            // TODO 현재 IsFocused 이 조건이 필요한지는 살펴봐야 함.
-            if (args.Source is Node node && EditorGestures.Delete.Matches(args))
+            if (!EditorGestures.Delete.Matches(args))
+            {
+                return;
+            }
+
+            if (args.Source is Node node)
             {
                 var r = _viewModel.DelDagNodeItem(node.Id);
+                if (!r)
+                {
+                    Debug.WriteLine("Failed");
+                }
+                args.Handled = true;
+            }
+            else if (args.Source is Connection connection)
+            {
+                var r = _viewModel.DelDagConnectionItem(connection.ConnectionId);
                 if (!r)
                 {
                     Debug.WriteLine("Failed");
@@ -504,6 +517,7 @@ namespace DagEdit
                         var connection = new Connection(dagItems.ConnectionItem.SourceAnchor.Value,
                             dagItems.ConnectionItem.TargetAnchor.Value);
 
+                        connection.ConnectionId = dagItems.ConnectionItem.ConnectionId!.Value;
                         dagItems.ConnectionItem.ConnectionInstance = connection;
 
                         return connection;

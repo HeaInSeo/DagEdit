@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -34,7 +35,29 @@ namespace DagEdit
 
             var newItem = new DagItems();
             newItem.CreateDagConnection(source, sourceNodeId, target, targetNodeId);
+
+            var connection = newItem.ConnectionItem!;
+            var sourceNode = _dagItemsSource.Items
+                .FirstOrDefault(i => i.NodeItem?.NodeId == sourceNodeId)?.NodeItem;
+            var targetNode = _dagItemsSource.Items
+                .FirstOrDefault(i => i.NodeItem?.NodeId == targetNodeId)?.NodeItem;
+            sourceNode?.SourceConnections.Add(connection);
+            targetNode?.TargetConnections.Add(connection);
+
             _dagItemsSource.Add(newItem);
+            return true;
+        }
+
+        public bool DelDagConnectionItem(Guid? connectionId)
+        {
+            var itemToDelete = _dagItemsSource.Items
+                .FirstOrDefault(i => i.ConnectionItem?.ConnectionId == connectionId);
+            if (itemToDelete == null)
+            {
+                return false;
+            }
+
+            _dagItemsSource.Remove(itemToDelete);
             return true;
         }
 
@@ -51,7 +74,6 @@ namespace DagEdit
             return true;
         }
 
-        // TODO 일단 간단히 Node만 삭제했는데 사실 Connection 도 삭제 해야 한다.
         public bool DelDagNodeItem(Guid? NodeId)
         {
             // 일부러 여기서는 ?. 안씀. 명시적으로 null 체크 함.
@@ -61,6 +83,15 @@ namespace DagEdit
                 // NodeInstance 가 null 인 상태에서 삭제하는 것은 위험하다.
                 if (itemToDelete.NodeItem!.NodeInstance != null)
                 {
+                    // 연결된 모든 Connection 먼저 삭제
+                    var connectionsToRemove = new List<DagConnection>();
+                    connectionsToRemove.AddRange(itemToDelete.NodeItem.SourceConnections);
+                    connectionsToRemove.AddRange(itemToDelete.NodeItem.TargetConnections);
+                    foreach (var conn in connectionsToRemove)
+                    {
+                        DelDagConnectionItem(conn.ConnectionId);
+                    }
+
                     // SourceList에서 제거 → Avalonia가 비주얼 트리에서 컨테이너를 제거
                     // → BaseNode.Unloaded 핸들러가 Node.Dispose()를 직접 호출
                     // 모델 계층이 UI lifecycle을 직접 건드리지 않는다.
