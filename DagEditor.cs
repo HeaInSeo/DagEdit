@@ -380,38 +380,40 @@ namespace DagEdit
             IsVisiblePendingConnection = false;
         }
 
-        // TODO 이거 이렇게 하는게 맞는지 살펴보자. 좀더 효율적인 반법이 있을 것 같다.
         private void HandleConnectionChanged(object? sender, ConnectionChangedEventArgs args)
         {
-            foreach (var item in _viewModel.Items)
+            if (args.NodeId is null)
             {
-                // node 도 변경되지만 connection 도 변경됨.
-                // dag 데이터 변경은 node 나 connection 에서는 하지 않음. 명심.
-                if (item.NodeItem != null)
+                args.Handled = true;
+                return;
+            }
+
+            var dagNode = _viewModel.FindNode(args.NodeId.Value);
+            if (dagNode is null)
+            {
+                args.Handled = true;
+                return;
+            }
+
+            dagNode.Location = args.Location;
+            dagNode.SourceAnchor = args.SourceAnchor;
+            dagNode.TargetAnchor = args.TargetAnchor;
+
+            if (args.SourceAnchor.HasValue)
+            {
+                foreach (var conn in dagNode.SourceConnections)
                 {
-                    if (item.NodeItem.NodeId == args.NodeId)
-                    {
-                        // 노드 업데이트
-                        item.NodeItem.Location = args.Location;
-                        item.NodeItem.SourceAnchor = args.SourceAnchor;
-                        item.NodeItem.TargetAnchor = args.TargetAnchor;
-                    }
+                    conn.ConnectionInstance?.UpdateStart(args.SourceAnchor.Value);
+                    conn.SourceAnchor = args.SourceAnchor.Value;
                 }
+            }
 
-                var connectionItem = item.ConnectionItem;
-                if (connectionItem?.ConnectionInstance != null)
+            if (args.TargetAnchor.HasValue)
+            {
+                foreach (var conn in dagNode.TargetConnections)
                 {
-                    if (args.SourceAnchor.HasValue && connectionItem.SourceAnchor == args.OldSourceAnchor)
-                    {
-                        connectionItem.ConnectionInstance.UpdateStart(args.SourceAnchor.Value);
-                        connectionItem.SourceAnchor = args.SourceAnchor.Value;
-                    }
-
-                    if (args.TargetAnchor.HasValue && connectionItem.TargetAnchor == args.OldTargetAnchor)
-                    {
-                        connectionItem.ConnectionInstance.UpdateEnd(args.TargetAnchor.Value);
-                        connectionItem.TargetAnchor = args.TargetAnchor.Value;
-                    }
+                    conn.ConnectionInstance?.UpdateEnd(args.TargetAnchor.Value);
+                    conn.TargetAnchor = args.TargetAnchor.Value;
                 }
             }
 

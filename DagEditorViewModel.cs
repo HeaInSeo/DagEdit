@@ -76,6 +76,8 @@ namespace DagEdit
         public bool DelDagConnectionItem(Guid connectionId) =>
             Dag.DelDagConnectionItem(connectionId);
 
+        public DagNode? FindNode(Guid nodeId) => Dag.FindNode(nodeId);
+
         public void Dispose()
         {
             _disposables.Dispose();

@@ -256,6 +256,78 @@ public class DagTests
         Assert.False(result);
     }
 
+    // ─── FindNode ────────────────────────────────────────────────
+
+    [Fact]
+    public void FindNode_ReturnsNodeAfterAdding()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(10, 20));
+        var nodeId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+
+        var result = dag.FindNode(nodeId);
+
+        Assert.NotNull(result);
+        Assert.Equal(nodeId, result.NodeId);
+    }
+
+    [Fact]
+    public void FindNode_ReturnsNullForNonExistentId()
+    {
+        var dag = new Dag();
+
+        var result = dag.FindNode(System.Guid.NewGuid());
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void FindNode_ReturnsCorrectNodeAmongMultiple()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(0, 0));
+        dag.AddDagNodeItem(new Point(100, 0));
+        dag.AddDagNodeItem(new Point(200, 0));
+        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+
+        var result = dag.FindNode(targetId);
+
+        Assert.NotNull(result);
+        Assert.Equal(targetId, result.NodeId);
+    }
+
+    [Fact]
+    public void FindNode_AfterAddConnectionItem_SourceNodeHasConnection()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(0, 0));
+        dag.AddDagNodeItem(new Point(100, 0));
+        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+
+        dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId);
+
+        var sourceNode = dag.FindNode(sourceId);
+        Assert.NotNull(sourceNode);
+        Assert.Single(sourceNode.SourceConnections);
+    }
+
+    [Fact]
+    public void FindNode_AfterAddConnectionItem_TargetNodeHasConnection()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(0, 0));
+        dag.AddDagNodeItem(new Point(100, 0));
+        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+
+        dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId);
+
+        var targetNode = dag.FindNode(targetId);
+        Assert.NotNull(targetNode);
+        Assert.Single(targetNode.TargetConnections);
+    }
+
     // ─── 생성자 초기 상태 ─────────────────────────────────────
 
     [Fact]
@@ -263,6 +335,6 @@ public class DagTests
     {
         var dag = new Dag();
 
-        Assert.Equal(0, dag.DAGItemsSource.Count);
+        Assert.Empty(dag.DAGItemsSource);
     }
 }
