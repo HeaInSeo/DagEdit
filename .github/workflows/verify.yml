@@ -66,10 +66,12 @@ jobs:
           # grep -c exits 1 when no matches → "0\n0" 개행 버그 방지용 wc -l 사용
           SA_WARN=$(grep ": warning SA" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
           CS_WARN=$(grep ": warning CS" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
-          TOTAL_WARN=$((SA_WARN + CS_WARN))
+          IDE_WARN=$(grep ": warning IDE" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
+          TOTAL_WARN=$((SA_WARN + CS_WARN + IDE_WARN))
 
           echo "sa_warning_count=$SA_WARN"       >> "$GITHUB_OUTPUT"
           echo "cs_warning_count=$CS_WARN"       >> "$GITHUB_OUTPUT"
+          echo "ide_warning_count=$IDE_WARN"     >> "$GITHUB_OUTPUT"
           echo "total_warning_count=$TOTAL_WARN" >> "$GITHUB_OUTPUT"
           echo "build_exit=$BUILD_EXIT"          >> "$GITHUB_OUTPUT"
 
@@ -270,6 +272,7 @@ jobs:
           BUILD_EXIT:     ${{ steps.build.outputs.build_exit }}
           SA_WARN:        ${{ steps.build.outputs.sa_warning_count }}
           CS_WARN:        ${{ steps.build.outputs.cs_warning_count }}
+          IDE_WARN:       ${{ steps.build.outputs.ide_warning_count }}
           TOTAL_WARN:     ${{ steps.build.outputs.total_warning_count }}
           PASSED:         ${{ steps.test.outputs.passed }}
           FAILED:         ${{ steps.test.outputs.failed }}
@@ -295,6 +298,7 @@ jobs:
             echo "| 빌드 상태 | $BUILD_STATUS |"
             echo "| StyleCop 경고 (SA\*) | $SA_WARN 건 |"
             echo "| Roslyn 경고 (CS\*) | $CS_WARN 건 |"
+            echo "| IDE 코드스타일 경고 (IDE\*) | $IDE_WARN 건 |"
             echo "| **총 경고** | **$TOTAL_WARN 건** |"
             echo ""
             if [ "$TOTAL_WARN" = "0" ]; then
