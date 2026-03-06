@@ -1,7 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Avalonia;
+using DynamicData;
 using ReactiveUI;
 
 namespace DagEdit
@@ -33,9 +36,32 @@ namespace DagEdit
         /// </summary>
         public ReadOnlyObservableCollection<DagItems> Items => Dag.DAGItemsSource;
 
+        private readonly ObservableAsPropertyHelper<int> _nodeCount;
+        private readonly ObservableAsPropertyHelper<int> _connectionCount;
+
+        /// <summary>현재 그래프에 포함된 노드 수 (반응형 파생값).</summary>
+        public int NodeCount => _nodeCount.Value;
+
+        /// <summary>현재 그래프에 포함된 연결 수 (반응형 파생값).</summary>
+        public int ConnectionCount => _connectionCount.Value;
+
         public DagEditorViewModel()
         {
             _disposables.Add(Dag);
+
+            _nodeCount = Dag.Connect()
+                .Filter(x => x.NodeItem != null)
+                .ToCollection()
+                .Select(c => c.Count)
+                .ToProperty(this, x => x.NodeCount, initialValue: 0);
+            _disposables.Add(_nodeCount);
+
+            _connectionCount = Dag.Connect()
+                .Filter(x => x.ConnectionItem != null)
+                .ToCollection()
+                .Select(c => c.Count)
+                .ToProperty(this, x => x.ConnectionCount, initialValue: 0);
+            _disposables.Add(_connectionCount);
         }
 
         public bool AddDagNodeItem(Point? location) =>

@@ -17,6 +17,8 @@ namespace DagEdit
 
         public ReadOnlyObservableCollection<DagItems> DAGItemsSource => _readOnlyItems;
 
+        public IObservable<IChangeSet<DagItems>> Connect() => _dagItemsSource.Connect();
+
         public Dag()
         {
             _dagItemsSource
