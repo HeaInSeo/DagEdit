@@ -238,6 +238,25 @@
 
 ---
 
+### [Step 17] Dag 노드 인덱스 도입 + HandleConnectionChanged O(n) → O(1) 최적화
+- **날짜**: 2026-03-06
+- **수행 내용**:
+  - `Dag._nodeIndex: Dictionary<Guid, DagNode>` 추가 — `AddDagNodeItem`/`DelDagNodeItem` 성공 시 자동 갱신
+  - `Dag.FindNode(Guid): DagNode?` 공개: O(n) `FirstOrDefault` → O(1) Dictionary 조회
+  - `AddDagConnectionItem`: `_dagItemsSource.Items.FirstOrDefault` 2회 → `FindNode` 2회 (source/target 노드 조회)
+  - `DagEditorViewModel.FindNode(Guid)`: `Dag.FindNode` 위임 노출
+  - `DagEditor.HandleConnectionChanged` 재작성:
+    - 기존: `_viewModel.Items` 전체 O(n) 순회 + `OldSourceAnchor == connectionItem.SourceAnchor` 앵커 휴리스틱
+    - 개선: `FindNode(args.NodeId)` O(1) → `dagNode.SourceConnections` / `TargetConnections` O(k) 직접 순회
+    - 노드 소유 연결만 순회하므로 앵커 비교 휴리스틱이 불필요해져 제거
+  - **불변조건 (invariants)**:
+    - DagItems 추가/삭제는 반드시 `Dag.AddDagNodeItem` / `DelDagNodeItem` 경로를 통해서만 수행 → `_nodeIndex` 동기화 보장
+    - `DagNode.NodeId(Guid)`는 생성 후 불변 (`CreateDagNode`에서 `Guid.NewGuid()` 1회 할당)
+    - `DelDagNodeItem` 성공 경로(NodeInstance != null)에서만 `_nodeIndex.Remove` 호출 → 실패 시 인덱스 오염 없음
+- **검증 지표**: 빌드 0 Error, 60 → 65개 테스트 100% 통과 (`FindNode` 5개 신규)
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
