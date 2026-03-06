@@ -155,6 +155,15 @@ namespace DagEdit
             set => SetValue(ContextMenuPointProperty, value);
         }
 
+        public static readonly StyledProperty<double> ViewportScaleProperty =
+            AvaloniaProperty.Register<DagEditor, double>(nameof(ViewportScale), 1.0);
+
+        public double ViewportScale
+        {
+            get => GetValue(ViewportScaleProperty);
+            set => SetValue(ViewportScaleProperty, value);
+        }
+
         #endregion
 
         #region Fields
@@ -236,6 +245,12 @@ namespace DagEdit
                 .Subscribe(args => HandleKeyDown(args.Sender, args.EventArgs))
                 .DisposeWith(_disposables);
 
+            Observable.FromEventPattern<PointerWheelEventArgs>(
+                    h => this.PointerWheelChanged += h,
+                    h => this.PointerWheelChanged -= h)
+                .Subscribe(args => HandlePointerWheelChanged(args.Sender, args.EventArgs))
+                .DisposeWith(_disposables);
+
             // 이벤트 핸들러 등록
             // PendingConnection
             AddHandler(Connector.PendingConnectionStartedEvent, _connectionStartedHandler);
@@ -261,7 +276,13 @@ namespace DagEdit
             if (args.GetCurrentPoint(this).Properties.IsRightButtonPressed && !DisablePanning)
             {
                 args.Pointer.Capture(this);
-                ContextMenuPoint = args.GetPosition(this);
+                // 클릭 위치를 캔버스 월드 좌표로 변환하여 저장한다.
+                // 스크린 좌표 → 캔버스 좌표: (screenPos + ViewportLocation) / ViewportScale
+                // 패닝/줌 상태에서 노드 추가 위치가 올바르게 계산된다.
+                var rawPos = args.GetPosition(this);
+                ContextMenuPoint = new Point(
+                    (rawPos.X + ViewportLocation.X) / ViewportScale,
+                    (rawPos.Y + ViewportLocation.Y) / ViewportScale);
                 _previousPointerPosition = args.GetPosition(this);
                 _IsRightBtnClicked = true;
                 args.Handled = true;
@@ -420,6 +441,25 @@ namespace DagEdit
                 // 한번만 실행되게 만드는 flag
                 _isLoaded = false;
             }
+        }
+
+        private void HandlePointerWheelChanged(object? sender, PointerWheelEventArgs args)
+        {
+            // 마우스 휠로 줌 인/아웃. 커서 위치를 중심으로 확대/축소한다.
+            // zoomFactor: 한 스텝당 10% 변화.
+            var zoomFactor = args.Delta.Y > 0 ? 1.1 : 1.0 / 1.1;
+            var newScale = Math.Clamp(ViewportScale * zoomFactor, 0.1, 10.0);
+            var cursorPos = args.GetPosition(this);
+            var oldScale = ViewportScale;
+
+            // 커서 아래 월드 좌표를 줌 전후로 동일하게 유지하는 공식:
+            // worldX = (cursorX + VL.X) / scale  →  VL2.X = (cursorX + VL1.X) * (s2/s1) - cursorX
+            ViewportLocation = new Point(
+                (cursorPos.X + ViewportLocation.X) * newScale / oldScale - cursorPos.X,
+                (cursorPos.Y + ViewportLocation.Y) * newScale / oldScale - cursorPos.Y);
+
+            ViewportScale = newScale;
+            args.Handled = true;
         }
 
         // node / connection 에서 bubble 로 올라옴.

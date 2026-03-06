@@ -113,11 +113,8 @@ namespace DagEdit
         //   Node가 Dispose될 때 일괄 해제 → 메모리 누수 방지.
         private readonly CompositeDisposable _disposables = new();
 
-        private readonly TranslateTransform _translateTransform = new();
         private Point _initialPointerPosition;  // 드래그 시작 시 포인터 위치
-        private Point _initialNodePosition;     // 드래그 시작 시 노드 위치
         private Vector _dragAccumulator;         // 그리드 스냅을 위한 누적 이동량
-        private Point _temporaryNewPosition;    // 그리드 스냅 후 확정된 새 위치
 
         private const int GridCellSize = 15;
 
@@ -128,7 +125,6 @@ namespace DagEdit
         public Node()
         {
             Focusable = true;
-            RenderTransform = _translateTransform;
 
             // ── ParentControl 변경 감지 ──────────────────────────────────────
             ParentControlProperty.Changed
@@ -196,7 +192,6 @@ namespace DagEdit
                 args.Pointer.Capture(this);
                 Debug.Print("Dragging Start");
                 _initialPointerPosition = args.GetPosition(ParentControl);
-                _initialNodePosition = Location;
                 _dragAccumulator = new Vector();
                 IsDragging = true;
                 args.Handled = true;
@@ -231,18 +226,17 @@ namespace DagEdit
                 // 적용된 만큼만 누적량에서 차감
                 _dragAccumulator -= effectiveDelta;
 
-                // ── 2. 새 위치 확정 → WhenAnyValue 체인 트리거 ─────────────
-                // _translateTransform은 초기 위치 기준의 오프셋을 추적한다.
-                _translateTransform.X += effectiveDelta.X;
-                _translateTransform.Y += effectiveDelta.Y;
-
-                _temporaryNewPosition = new Point(
-                    _initialNodePosition.X + _translateTransform.X,
-                    _initialNodePosition.Y + _translateTransform.Y);
+                // ── 2. Location 직접 업데이트 → 레이아웃 시스템이 올바른 위치로 재배치 ──
+                // RenderTransform 대신 Location을 갱신하면 DagEditorCanvas.ArrangeOverride가
+                // 정확한 레이아웃 위치를 추적하여 이전 위치에 잔상(ghosting)이 남지 않는다.
+                // BaseNode 정적 생성자의 LocationProperty 핸들러가 부모의 InvalidateArrange를
+                // 자동으로 호출하므로 별도 처리가 필요 없다.
+                var newPosition = new Point(Location.X + effectiveDelta.X, Location.Y + effectiveDelta.Y);
+                Location = newPosition;
 
                 // Position 설정 → _dragState.WhenAnyValue 체인이 반응한다.
-                // (TranslateTransform은 이미 위에서 갱신했으므로 체인에서는 앵커/이벤트만 처리)
-                _dragState.Position = _temporaryNewPosition;
+                // (앵커 재계산 + ConnectionChangedEvent 발행)
+                _dragState.Position = newPosition;
             }
 
             _initialPointerPosition = currentPointerPosition;
@@ -301,8 +295,6 @@ namespace DagEdit
         private void NodeMove(Point point)
         {
             Location = point;
-            _translateTransform.X = point.X;
-            _translateTransform.Y = point.Y;
         }
 
         #endregion

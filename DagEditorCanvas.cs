@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Reactive.Disposables;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -19,11 +20,22 @@ namespace DagEdit
             set => SetValue(ViewportLocationProperty, value);
         }
 
+        public static readonly StyledProperty<double> ScaleProperty =
+            AvaloniaProperty.Register<DagEditorCanvas, double>(nameof(Scale), 1.0);
+
+        public double Scale
+        {
+            get => GetValue(ScaleProperty);
+            set => SetValue(ScaleProperty, value);
+        }
+
         #endregion
 
         #region Fields
 
-        private readonly IDisposable _disposable;
+        private readonly ScaleTransform _scaleTransform = new(1.0, 1.0);
+        private readonly TranslateTransform _translateTransform = new();
+        private readonly CompositeDisposable _disposables = new();
 
         #endregion
 
@@ -31,8 +43,21 @@ namespace DagEdit
 
         public DagEditorCanvas()
         {
-            RenderTransform = new TranslateTransform();
-            _disposable = ViewportLocationProperty.Changed.Subscribe(OnViewportLocationChanged);
+            // ScaleTransform 먼저 적용 후 TranslateTransform:
+            // 캔버스 점 (cx, cy) → 스크린 = (cx * scale - VL.X, cy * scale - VL.Y)
+            // 역변환(스크린 → 캔버스): cx = (sx + VL.X) / scale
+            var group = new TransformGroup();
+            group.Children.Add(_scaleTransform);
+            group.Children.Add(_translateTransform);
+            RenderTransform = group;
+
+            ViewportLocationProperty.Changed
+                .Subscribe(OnViewportLocationChanged)
+                .DisposeWith(_disposables);
+
+            ScaleProperty.Changed
+                .Subscribe(OnScaleChanged)
+                .DisposeWith(_disposables);
         }
 
         #endregion
@@ -78,18 +103,23 @@ namespace DagEdit
         {
             if (e.NewValue is Point pointValue)
             {
-                if (RenderTransform is TranslateTransform translateTransform)
-                {
-                    translateTransform.X = -pointValue.X;
-                    translateTransform.Y = -pointValue.Y;
-                }
+                _translateTransform.X = -pointValue.X;
+                _translateTransform.Y = -pointValue.Y;
+            }
+        }
+
+        private void OnScaleChanged(AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is double scale)
+            {
+                _scaleTransform.ScaleX = scale;
+                _scaleTransform.ScaleY = scale;
             }
         }
 
         public void Dispose()
         {
-            // 관리되는 자원 해제
-            _disposable.Dispose();
+            _disposables.Dispose();
         }
 
         #endregion

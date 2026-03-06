@@ -184,6 +184,78 @@ public class DagTests
         Assert.False(result); // NodeInstance == null이므로 false 반환 (현재 설계상 정상)
     }
 
+    // ─── DelDagConnectionItem ────────────────────────────────────
+
+    [Fact]
+    public void DelDagConnectionItem_WithNullId_ReturnsFalse()
+    {
+        var dag = new Dag();
+
+        var result = dag.DelDagConnectionItem(null);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void DelDagConnectionItem_WithNonExistentId_ReturnsFalse()
+    {
+        var dag = new Dag();
+
+        var result = dag.DelDagConnectionItem(System.Guid.NewGuid());
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void DelDagConnectionItem_WithValidId_ReturnsTrue()
+    {
+        var dag = new Dag();
+        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+
+        var result = dag.DelDagConnectionItem(connectionId);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void DelDagConnectionItem_WithValidId_DecreasesItemCount()
+    {
+        var dag = new Dag();
+        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        var initialCount = dag.DAGItemsSource.Count;
+        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+
+        dag.DelDagConnectionItem(connectionId);
+
+        Assert.Equal(initialCount - 1, dag.DAGItemsSource.Count);
+    }
+
+    [Fact]
+    public void DelDagConnectionItem_WithValidId_ConnectionNoLongerInItems()
+    {
+        var dag = new Dag();
+        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+
+        dag.DelDagConnectionItem(connectionId);
+
+        Assert.DoesNotContain(dag.DAGItemsSource, i => i.ConnectionItem?.ConnectionId == connectionId);
+    }
+
+    [Fact]
+    public void DelDagConnectionItem_TwiceWithSameId_SecondReturnsFalse()
+    {
+        var dag = new Dag();
+        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+
+        dag.DelDagConnectionItem(connectionId);
+        var result = dag.DelDagConnectionItem(connectionId);
+
+        Assert.False(result);
+    }
+
     // ─── 생성자 초기 상태 ─────────────────────────────────────
 
     [Fact]

@@ -41,7 +41,8 @@
                             <ItemsPresenter.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <controls:DagEditorCanvas x:Name="PART_ItemsHost"
-                                                              ViewportLocation="{TemplateBinding ViewportLocation}" />
+                                                              ViewportLocation="{TemplateBinding ViewportLocation}"
+                                                              Scale="{TemplateBinding ViewportScale}" />
                                 </ItemsPanelTemplate>
                             </ItemsPresenter.ItemsPanel>
                         </ItemsPresenter>

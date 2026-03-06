@@ -5,12 +5,27 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.VisualTree;
 using Microsoft.VisualBasic;
 
 namespace DagEdit
 {
     public class BaseNode : ContentControl, IDisposable, ILocatable
     {
+        #region Static Constructor
+
+        static BaseNode()
+        {
+            // Location 변경 시 부모 캔버스의 Arrange를 무효화한다.
+            // DagEditorCanvas.ArrangeOverride가 재실행되어 노드가 새 위치에 배치됨.
+            // 이 방식은 Canvas.Left/Top 첨부 프로퍼티 패턴과 동일하다.
+            LocationProperty.Changed.AddClassHandler<BaseNode>((node, _) =>
+                (node.GetVisualParent() as Layoutable)?.InvalidateArrange());
+        }
+
+        #endregion
+
         #region Dependency Properties
 
         public static readonly StyledProperty<Point> LocationProperty =
