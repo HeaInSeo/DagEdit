@@ -257,6 +257,20 @@
 
 ---
 
+### [Step 18] connector snap UX — tree-order → closest-candidate 정책
+- **날짜**: 2026-03-06
+- **수행 내용**:
+  - `Extension.GetClosestControlUnderPointer<T>`: 후보 전체 열거 후 pointer와 bounds center 간
+    거리(DistanceSq = `(localPtr - boundsCenter)^2`)가 최소인 컨트롤 반환. 동점은 tree 순서 우선.
+  - `Extension.PickClosestCandidate<T>(IReadOnlyList<(T Item, double DistanceSq)>)`: 선택 정책
+    pure function — Avalonia 의존 없이 단위 테스트 가능.
+  - `SourceConnector.HandlePointerMoved`: `GetControlUnderPointer` → `GetClosestControlUnderPointer` 1줄 교체.
+  - 기존 `GetControlUnderPointer`는 유지 (API 호환).
+  - 단일 후보 시 기존 동작과 동일.
+- **검증 지표**: 빌드 0 Error, 65 → 71개 테스트 100% 통과 (`ConnectorSnapTests` 6개 신규)
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |

@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -136,6 +137,71 @@ namespace DagEdit
             }
 
             return null;
+        }
+
+        // snap 후보가 여러 개일 때 pointer와의 거리(bounds center 기준)가 가장 가까운 컨트롤 반환.
+        // 단일 후보이면 GetControlUnderPointer와 동일한 결과. 동점은 tree 순서(first)가 우선.
+        public static T? GetClosestControlUnderPointer<T>(this Control container, Point pointerPosition) where T : Control
+        {
+            _ = container ?? throw new ArgumentNullException(nameof(container));
+
+            T? best = null;
+            double bestDistSq = double.MaxValue;
+
+            foreach (var foundElement in container.GetVisualDescendants().OfType<T>())
+            {
+                var matrix = container.TransformToVisual(foundElement);
+                if (!matrix.HasValue)
+                {
+                    continue;
+                }
+
+                var localPtr = matrix.Value.Transform(pointerPosition);
+                if (!foundElement.Bounds.Contains(localPtr))
+                {
+                    continue;
+                }
+
+                var cx = foundElement.Bounds.Width / 2.0;
+                var cy = foundElement.Bounds.Height / 2.0;
+                var dx = localPtr.X - cx;
+                var dy = localPtr.Y - cy;
+                var distSq = (dx * dx) + (dy * dy);
+
+                if (distSq < bestDistSq)
+                {
+                    bestDistSq = distSq;
+                    best = foundElement;
+                }
+            }
+
+            return best;
+        }
+
+        // snap 후보 선택 pure function. IReadOnlyList<(Item, DistanceSq)>에서 DistanceSq가
+        // 최소인 항목 반환. 동점은 리스트 순서(tree order) 우선. GUI 의존 없이 단위 테스트 가능.
+        public static T? PickClosestCandidate<T>(IReadOnlyList<(T Item, double DistanceSq)> candidates) where T : class
+        {
+            _ = candidates ?? throw new ArgumentNullException(nameof(candidates));
+
+            if (candidates.Count == 0)
+            {
+                return null;
+            }
+
+            T? best = candidates[0].Item;
+            double bestDistSq = candidates[0].DistanceSq;
+
+            for (int i = 1; i < candidates.Count; i++)
+            {
+                if (candidates[i].DistanceSq < bestDistSq)
+                {
+                    bestDistSq = candidates[i].DistanceSq;
+                    best = candidates[i].Item;
+                }
+            }
+
+            return best;
         }
 
         // TODO 이름 수정할 필요 있을 듯. 너무 김.

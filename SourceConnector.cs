@@ -79,7 +79,7 @@ namespace DagEdit
             // 마우스 이동중 새로운 Connector 에 들어가면 null 이 아님.
             // 계속 업데이트 됨.
             // TODO 이 메서드 최적화 시킬 필요 있을 듯.
-            elementUnderPointer = parent.GetControlUnderPointer<Connector>(currentPosition);
+            elementUnderPointer = parent.GetClosestControlUnderPointer<Connector>(currentPosition);
             RaiseConnectionDragEvent(this, Anchor, (Vector)currentPosition);
             args.Handled = true;
         }
