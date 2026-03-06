@@ -277,12 +277,9 @@ namespace DagEdit
             {
                 args.Pointer.Capture(this);
                 // 클릭 위치를 캔버스 월드 좌표로 변환하여 저장한다.
-                // 스크린 좌표 → 캔버스 좌표: (screenPos + ViewportLocation) / ViewportScale
-                // 패닝/줌 상태에서 노드 추가 위치가 올바르게 계산된다.
+                // 패닝/줌 상태에서 노드 추가 위치가 올바르게 계산된다. (DEC-015 참조)
                 var rawPos = args.GetPosition(this);
-                ContextMenuPoint = new Point(
-                    (rawPos.X + ViewportLocation.X) / ViewportScale,
-                    (rawPos.Y + ViewportLocation.Y) / ViewportScale);
+                ContextMenuPoint = ViewportTransform.ScreenToWorld(rawPos, ViewportLocation, ViewportScale);
                 _previousPointerPosition = args.GetPosition(this);
                 _IsRightBtnClicked = true;
                 args.Handled = true;
@@ -294,8 +291,9 @@ namespace DagEdit
             if (_IsRightBtnClicked)
             {
                 _currentPointerPosition = args.GetPosition(this);
-                ViewportLocation -=
-                    (_currentPointerPosition - _previousPointerPosition) / 1; // Adjust division based on actual zoom level
+                // 패닝 델타는 줌 배율과 무관하게 스크린 픽셀 단위로 ViewportLocation에 적용한다.
+                // WorldUnderCursor = (sx + VL) / s 에서 s가 약분되어 소거됨. (DEC-015 참조)
+                ViewportLocation -= (_currentPointerPosition - _previousPointerPosition);
                 _previousPointerPosition = _currentPointerPosition;
                 IsPanning = true;
                 args.Handled = true;
@@ -331,21 +329,15 @@ namespace DagEdit
 
                 if (args.SourceAnchor.HasValue)
                 {
+                    // SourceAnchor = 월드 좌표 (Node.FindAnchors에서 계산된 값)
                     SourceAnchor = args.SourceAnchor.Value;
-                    // TODO 아래 코드 살펴봐야 함.
-                    if (args.Offset.HasValue)
-                    {
-                        TargetAnchor = new Point(SourceAnchor.X + args.Offset.Value.X,
-                            SourceAnchor.Y + args.Offset.Value.Y);
-                    }
-                    else
-                    {
-                        TargetAnchor = SourceAnchor;
-                    }
+                    // 드래그 시작 시 TargetAnchor는 SourceAnchor와 동일하게 초기화한다.
+                    // RaiseConnectionStartEvent 는 Offset을 설정하지 않으므로 항상 이 분기에 진입한다.
+                    TargetAnchor = SourceAnchor;
                 }
                 else
                 {
-                    // null 의미 없음 — IsVisiblePendingConnection = false가 "연결 없음" 신호
+                    // SourceAnchor가 없으면 IsVisiblePendingConnection = false가 "연결 없음" 신호
                     SourceAnchor = default;
                     TargetAnchor = default;
                 }
@@ -356,16 +348,19 @@ namespace DagEdit
             Debug.WriteLine("Ok!!!");
         }
 
-        // TODO 중요 여기 반드시 살펴보기
         private void HandleConnectionDrag(object? sender, PendingConnectionEventArgs args)
         {
-            // TODO 버그 있음. 살펴보기. 
+            // args.Offset = SourceConnector.HandlePointerMoved에서 설정된 포인터의 월드 좌표.
+            // SourceConnector는 GetPosition(PART_ItemsHost)를 사용하는데, Avalonia의 GetPosition은
+            // DagEditorCanvas의 ScaleTransform을 역변환하여 월드 좌표를 반환한다.
+            // 따라서 TargetAnchor = Offset(월드)으로 설정하는 것이 올바르다. (DEC-015 참조)
             if (IsVisiblePendingConnection)
             {
                 if (args.Offset.HasValue)
                 {
                     TargetAnchor = new Point(args.Offset.Value.X, args.Offset.Value.Y);
                 }
+
                 args.Handled = true;
             }
         }
@@ -446,17 +441,20 @@ namespace DagEdit
         private void HandlePointerWheelChanged(object? sender, PointerWheelEventArgs args)
         {
             // 마우스 휠로 줌 인/아웃. 커서 위치를 중심으로 확대/축소한다.
-            // zoomFactor: 한 스텝당 10% 변화.
+            // 한 스텝당 약 10% 변화. 범위: 0.1x ~ 10x.
             var zoomFactor = args.Delta.Y > 0 ? 1.1 : 1.0 / 1.1;
-            var newScale = Math.Clamp(ViewportScale * zoomFactor, 0.1, 10.0);
-            var cursorPos = args.GetPosition(this);
             var oldScale = ViewportScale;
+            var newScale = Math.Clamp(oldScale * zoomFactor, 0.1, 10.0);
+            var cursorPos = args.GetPosition(this);
 
-            // 커서 아래 월드 좌표를 줌 전후로 동일하게 유지하는 공식:
-            // worldX = (cursorX + VL.X) / scale  →  VL2.X = (cursorX + VL1.X) * (s2/s1) - cursorX
+            // 커서 아래 월드 좌표를 줌 전후로 고정한다. (DEC-015 참조)
+            // w = ScreenToWorld(cursor, vl1, s1)
+            // 줌 후 조건: ScreenToWorld(cursor, vl2, s2) = w
+            // → vl2 = w * s2 − cursor
+            var worldUnderCursor = ViewportTransform.ScreenToWorld(cursorPos, ViewportLocation, oldScale);
             ViewportLocation = new Point(
-                (cursorPos.X + ViewportLocation.X) * newScale / oldScale - cursorPos.X,
-                (cursorPos.Y + ViewportLocation.Y) * newScale / oldScale - cursorPos.Y);
+                worldUnderCursor.X * newScale - cursorPos.X,
+                worldUnderCursor.Y * newScale - cursorPos.Y);
 
             ViewportScale = newScale;
             args.Handled = true;

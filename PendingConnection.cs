@@ -74,6 +74,9 @@ namespace DagEdit
             AvaloniaProperty.Register<PendingConnection, Point>(
                 nameof(ViewportLocation), Constants.ZeroPoint);
 
+        public static readonly StyledProperty<double> ViewportScaleProperty =
+            AvaloniaProperty.Register<PendingConnection, double>(nameof(ViewportScale), 1.0);
+
         public Point SourceAnchor
         {
             get => GetValue(SourceAnchorProperty);
@@ -140,6 +143,12 @@ namespace DagEdit
             set => SetValue(ViewportLocationProperty, value);
         }
 
+        public double ViewportScale
+        {
+            get => GetValue(ViewportScaleProperty);
+            set => SetValue(ViewportScaleProperty, value);
+        }
+
         #endregion
 
         #region Fields
@@ -153,7 +162,10 @@ namespace DagEdit
         //   Dispose() 호출 시 일괄 해제 → 메모리 누수 방지.
         private readonly CompositeDisposable _disposables = new();
 
-        // _translateTransform: 패닝(ViewportLocation) 오프셋을 RenderTransform에 적용.
+        // _scaleTransform / _translateTransform: DagEditorCanvas와 동일한 TransformGroup을 구성한다.
+        // TransformGroup(Scale(s), Translate(-vl.X, -vl.Y)) 덕분에
+        // 월드 좌표(SourceAnchor/TargetAnchor)로 지정한 선이 줌/패닝 상태에서 노드와 정확히 일치한다.
+        private readonly ScaleTransform _scaleTransform = new(1.0, 1.0);
         private readonly TranslateTransform _translateTransform = new();
 
         // _partConnection: OnApplyTemplate에서 채워지는 PART_Connection 참조.
@@ -189,11 +201,24 @@ namespace DagEdit
 
         public PendingConnection()
         {
-            RenderTransform = _translateTransform;
+            // DagEditorCanvas와 동일한 TransformGroup으로 줌/패닝을 동기화한다.
+            var group = new TransformGroup();
+            group.Children.Add(_scaleTransform);
+            group.Children.Add(_translateTransform);
+            RenderTransform = group;
 
             // ── AvaloniaProperty 변경 → PendingConnectionState 갱신 ─────────
             // AvaloniaObject는 IReactiveObject가 아니므로 WhenAnyValue 직접 불가.
             // GetObservable로 인스턴스 스코프 IObservable을 얻어 _state에 미러링.
+
+            // ── ViewportScale 변경 → ScaleTransform 갱신 ─────────────────────
+            this.GetObservable(ViewportScaleProperty)
+                .Subscribe(s =>
+                {
+                    _scaleTransform.ScaleX = s;
+                    _scaleTransform.ScaleY = s;
+                })
+                .DisposeWith(_disposables);
 
             this.GetObservable(SourceAnchorProperty)
                 .Subscribe(pt => _state.SourceAnchor = pt)

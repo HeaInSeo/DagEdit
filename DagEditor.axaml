@@ -24,7 +24,8 @@
                 <controls:PendingConnection SourceAnchor="{Binding $parent[controls:DagEditor].SourceAnchor}"
                                             TargetAnchor="{Binding $parent[controls:DagEditor].TargetAnchor}"
                                             IsVisible="{Binding $parent[controls:DagEditor].IsVisiblePendingConnection}"
-                                            ViewportLocation="{Binding $parent[controls:DagEditor].ViewportLocation}" />
+                                            ViewportLocation="{Binding $parent[controls:DagEditor].ViewportLocation}"
+                                            ViewportScale="{Binding $parent[controls:DagEditor].ViewportScale}" />
             </DataTemplate>
         </Setter>
         <Setter Property="Template">

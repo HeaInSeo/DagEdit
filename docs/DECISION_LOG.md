@@ -191,6 +191,19 @@
 
 ---
 
+### [DEC-015] 월드 좌표를 Source of Truth로 사용
+- **날짜**: 2026-03-06
+- **결정**: 노드 위치, 앵커, 커넥션 앵커, 드래그 목표 좌표를 모두 월드 좌표로 저장·전달한다. 스크린 좌표는 렌더링·포인터 입력 처리 시의 파생값으로만 사용한다.
+- **근거**:
+  - `DagEditorCanvas.RenderTransform = TransformGroup(Scale(s), Translate(-vl.X, -vl.Y))` 적용 후 `GetPosition(PART_ItemsHost)`가 Avalonia 내부 역변환으로 이미 월드 좌표를 반환함
+  - `SourceConnector.Anchor` = `Node.SourceAnchor` (FindAnchors(worldLocation) 에서 생성) → 월드 좌표 ✓
+  - `HandleConnectionDrag`의 `TargetAnchor = Offset` 은 월드 포인터 위치로 올바른 코드였음. 이전 "TODO 버그 있음" 주석은 zoom 도입 전 분석으로 오해 소지가 있었음 → 제거
+  - `PendingConnection`에 동일한 `TransformGroup(Scale, Translate)` 적용으로 줌 상태에서도 미리보기 선이 노드 앵커와 정렬됨
+  - 패닝 델타 `ΔVL = −Δscreen` 은 scale과 무관함 (WorldUnderCursor 공식에서 s 약분 확인)
+- **유틸**: `ViewportTransform.ScreenToWorld` / `WorldToScreen` 으로 공식 단일화
+
+---
+
 ### [DEC-013] VirtualCanvas_ref 빌드 제외
 - **날짜**: 2026-03-04
 - **결정**: `DagEdit.csproj`에 `<Compile Remove="VirtualCanvas_ref/**/*.cs" />` 추가

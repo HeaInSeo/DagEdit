@@ -222,6 +222,22 @@
 
 ---
 
+### [Step 16] 좌표계 기준선 고정 + zoom 상태 연결 드래그 정상화
+- **날짜**: 2026-03-06
+- **수행 내용**:
+  - `ViewportTransform.cs` 신규 추가: `ScreenToWorld` / `WorldToScreen` 헬퍼로 변환 공식 집중화
+  - `DagEditor.HandlePointerPressed`: inline `(pos + VL) / scale` → `ViewportTransform.ScreenToWorld` 사용
+  - `DagEditor.HandlePointerWheelChanged`: zoom 피벗 공식을 `worldUnderCursor * newScale − cursor` 형태로 명시화
+  - `DagEditor.HandlePointerMoved`: `/ 1` no-op 제거, 패닝 델타가 scale-independent임을 수식으로 주석
+  - `DagEditor.HandleConnectionStarted`: 죽은 Offset 분기 제거, 드래그 시작 시 TargetAnchor=SourceAnchor 의도 명시
+  - `DagEditor.HandleConnectionDrag`: "TODO 버그 있음" 제거 — `GetPosition(PART_ItemsHost)` 가 ScaleTransform 역변환으로 월드 좌표를 반환함을 근거 주석으로 확인
+  - `PendingConnection.cs`: `ViewportScale` 프로퍼티 추가, `RenderTransform`을 `TransformGroup(Scale, Translate)` 으로 교체 → zoom시 미리보기 선이 노드 앵커와 일치
+  - `DagEditor.axaml`: `ViewportScale` 바인딩 추가
+  - `ViewportTransformTests.cs`: 12개 [Fact] 추가 (identity / pan-only / zoom-only / pan+zoom / roundtrip / pan-scale-independence / zoom-pivot)
+- **검증 지표**: 빌드 0 Error, 38 → 50개 테스트 100% 통과
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
