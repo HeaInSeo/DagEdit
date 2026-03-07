@@ -29,11 +29,14 @@ namespace DagEdit
                 .DisposeWith(_disposables);
         }
 
-        public bool AddDagConnectionItem(Point? source, Guid? sourceNodeId, Point? target, Guid? targetNodeId)
+        // ─── Add ──────────────────────────────────────────────────────────────
+
+        /// <summary>커넥션을 추가한다. 실패 시 null 반환.</summary>
+        public DagItems? AddDagConnectionItem(Point? source, Guid? sourceNodeId, Point? target, Guid? targetNodeId)
         {
             if (source is null || target is null)
             {
-                return false;
+                return null;
             }
 
             var newItem = new DagItems();
@@ -46,11 +49,25 @@ namespace DagEdit
             targetNode?.TargetConnections.Add(connection);
 
             _dagItemsSource.Add(newItem);
-            return true;
+            return newItem;
         }
 
-        public DagNode? FindNode(Guid nodeId) =>
-            _nodeIndex.TryGetValue(nodeId, out var node) ? node : null;
+        /// <summary>노드를 추가한다. 실패 시 null 반환.</summary>
+        public DagItems? AddDagNodeItem(Point? location)
+        {
+            if (!location.HasValue)
+            {
+                return null;
+            }
+
+            var newItem = new DagItems();
+            newItem.CreateDagNode(location);
+            _nodeIndex[newItem.NodeItem!.NodeId!.Value] = newItem.NodeItem;
+            _dagItemsSource.Add(newItem);
+            return newItem;
+        }
+
+        // ─── Delete ───────────────────────────────────────────────────────────
 
         public bool DelDagConnectionItem(Guid? connectionId)
         {
@@ -61,21 +78,14 @@ namespace DagEdit
                 return false;
             }
 
+            // 노드의 연결 목록에서도 제거하여 일관성 유지
+            var conn = itemToDelete.ConnectionItem!;
+            var sourceNode = conn.SourceNodeId.HasValue ? FindNode(conn.SourceNodeId.Value) : null;
+            var targetNode = conn.TargetNodeId.HasValue ? FindNode(conn.TargetNodeId.Value) : null;
+            sourceNode?.SourceConnections.Remove(conn);
+            targetNode?.TargetConnections.Remove(conn);
+
             _dagItemsSource.Remove(itemToDelete);
-            return true;
-        }
-
-        public bool AddDagNodeItem(Point? location)
-        {
-            if (!location.HasValue)
-            {
-                return false;
-            }
-
-            var newItem = new DagItems();
-            newItem.CreateDagNode(location);
-            _nodeIndex[newItem.NodeItem!.NodeId!.Value] = newItem.NodeItem;
-            _dagItemsSource.Add(newItem);
             return true;
         }
 
@@ -108,6 +118,95 @@ namespace DagEdit
             }
 
             return false; // 매칭되는 아이템이 없어서 삭제 실패
+        }
+
+        // ─── Undo 보조 (Remove / Restore) ────────────────────────────────────
+
+        /// <summary>
+        /// Add 명령의 Undo. 캐스케이드 없이 해당 아이템만 SourceList에서 제거한다.
+        /// 커넥션인 경우 노드의 연결 목록도 정리한다.
+        /// </summary>
+        public bool RemoveDagItem(DagItems item)
+        {
+            if (item.ConnectionItem is { } conn)
+            {
+                var sourceNode = conn.SourceNodeId.HasValue ? FindNode(conn.SourceNodeId.Value) : null;
+                var targetNode = conn.TargetNodeId.HasValue ? FindNode(conn.TargetNodeId.Value) : null;
+                sourceNode?.SourceConnections.Remove(conn);
+                targetNode?.TargetConnections.Remove(conn);
+            }
+            else if (item.NodeItem is { } node && node.NodeId.HasValue)
+            {
+                _nodeIndex.Remove(node.NodeId.Value);
+            }
+
+            _dagItemsSource.Remove(item);
+            return true;
+        }
+
+        /// <summary>
+        /// Del 명령의 Undo. 이전에 삭제된 노드 DagItems를 SourceList에 복원한다.
+        /// NodeInstance = null 로 설정하여 CreateContainerForItemOverride 가 새 컨트롤을 생성하게 한다.
+        /// </summary>
+        public bool RestoreDagNodeItem(DagItems item)
+        {
+            if (item.NodeItem?.NodeId == null)
+            {
+                return false;
+            }
+
+            item.NodeItem.NodeInstance = null; // 이전 컨트롤은 이미 제거됨. 재생성 강제.
+            _nodeIndex[item.NodeItem.NodeId.Value] = item.NodeItem;
+            _dagItemsSource.Add(item);
+            return true;
+        }
+
+        /// <summary>
+        /// Del 명령의 Undo. 이전에 삭제된 커넥션 DagItems를 복원한다.
+        /// 노드의 SourceConnections / TargetConnections 목록에도 다시 등록한다.
+        /// </summary>
+        public bool RestoreDagConnectionItem(DagItems item)
+        {
+            if (item.ConnectionItem == null)
+            {
+                return false;
+            }
+
+            var conn = item.ConnectionItem;
+            conn.ConnectionInstance = null; // 재생성 강제
+
+            var sourceNode = conn.SourceNodeId.HasValue ? FindNode(conn.SourceNodeId.Value) : null;
+            var targetNode = conn.TargetNodeId.HasValue ? FindNode(conn.TargetNodeId.Value) : null;
+            sourceNode?.SourceConnections.Add(conn);
+            targetNode?.TargetConnections.Add(conn);
+
+            _dagItemsSource.Add(item);
+            return true;
+        }
+
+        // ─── Query ────────────────────────────────────────────────────────────
+
+        public DagNode? FindNode(Guid nodeId) =>
+            _nodeIndex.TryGetValue(nodeId, out var node) ? node : null;
+
+        /// <summary>nodeId에 해당하는 DagItems를 반환한다.</summary>
+        public DagItems? GetDagItemForNode(Guid nodeId) =>
+            _dagItemsSource.Items.FirstOrDefault(i => i.NodeItem?.NodeId == nodeId);
+
+        /// <summary>nodeId와 연결된 모든 커넥션 DagItems를 반환한다.</summary>
+        public List<DagItems> GetConnectionItemsForNode(Guid nodeId)
+        {
+            var result = new List<DagItems>();
+            foreach (var item in _dagItemsSource.Items)
+            {
+                if (item.ConnectionItem is { } conn &&
+                    (conn.SourceNodeId == nodeId || conn.TargetNodeId == nodeId))
+                {
+                    result.Add(item);
+                }
+            }
+
+            return result;
         }
 
         public void Dispose()

@@ -102,56 +102,6 @@ namespace DagEdit
 
         #endregion
 
-        #region fields
-
-        // ── 드래그 상태 ──────────────────────────────────────────────────────
-        // _dragState: 드래그 중인 절대 위치(Point)를 보관하는 ReactiveObject.
-        //   Position 이 바뀔 때마다 아래 WhenAnyValue 체인이 반응한다.
-        private readonly NodeDragState _dragState = new();
-
-        // _disposables: 모든 Rx 구독을 수명 관리한다.
-        //   Node가 Dispose될 때 일괄 해제 → 메모리 누수 방지.
-        private readonly CompositeDisposable _disposables = new();
-
-        private Point _initialPointerPosition;  // 드래그 시작 시 포인터 위치
-        private Vector _dragAccumulator;         // 그리드 스냅을 위한 누적 이동량
-
-        private const int GridCellSize = 15;
-
-        #endregion
-
-        #region Constructor
-
-        public Node()
-        {
-            Focusable = true;
-
-            // ── ParentControl 변경 감지 ──────────────────────────────────────
-            ParentControlProperty.Changed
-                .Subscribe(HandleParentControlChanged)
-                .DisposeWith(_disposables);
-
-            // ── WhenAnyValue: 드래그 위치 변경 → 부수 효과 처리 ─────────────
-            //
-            // _dragState.Position이 변경될 때마다 이 체인이 실행된다.
-            // HandlePointerMoved는 그리드 스냅 계산과 위치 확정만 담당하고,
-            // 실제 렌더링·앵커·이벤트 처리는 이 체인이 반응형으로 수행한다.
-            _dragState
-                .WhenAnyValue(x => x.Position)
-                .Skip(1)                    // 구독 시 방출되는 기본값(Point()) 무시
-                .DistinctUntilChanged()     // 그리드 스냅으로 인한 중복 값 필터
-                .Subscribe(UpdateFromDragPosition)
-                .DisposeWith(_disposables);
-        }
-
-        public Node(Point location) : this()
-        {
-            Location = location;
-            (SourceAnchor, TargetAnchor) = FindAnchors(location);
-        }
-
-        #endregion
-
         #region Routed Events
 
         public static readonly RoutedEvent<ConnectionChangedEventArgs> ConnectionChangedEvent =
@@ -165,16 +115,58 @@ namespace DagEdit
             remove => RemoveHandler(ConnectionChangedEvent, value);
         }
 
-        private void RaiseConnectionChangedEvent(Guid? nodeId, Point? location, Point? sourceAnchor,
-            Point? oldSourceAnchor,
-            Point? targetAnchor, Point? oldTargetAnchor,
-            DagItemsType dagItemsType)
+        /// <summary>
+        /// 노드 드래그 완료 시 발행. DagEditor가 수신하여 MoveNodeCommand를 undo 스택에 push한다.
+        /// </summary>
+        public static readonly RoutedEvent<NodeMovedEventArgs> NodeMovedEvent =
+            RoutedEvent.Register<Node, NodeMovedEventArgs>(
+                nameof(NodeMoved),
+                RoutingStrategies.Bubble);
+
+        public event EventHandler<NodeMovedEventArgs> NodeMoved
         {
-            var args = new ConnectionChangedEventArgs(ConnectionChangedEvent, nodeId, location, sourceAnchor,
-                oldSourceAnchor,
-                targetAnchor, oldTargetAnchor,
-                dagItemsType);
-            RaiseEvent(args);
+            add => AddHandler(NodeMovedEvent, value);
+            remove => RemoveHandler(NodeMovedEvent, value);
+        }
+
+        #endregion
+
+        #region fields
+
+        // ── 드래그 상태 ──────────────────────────────────────────────────────
+        private readonly NodeDragState _dragState = new();
+        private readonly CompositeDisposable _disposables = new();
+
+        private Point _initialPointerPosition;  // 드래그 중 포인터 위치 (이전 프레임)
+        private Vector _dragAccumulator;         // 그리드 스냅을 위한 누적 이동량
+        private Point _dragStartLocation;        // 드래그 시작 시 노드 위치 (Undo용)
+
+        private const int GridCellSize = 15;
+
+        #endregion
+
+        #region Constructor
+
+        public Node()
+        {
+            Focusable = true;
+
+            ParentControlProperty.Changed
+                .Subscribe(HandleParentControlChanged)
+                .DisposeWith(_disposables);
+
+            _dragState
+                .WhenAnyValue(x => x.Position)
+                .Skip(1)
+                .DistinctUntilChanged()
+                .Subscribe(UpdateFromDragPosition)
+                .DisposeWith(_disposables);
+        }
+
+        public Node(Point location) : this()
+        {
+            Location = location;
+            (SourceAnchor, TargetAnchor) = FindAnchors(location);
         }
 
         #endregion
@@ -193,6 +185,7 @@ namespace DagEdit
                 Debug.Print("Dragging Start");
                 _initialPointerPosition = args.GetPosition(ParentControl);
                 _dragAccumulator = new Vector();
+                _dragStartLocation = Location; // Undo용 시작 위치 기록
                 IsDragging = true;
                 args.Handled = true;
             }
@@ -212,7 +205,6 @@ namespace DagEdit
             Debug.Print("Dragging...");
 
             // ── 1. 그리드 스냅 계산 ──────────────────────────────────────────
-            // 포인터 이동량을 누적하여 GridCellSize(15px) 단위로만 이동을 확정한다.
             var currentPointerPosition = args.GetPosition(ParentControl);
             var delta = currentPointerPosition - _initialPointerPosition;
             _dragAccumulator += delta;
@@ -223,19 +215,13 @@ namespace DagEdit
 
             if (effectiveDelta != Vector.Zero)
             {
-                // 적용된 만큼만 누적량에서 차감
                 _dragAccumulator -= effectiveDelta;
 
-                // ── 2. Location 직접 업데이트 → 레이아웃 시스템이 올바른 위치로 재배치 ──
-                // RenderTransform 대신 Location을 갱신하면 DagEditorCanvas.ArrangeOverride가
-                // 정확한 레이아웃 위치를 추적하여 이전 위치에 잔상(ghosting)이 남지 않는다.
-                // BaseNode 정적 생성자의 LocationProperty 핸들러가 부모의 InvalidateArrange를
-                // 자동으로 호출하므로 별도 처리가 필요 없다.
+                // ── 2. Location 직접 업데이트 ──────────────────────────────────
                 var newPosition = new Point(Location.X + effectiveDelta.X, Location.Y + effectiveDelta.Y);
                 Location = newPosition;
 
                 // Position 설정 → _dragState.WhenAnyValue 체인이 반응한다.
-                // (앵커 재계산 + ConnectionChangedEvent 발행)
                 _dragState.Position = newPosition;
             }
 
@@ -254,6 +240,13 @@ namespace DagEdit
                 Debug.Print("Finish");
                 args.Pointer.Capture(null);
                 IsDragging = false;
+
+                // 위치가 실제로 바뀐 경우에만 NodeMovedEvent를 발행한다.
+                if (Location != _dragStartLocation)
+                {
+                    RaiseNodeMovedEvent(_id, _dragStartLocation, Location);
+                }
+
                 args.Handled = true;
             }
         }
@@ -276,10 +269,9 @@ namespace DagEdit
 
         /// <summary>
         /// WhenAnyValue 구독자: 새 드래그 위치가 확정될 때 호출된다.
-        /// TranslateTransform은 HandlePointerMoved에서 이미 갱신되었으므로,
-        /// 이 메서드는 앵커 재계산과 ConnectionChangedEvent 발행만 담당한다.
+        /// 앵커 재계산과 ConnectionChangedEvent 발행을 담당한다.
         /// </summary>
-        private void UpdateFromDragPosition(Point newPosition)
+        internal void UpdateFromDragPosition(Point newPosition)
         {
             Point? oldSourceAnchor = SourceAnchor;
             Point? oldTargetAnchor = TargetAnchor;
@@ -290,6 +282,30 @@ namespace DagEdit
                 SourceAnchor, oldSourceAnchor,
                 TargetAnchor, oldTargetAnchor,
                 DagItemsType.RunnerNode);
+        }
+
+        /// <summary>
+        /// 프로그래매틱하게 노드를 이동한다. Undo/Redo의 MoveNodeCommand에서 사용된다.
+        /// Location 갱신 + 앵커 재계산 + ConnectionChangedEvent 발행을 수행한다.
+        /// </summary>
+        public void MoveTo(Point newLocation)
+        {
+            Location = newLocation;
+            UpdateFromDragPosition(newLocation);
+        }
+
+        private void RaiseConnectionChangedEvent(Guid? nodeId, Point? location, Point? sourceAnchor,
+            Point? oldSourceAnchor, Point? targetAnchor, Point? oldTargetAnchor, DagItemsType dagItemsType)
+        {
+            var args = new ConnectionChangedEventArgs(ConnectionChangedEvent, nodeId, location, sourceAnchor,
+                oldSourceAnchor, targetAnchor, oldTargetAnchor, dagItemsType);
+            RaiseEvent(args);
+        }
+
+        private void RaiseNodeMovedEvent(Guid nodeId, Point oldLocation, Point newLocation)
+        {
+            var args = new NodeMovedEventArgs(NodeMovedEvent, nodeId, oldLocation, newLocation);
+            RaiseEvent(args);
         }
 
         private void NodeMove(Point point)

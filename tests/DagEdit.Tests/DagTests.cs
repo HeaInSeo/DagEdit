@@ -12,26 +12,27 @@ using Xunit;
 ///   Avalonia 초기화 없이 [Fact]로 실행 가능하다.
 /// - DelDagNodeItem()의 해피패스 테스트는 NodeInstance 설정이 필요하여
 ///   현재 모델 레이어에서 검증 불가. 향후 아키텍처 분리 후 추가 예정.
+/// - Add* 메서드는 성공 시 DagItems를, 실패 시 null을 반환한다.
 /// </summary>
 public class DagTests
 {
     // ─── AddDagNodeItem ──────────────────────────────────────────
 
     [Fact]
-    public void AddDagNodeItem_WithValidPoint_ReturnsTrue()
+    public void AddDagNodeItem_WithValidPoint_ReturnsNotNull()
     {
         var dag = new Dag();
 
         var result = dag.AddDagNodeItem(new Point(100, 200));
 
-        Assert.True(result);
+        Assert.NotNull(result);
     }
 
     [Fact]
     public void AddDagNodeItem_WithValidPoint_IncreasesItemCount()
     {
         var dag = new Dag();
-        var initialCount = dag.DAGItemsSource.Count; // 생성자에서 3개 추가됨
+        var initialCount = dag.DAGItemsSource.Count;
 
         dag.AddDagNodeItem(new Point(100, 200));
 
@@ -39,13 +40,13 @@ public class DagTests
     }
 
     [Fact]
-    public void AddDagNodeItem_WithNullPoint_ReturnsFalse()
+    public void AddDagNodeItem_WithNullPoint_ReturnsNull()
     {
         var dag = new Dag();
 
         var result = dag.AddDagNodeItem(null);
 
-        Assert.False(result);
+        Assert.Null(result);
     }
 
     [Fact]
@@ -74,7 +75,7 @@ public class DagTests
     // ─── AddDagConnectionItem ────────────────────────────────────
 
     [Fact]
-    public void AddDagConnectionItem_WithValidPoints_ReturnsTrue()
+    public void AddDagConnectionItem_WithValidPoints_ReturnsNotNull()
     {
         var dag = new Dag();
 
@@ -82,7 +83,7 @@ public class DagTests
             new Point(0, 0), System.Guid.NewGuid(),
             new Point(100, 100), System.Guid.NewGuid());
 
-        Assert.True(result);
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -99,7 +100,7 @@ public class DagTests
     }
 
     [Fact]
-    public void AddDagConnectionItem_WithNullSource_ReturnsFalse()
+    public void AddDagConnectionItem_WithNullSource_ReturnsNull()
     {
         var dag = new Dag();
 
@@ -107,11 +108,11 @@ public class DagTests
             null, System.Guid.NewGuid(),
             new Point(100, 100), System.Guid.NewGuid());
 
-        Assert.False(result);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void AddDagConnectionItem_WithNullTarget_ReturnsFalse()
+    public void AddDagConnectionItem_WithNullTarget_ReturnsNull()
     {
         var dag = new Dag();
 
@@ -119,17 +120,17 @@ public class DagTests
             new Point(0, 0), System.Guid.NewGuid(),
             null, System.Guid.NewGuid());
 
-        Assert.False(result);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void AddDagConnectionItem_WithBothNullPoints_ReturnsFalse()
+    public void AddDagConnectionItem_WithBothNullPoints_ReturnsNull()
     {
         var dag = new Dag();
 
         var result = dag.AddDagConnectionItem(null, null, null, null);
 
-        Assert.False(result);
+        Assert.Null(result);
     }
 
     [Fact]
@@ -326,6 +327,82 @@ public class DagTests
         var targetNode = dag.FindNode(targetId);
         Assert.NotNull(targetNode);
         Assert.Single(targetNode.TargetConnections);
+    }
+
+    // ─── RemoveDagItem / Restore (Undo/Redo 보조) ────────────────
+
+    [Fact]
+    public void RemoveDagItem_RemovesNodeFromSourceList()
+    {
+        var dag = new Dag();
+        var item = dag.AddDagNodeItem(new Point(0, 0))!;
+
+        dag.RemoveDagItem(item);
+
+        Assert.Empty(dag.DAGItemsSource);
+    }
+
+    [Fact]
+    public void RemoveDagItem_RemovesConnectionFromNodeLists()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(0, 0));
+        dag.AddDagNodeItem(new Point(100, 0));
+        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        var connItem = dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId)!;
+
+        dag.RemoveDagItem(connItem);
+
+        Assert.Empty(dag.FindNode(sourceId)!.SourceConnections);
+        Assert.Empty(dag.FindNode(targetId)!.TargetConnections);
+    }
+
+    [Fact]
+    public void RestoreDagNodeItem_RestoresItemToSourceList()
+    {
+        var dag = new Dag();
+        var item = dag.AddDagNodeItem(new Point(0, 0))!;
+        dag.RemoveDagItem(item);
+
+        dag.RestoreDagNodeItem(item);
+
+        Assert.Single(dag.DAGItemsSource);
+    }
+
+    [Fact]
+    public void RestoreDagConnectionItem_RestoresConnectionAndNodeLists()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(0, 0));
+        dag.AddDagNodeItem(new Point(100, 0));
+        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        var connItem = dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId)!;
+
+        dag.RemoveDagItem(connItem);
+        dag.RestoreDagConnectionItem(connItem);
+
+        Assert.Single(dag.FindNode(sourceId)!.SourceConnections);
+        Assert.Single(dag.FindNode(targetId)!.TargetConnections);
+        Assert.Contains(dag.DAGItemsSource, i => i.ConnectionItem?.ConnectionId == connItem.ConnectionItem!.ConnectionId);
+    }
+
+    // ─── GetConnectionItemsForNode ───────────────────────────────
+
+    [Fact]
+    public void GetConnectionItemsForNode_ReturnsRelatedConnections()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(0, 0));
+        dag.AddDagNodeItem(new Point(100, 0));
+        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId);
+
+        var result = dag.GetConnectionItemsForNode(sourceId);
+
+        Assert.Single(result);
     }
 
     // ─── 생성자 초기 상태 ─────────────────────────────────────

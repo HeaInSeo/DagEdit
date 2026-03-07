@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
@@ -8,6 +8,9 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml.Templates;
+using Avalonia.Media;
+using Avalonia.Controls.Shapes;
+using ReactiveUI;
 
 namespace DagEdit
 {
@@ -15,6 +18,9 @@ namespace DagEdit
     {
         #region Dependency Properties
 
+        // Feature 3: ViewportLocation/Scale는 ViewModel이 Source of Truth.
+        // DagEditor 속성은 PendingConnectionTemplate의 $parent 바인딩을 위한 패스스루다.
+        // DagEditor 생성자에서 ViewModel.WhenAnyValue를 구독하여 자동 동기화한다.
         public static readonly StyledProperty<Point> ViewportLocationProperty =
             AvaloniaProperty.Register<DagEditor, Point>(
                 nameof(ViewportLocation), Constants.ZeroPoint);
@@ -23,6 +29,15 @@ namespace DagEdit
         {
             get => GetValue(ViewportLocationProperty);
             set => SetValue(ViewportLocationProperty, value);
+        }
+
+        public static readonly StyledProperty<double> ViewportScaleProperty =
+            AvaloniaProperty.Register<DagEditor, double>(nameof(ViewportScale), 1.0);
+
+        public double ViewportScale
+        {
+            get => GetValue(ViewportScaleProperty);
+            set => SetValue(ViewportScaleProperty, value);
         }
 
         public static readonly StyledProperty<bool> DisablePanningProperty =
@@ -155,15 +170,6 @@ namespace DagEdit
             set => SetValue(ContextMenuPointProperty, value);
         }
 
-        public static readonly StyledProperty<double> ViewportScaleProperty =
-            AvaloniaProperty.Register<DagEditor, double>(nameof(ViewportScale), 1.0);
-
-        public double ViewportScale
-        {
-            get => GetValue(ViewportScaleProperty);
-            set => SetValue(ViewportScaleProperty, value);
-        }
-
         #endregion
 
         #region Fields
@@ -176,6 +182,7 @@ namespace DagEdit
         private EventHandler<PendingConnectionEventArgs>? _connectionCompleteHandler;
         // 이건 node 에서 올라오는 event
         private EventHandler<ConnectionChangedEventArgs>? _connectionChangedHandler;
+        private EventHandler<NodeMovedEventArgs>? _nodeMovedHandler;
 
         private bool _IsRightBtnClicked;
         private readonly DagEditorViewModel _viewModel = new();
@@ -185,9 +192,13 @@ namespace DagEdit
         private Canvas? topLayer;
         private DagEditorCanvas? editorCanvas;
 
-        // Panning 관련 포인터 위치 값 
+        // Panning 관련 포인터 위치 값
         private Point _previousPointerPosition;
         private Point _currentPointerPosition;
+
+        // Selection Rectangle 관련 (Feature 1)
+        private Point _selectionStart;
+        private Rectangle? _selectionRect;
 
         // TODO 일단 이렇게 남겨 두는데, Menu 디자인시 수정 해야 함.
         private EditorContextFlyout _contextMenu;
@@ -202,6 +213,14 @@ namespace DagEdit
             InitializeSubscriptions();
             _contextMenu = new EditorContextFlyout(this);
             this.Unloaded += (_, _) => this.Dispose();
+
+            // ViewModel → DagEditor 속성 동기화 (PendingConnectionTemplate $parent 바인딩 지원)
+            _viewModel.WhenAnyValue(x => x.ViewportLocation)
+                .Subscribe(v => ViewportLocation = v)
+                .DisposeWith(_disposables);
+            _viewModel.WhenAnyValue(x => x.ViewportScale)
+                .Subscribe(v => ViewportScale = v)
+                .DisposeWith(_disposables);
         }
 
         #endregion
@@ -214,7 +233,8 @@ namespace DagEdit
             _connectionDragHandler = HandleConnectionDrag;
             _connectionCompleteHandler = HandleConnectionComplete;
             _connectionChangedHandler = HandleConnectionChanged;
-           
+            _nodeMovedHandler = HandleNodeMoved;
+
             Observable.FromEventPattern<PointerPressedEventArgs>(
                     h => this.PointerPressed += h,
                     h => this.PointerPressed -= h)
@@ -258,7 +278,9 @@ namespace DagEdit
             AddHandler(Connector.PendingConnectionCompletedEvent, _connectionCompleteHandler);
             // Connection Changed
             AddHandler(Node.ConnectionChangedEvent, _connectionChangedHandler);
-           
+            // Node Moved (Undo/Redo 용)
+            AddHandler(Node.NodeMovedEvent, _nodeMovedHandler);
+
             // 이벤트 핸들러 해제
             _disposables.Add(Disposable.Create(() =>
             {
@@ -268,20 +290,41 @@ namespace DagEdit
                 RemoveHandler(Connector.PendingConnectionCompletedEvent, _connectionCompleteHandler);
                 // Connection Changed
                 RemoveHandler(Node.ConnectionChangedEvent, _connectionChangedHandler);
+                // Node Moved
+                RemoveHandler(Node.NodeMovedEvent, _nodeMovedHandler);
             }));
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
-            if (args.GetCurrentPoint(this).Properties.IsRightButtonPressed && !DisablePanning)
+            var point = args.GetCurrentPoint(this);
+
+            if (point.Properties.IsRightButtonPressed && !DisablePanning)
             {
                 args.Pointer.Capture(this);
                 // 클릭 위치를 캔버스 월드 좌표로 변환하여 저장한다.
-                // 패닝/줌 상태에서 노드 추가 위치가 올바르게 계산된다. (DEC-015 참조)
                 var rawPos = args.GetPosition(this);
-                ContextMenuPoint = ViewportTransform.ScreenToWorld(rawPos, ViewportLocation, ViewportScale);
-                _previousPointerPosition = args.GetPosition(this);
+                ContextMenuPoint = ViewportTransform.ScreenToWorld(rawPos, _viewModel.ViewportLocation, _viewModel.ViewportScale);
+                _previousPointerPosition = rawPos;
                 _IsRightBtnClicked = true;
+                args.Handled = true;
+            }
+            else if (point.Properties.IsLeftButtonPressed && !args.Handled && topLayer != null)
+            {
+                // 빈 캔버스 영역 좌클릭 → Selection Rectangle 시작 (Feature 1)
+                args.Pointer.Capture(this);
+                _selectionStart = args.GetPosition(topLayer);
+                SelectedArea = new Rect(_selectionStart, new Size(0, 0));
+                IsSelecting = true;
+                if (_selectionRect != null)
+                {
+                    Canvas.SetLeft(_selectionRect, _selectionStart.X);
+                    Canvas.SetTop(_selectionRect, _selectionStart.Y);
+                    _selectionRect.Width = 0;
+                    _selectionRect.Height = 0;
+                    _selectionRect.IsVisible = true;
+                }
+
                 args.Handled = true;
             }
         }
@@ -292,10 +335,17 @@ namespace DagEdit
             {
                 _currentPointerPosition = args.GetPosition(this);
                 // 패닝 델타는 줌 배율과 무관하게 스크린 픽셀 단위로 ViewportLocation에 적용한다.
-                // WorldUnderCursor = (sx + VL) / s 에서 s가 약분되어 소거됨. (DEC-015 참조)
-                ViewportLocation -= (_currentPointerPosition - _previousPointerPosition);
+                _viewModel.ViewportLocation -= (_currentPointerPosition - _previousPointerPosition);
                 _previousPointerPosition = _currentPointerPosition;
                 IsPanning = true;
+                args.Handled = true;
+            }
+            else if (IsSelecting && topLayer != null)
+            {
+                // Selection Rectangle 크기 업데이트 (Feature 1)
+                var current = args.GetPosition(topLayer);
+                SelectedArea = MakeNormalizedRect(_selectionStart, current);
+                UpdateSelectionRect(SelectedArea);
                 args.Handled = true;
             }
         }
@@ -312,12 +362,30 @@ namespace DagEdit
                     {
                         args.Pointer.Capture(null);
                     }
+
                     _IsRightBtnClicked = false;
                     return;
                 }
 
                 _contextMenu.ShowAt(this, true);
                 _IsRightBtnClicked = false;
+            }
+            else if (IsSelecting)
+            {
+                // Selection Rectangle 확정 (Feature 1)
+                IsSelecting = false;
+                if (_selectionRect != null)
+                {
+                    _selectionRect.IsVisible = false;
+                }
+                args.Pointer.Capture(null);
+
+                if (SelectedArea.Width > 2 || SelectedArea.Height > 2)
+                {
+                    FinalizeSelection();
+                }
+
+                args.Handled = true;
             }
         }
 
@@ -329,15 +397,11 @@ namespace DagEdit
 
                 if (args.SourceAnchor.HasValue)
                 {
-                    // SourceAnchor = 월드 좌표 (Node.FindAnchors에서 계산된 값)
                     SourceAnchor = args.SourceAnchor.Value;
-                    // 드래그 시작 시 TargetAnchor는 SourceAnchor와 동일하게 초기화한다.
-                    // RaiseConnectionStartEvent 는 Offset을 설정하지 않으므로 항상 이 분기에 진입한다.
                     TargetAnchor = SourceAnchor;
                 }
                 else
                 {
-                    // SourceAnchor가 없으면 IsVisiblePendingConnection = false가 "연결 없음" 신호
                     SourceAnchor = default;
                     TargetAnchor = default;
                 }
@@ -350,10 +414,6 @@ namespace DagEdit
 
         private void HandleConnectionDrag(object? sender, PendingConnectionEventArgs args)
         {
-            // args.Offset = SourceConnector.HandlePointerMoved에서 설정된 포인터의 월드 좌표.
-            // SourceConnector는 GetPosition(PART_ItemsHost)를 사용하는데, Avalonia의 GetPosition은
-            // DagEditorCanvas의 ScaleTransform을 역변환하여 월드 좌표를 반환한다.
-            // 따라서 TargetAnchor = Offset(월드)으로 설정하는 것이 올바르다. (DEC-015 참조)
             if (IsVisiblePendingConnection)
             {
                 if (args.Offset.HasValue)
@@ -373,10 +433,10 @@ namespace DagEdit
                 IsVisiblePendingConnection = false;
                 return;
             }
+
             Debug.WriteLine("Editor connection end");
-            Debug.WriteLine(args.SourceAnchor.Value);
-            // 선추가하는 구문.
-            _viewModel.AddDagConnectionItem(args.SourceAnchor, args.SourceNodeId, args.TargetAnchor, args.TargetNodeId);
+            // Undo/Redo 스택에 등록 (Feature 2)
+            _viewModel.ExecuteAddConnection(args.SourceAnchor, args.SourceNodeId, args.TargetAnchor, args.TargetNodeId);
             IsVisiblePendingConnection = false;
         }
 
@@ -420,6 +480,13 @@ namespace DagEdit
             args.Handled = true;
         }
 
+        private void HandleNodeMoved(object? sender, NodeMovedEventArgs args)
+        {
+            // 드래그 완료 후 MoveNodeCommand를 Undo 스택에 push한다 (Feature 2).
+            _viewModel.PushMoveNode(args.NodeId, args.OldLocation, args.NewLocation);
+            args.Handled = true;
+        }
+
         // TODO 코드 정리 할때 이거 필요 없어짐. 삭제, 다만 backup 용으로 기록해 둬야 함.
         private void HandleLoaded(object? sender, RoutedEventArgs args)
         {
@@ -435,7 +502,6 @@ namespace DagEdit
                     throw new InvalidOperationException("The coordinate systems do not match, causing rendering issues in the application.");
                 }
 
-                // 한번만 실행되게 만드는 flag
                 _isLoaded = false;
             }
         }
@@ -443,28 +509,38 @@ namespace DagEdit
         private void HandlePointerWheelChanged(object? sender, PointerWheelEventArgs args)
         {
             // 마우스 휠로 줌 인/아웃. 커서 위치를 중심으로 확대/축소한다.
-            // 한 스텝당 약 10% 변화. 범위: 0.1x ~ 10x.
             var zoomFactor = args.Delta.Y > 0 ? 1.1 : 1.0 / 1.1;
-            var oldScale = ViewportScale;
+            var oldScale = _viewModel.ViewportScale;
             var newScale = Math.Clamp(oldScale * zoomFactor, 0.1, 10.0);
             var cursorPos = args.GetPosition(this);
 
-            // 커서 아래 월드 좌표를 줌 전후로 고정한다. (DEC-015 참조)
-            // w = ScreenToWorld(cursor, vl1, s1)
-            // 줌 후 조건: ScreenToWorld(cursor, vl2, s2) = w
-            // → vl2 = w * s2 − cursor
-            var worldUnderCursor = ViewportTransform.ScreenToWorld(cursorPos, ViewportLocation, oldScale);
-            ViewportLocation = new Point(
+            var worldUnderCursor = ViewportTransform.ScreenToWorld(cursorPos, _viewModel.ViewportLocation, oldScale);
+            _viewModel.ViewportLocation = new Point(
                 worldUnderCursor.X * newScale - cursorPos.X,
                 worldUnderCursor.Y * newScale - cursorPos.Y);
 
-            ViewportScale = newScale;
+            _viewModel.ViewportScale = newScale;
             args.Handled = true;
         }
 
-        // node / connection 에서 bubble 로 올라옴.
         private void HandleKeyDown(object? sender, KeyEventArgs args)
         {
+            // ── Undo / Redo (Feature 2) ────────────────────────────────────────
+            if (EditorGestures.Undo.Matches(args))
+            {
+                _viewModel.Undo();
+                args.Handled = true;
+                return;
+            }
+
+            if (EditorGestures.Redo.Matches(args) || EditorGestures.RedoAlt.Matches(args))
+            {
+                _viewModel.Redo();
+                args.Handled = true;
+                return;
+            }
+
+            // ── Delete ────────────────────────────────────────────────────────
             if (!EditorGestures.Delete.Matches(args))
             {
                 return;
@@ -472,20 +548,12 @@ namespace DagEdit
 
             if (args.Source is Node node)
             {
-                var r = _viewModel.DelDagNodeItem(node.Id);
-                if (!r)
-                {
-                    Debug.WriteLine("Failed");
-                }
+                _viewModel.ExecuteDelNode(node.Id); // Undo/Redo 스택에 등록
                 args.Handled = true;
             }
             else if (args.Source is Connection connection)
             {
-                var r = _viewModel.DelDagConnectionItem(connection.ConnectionId);
-                if (!r)
-                {
-                    Debug.WriteLine("Failed");
-                }
+                _viewModel.ExecuteDelConnection(connection.ConnectionId); // Undo/Redo 스택에 등록
                 args.Handled = true;
             }
         }
@@ -509,10 +577,59 @@ namespace DagEdit
                 return;
             }
 
-            _viewModel.AddDagNodeItem(ContextMenuPoint);
+            _viewModel.ExecuteAddNode(ContextMenuPoint); // Undo/Redo 스택에 등록
         }
 
-        // ContextMenu 말고 MenuFlyout 으로 해보자.
+        // ─── Selection Rectangle 보조 (Feature 1) ─────────────────────────────
+
+        private static Rect MakeNormalizedRect(Point a, Point b)
+        {
+            var x = Math.Min(a.X, b.X);
+            var y = Math.Min(a.Y, b.Y);
+            var w = Math.Abs(a.X - b.X);
+            var h = Math.Abs(a.Y - b.Y);
+            return new Rect(x, y, w, h);
+        }
+
+        private void UpdateSelectionRect(Rect area)
+        {
+            if (_selectionRect == null)
+            {
+                return;
+            }
+
+            Canvas.SetLeft(_selectionRect, area.X);
+            Canvas.SetTop(_selectionRect, area.Y);
+            _selectionRect.Width = area.Width;
+            _selectionRect.Height = area.Height;
+        }
+
+        private void FinalizeSelection()
+        {
+            // SelectedArea는 PART_TopLayer 로컬 좌표.
+            // 월드 좌표계로 변환하여 노드 위치와 비교한다.
+            var worldRect = new Rect(
+                ViewportTransform.ScreenToWorld(SelectedArea.TopLeft, _viewModel.ViewportLocation, _viewModel.ViewportScale),
+                ViewportTransform.ScreenToWorld(SelectedArea.BottomRight, _viewModel.ViewportLocation, _viewModel.ViewportScale));
+
+            Selection.BeginBatchUpdate();
+            Selection.Clear();
+            var items = _viewModel.Items;
+            for (int i = 0; i < items.Count; i++)
+            {
+                var dagItem = items[i];
+                if (dagItem.NodeItem?.Location is { } loc)
+                {
+                    var nodeWorldRect = new Rect(loc, new Size(Constants.NodeWidth, Constants.NodeHeight));
+                    if (worldRect.Intersects(nodeWorldRect))
+                    {
+                        Selection.Select(i);
+                    }
+                }
+            }
+
+            Selection.EndBatchUpdate();
+        }
 
         #endregion
 
@@ -526,6 +643,17 @@ namespace DagEdit
             {
                 throw new InvalidOperationException("PART_TopLayer cannot be found in the template.");
             }
+
+            // Selection Rectangle을 PART_TopLayer에 프로그래매틱하게 추가 (Feature 1)
+            _selectionRect = new Rectangle
+            {
+                Stroke = new SolidColorBrush(Color.FromRgb(70, 130, 220)),
+                StrokeThickness = 1.5,
+                Fill = new SolidColorBrush(Color.FromArgb(40, 70, 130, 220)),
+                IsHitTestVisible = false,
+                IsVisible = false
+            };
+            topLayer.Children.Add(_selectionRect);
         }
 
         /// <inheritdoc />
@@ -538,13 +666,10 @@ namespace DagEdit
                 {
                     if (dagItems.NodeItem.Location.HasValue)
                     {
-                        // 여기서 실제로 SourceAnchor, TargetAnchor 가 생성된다.
-                        // TODO 향후에 node 의 참조 해제 해야 한다.
                         var node = new Node(dagItems.NodeItem.Location.Value);
                         dagItems.NodeItem.SourceAnchor = node.SourceAnchor;
                         dagItems.NodeItem.TargetAnchor = node.TargetAnchor;
                         dagItems.NodeItem.NodeInstance = node;
-                        // TODO node id update, NodeId 는 반드시 있어야 한다. 이거 nullable 하는 거에 대해서 생각해보자.
                         node.Id = dagItems.NodeItem.NodeId!.Value;
                         return node;
                     }
