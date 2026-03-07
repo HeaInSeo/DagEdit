@@ -177,7 +177,7 @@ namespace DagEdit
         {
             if (ParentControl == null)
                 throw new InvalidOperationException(
-                    "Node cannot move because a DAGlynEditorCanvas parent is not found.");
+                    "Node cannot move because a Canvas parent is not found.");
 
             if (args.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
@@ -195,7 +195,7 @@ namespace DagEdit
         {
             if (ParentControl == null)
                 throw new InvalidOperationException(
-                    "Node cannot move because a DAGlynEditorCanvas parent is not found.");
+                    "Node cannot move because a Canvas parent is not found.");
 
             if (!IsDragging || !Equals(args.Pointer.Captured))
             {
@@ -233,7 +233,7 @@ namespace DagEdit
         {
             if (ParentControl == null)
                 throw new InvalidOperationException(
-                    "Node cannot move because a DAGlynEditorCanvas parent is not found.");
+                    "Node cannot move because a Canvas parent is not found.");
 
             if (sender != null && Equals(args.Pointer.Captured) && IsDragging)
             {
@@ -253,13 +253,15 @@ namespace DagEdit
 
         private void HandleParentControlChanged(AvaloniaPropertyChangedEventArgs e)
         {
-            if (e.NewValue is DagEditorCanvas editorCanvas)
+            // Canvas 타입으로 조회 — concrete DagEditorCanvas 를 몰라도 됨.
+            // VCA 통합 시 VCA host 가 Canvas 를 상속하면 이 경로도 그대로 작동한다.
+            if (e.NewValue is Canvas canvas)
             {
-                ParentControl = editorCanvas;
+                ParentControl = canvas;
             }
             else
             {
-                ParentControl = this.GetParentVisualOfType<DagEditorCanvas>();
+                ParentControl = this.GetParentVisualOfType<Canvas>();
             }
         }
 
@@ -319,12 +321,12 @@ namespace DagEdit
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
-            ParentControl = this.GetParentVisualOfType<DagEditorCanvas>();
+            ParentControl = this.GetParentVisualOfType<Canvas>();
         }
 
         public bool CanNodeMove()
         {
-            var parentControl = this.GetParentVisualOfType<DagEditorCanvas>();
+            var parentControl = this.GetParentVisualOfType<Canvas>();
             if (parentControl != null)
             {
                 ParentControl = parentControl;
