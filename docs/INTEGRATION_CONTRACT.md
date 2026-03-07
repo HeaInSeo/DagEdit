@@ -1,16 +1,16 @@
 # Integration Contract: DagEdit ↔ VCA
 
 ```
-Contract-ID:      IC-001
+Contract-ID:      VCA-DAGEDIT-001
 Version:          0.1.0
-Status:           Draft
-Canonical-Repo:   HeaInSeo/virtualcanvas-avalonia
+Status:           initial-draft
+Canonical-Repo:   virtualcanvas-avalonia
 Canonical-Path:   docs/INTEGRATION_CONTRACT.md
 Mirrored-In:      HeaInSeo/DagEdit / docs/INTEGRATION_CONTRACT.md
 Last-Updated:     2026-03-07
-Last-Synced:      2026-03-07 (initial mirror — canonical not yet committed in VCA repo)
-Change-Type:      Minor
-Mirror-Status:    Pending Sync (awaiting canonical creation in VCA repo)
+Last-Synced:      2026-03-07 (header-only sync against canonical v0.1.0; body pending full semantic review)
+Change-Type:      Major (first issuance)
+Mirror-Status:    Pending Sync (canonical v0.1.0 confirmed; body not yet fully reviewed for semantic equivalence; note: canonical Mirrored-In points to stale path "viewport-contract.md" — actual mirror is this file)
 ```
 
 > **Mirror 문서 규칙**: 이 파일은 VCA repo `docs/INTEGRATION_CONTRACT.md` 의 mirror다.

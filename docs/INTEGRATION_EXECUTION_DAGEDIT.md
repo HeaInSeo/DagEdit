@@ -232,9 +232,10 @@ public interface IViewportHost
 ## 12. Contract Sync Dependency
 
 ```
-Canonical: HeaInSeo/virtualcanvas-avalonia / docs/INTEGRATION_CONTRACT.md  (v0.1.0)
-Mirror:    HeaInSeo/DagEdit / docs/INTEGRATION_CONTRACT.md                  (v0.1.0)
-Mirror-Status: Pending Sync (canonical not yet committed in VCA repo)
+Canonical: virtualcanvas-avalonia / docs/INTEGRATION_CONTRACT.md  (VCA-DAGEDIT-001 v0.1.0)
+Mirror:    HeaInSeo/DagEdit / docs/INTEGRATION_CONTRACT.md         (VCA-DAGEDIT-001 v0.1.0)
+Mirror-Status: Pending Sync (canonical v0.1.0 confirmed; body not yet fully reviewed for semantic equivalence)
+Last-Synced: 2026-03-07 (header-only sync)
 ```
 
 **이 문서에서 계약 변경이 필요해 보이면:**
