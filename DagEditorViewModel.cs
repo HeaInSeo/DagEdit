@@ -38,11 +38,25 @@ namespace DagEdit
         /// </summary>
         public ReadOnlyObservableCollection<DagItems> Items => Dag.DAGItemsSource;
 
-        // ─── Viewport State (Feature 3: Viewport ViewModel Migration) ─────────
+        // ─── Viewport State ────────────────────────────────────────────────────
+        //
+        // ViewportLocation / ViewportScale 은 뷰포트 상태의 Single Source of Truth.
+        //
+        // 책임 방향:
+        //   ViewModel (여기)  ── WhenAnyValue ──▶  DagEditor StyledProperty (패스스루)
+        //                     ◀── GetObservable ──  (양방향, _syncingViewport 가드)
+        //
+        // VCA 매핑:
+        //   ViewportLocation  ≡  VirtualCanvas.Offset   (Point, 동일한 수식)
+        //   ViewportScale     ≡  VirtualCanvas.Scale    (double, 동일한 수식)
+        //   통합 시: VirtualCanvas.Offset ↔ ViewportLocation 을 양방향 바인딩하면 된다.
 
         private Point _viewportLocation = Constants.ZeroPoint;
 
-        /// <summary>현재 뷰포트 오프셋. DagEditorCanvas.TranslateTransform의 소스.</summary>
+        /// <summary>
+        /// 현재 뷰포트 오프셋 (ViewportLocation = VCA.Offset).
+        /// DagEditorCanvas TranslateTransform(-vl.X, -vl.Y) 의 소스.
+        /// </summary>
         public Point ViewportLocation
         {
             get => _viewportLocation;
@@ -51,7 +65,10 @@ namespace DagEdit
 
         private double _viewportScale = 1.0;
 
-        /// <summary>현재 줌 배율. DagEditorCanvas.ScaleTransform의 소스.</summary>
+        /// <summary>
+        /// 현재 줌 배율 (ViewportScale = VCA.Scale).
+        /// DagEditorCanvas ScaleTransform(s, s) 의 소스.
+        /// </summary>
         public double ViewportScale
         {
             get => _viewportScale;

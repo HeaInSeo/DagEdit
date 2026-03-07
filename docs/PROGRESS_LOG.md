@@ -271,6 +271,29 @@
 
 ---
 
+### [Step 19] Viewport Contract Hardening
+- **날짜**: 2026-03-07
+- **수행 내용**:
+  - **ViewportTransform.cs** — VCA 매핑 주석 추가 (ViewportLocation ≡ Offset, ViewportScale ≡ Scale, 수식 동일 명시)
+  - **DagEditorViewModel.cs** — 책임 방향(ViewModel = Source of Truth, StyledProperty = 패스스루) 및 VCA 매핑 주석 강화
+  - **DagEditor.cs** — 단방향 ViewModel→DagEditor 동기화를 **양방향 동기화**로 교체
+    - `_syncingViewport` 플래그로 재진입 차단
+    - 외부 코드가 `DagEditor.ViewportLocation/Scale` 에 직접 쓸 때도 ViewModel 이 일치 보장
+    - 미래 VCA `Offset`/`Scale` 양방향 바인딩 지원 준비
+  - **tests/DagEdit.Tests/SelectionRectTests.cs** (신규) — 11개 테스트
+    - identity / pan-only / zoom-only / pan+zoom 각 상태에서 selection rect 포함·제외 검증
+    - viewport 불변성: 동일 월드 선택 rect가 서로 다른 viewport 상태에서도 동일한 worldRect를 생성함을 검증
+    - VCA 공식 일치 검증: `WorldToScreen` = `world * Scale - Offset`, `ActualViewbox.TopLeft` = `ScreenToWorld(0,0)` 수식 일치
+  - **docs/viewport-contract.md** (신규) — viewport 계약 문서
+    - Single Source of Truth, 책임 방향, transform formula, VCA 매핑 표, selection rectangle 원칙, VCA 통합 경로
+- **VCA 통합 관점 리스크 분석**:
+  - **해소됨**: viewport 공식이 VCA와 완전히 일치함을 테스트로 확인 (`SelectionRectTests.TransformFormula_MatchesVcaFormula`, `InverseFormula_MatchesVcaActualViewboxOrigin`)
+  - **해소됨**: 양방향 동기화 gap (외부 쓰기 시 ViewModel 불일치) → `_syncingViewport` 가드로 처리
+  - **잔여 리스크**: VCA를 items host로 교체 시 `PART_ItemsHost` 기반 좌표계 일치 검사(`HandleLoaded`) 업데이트 필요
+- **검증 지표**: 빌드 0 Error, 103 → **114개** 테스트 100% 통과 (`SelectionRectTests` 11개 신규)
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |

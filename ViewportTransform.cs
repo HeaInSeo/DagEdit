@@ -18,7 +18,19 @@ namespace DagEdit
     ///
     /// 패닝 델타(ΔViewportLocation)는 scale과 무관하다:
     ///   WorldUnderCursor = (sx + VL) / s  →  ΔVL = −ΔscreenPointer  (s가 약분됨)
-    /// </summary>
+    ///
+    /// ─── VCA (VirtualCanvas-Avalonia) 매핑 ───────────────────────────────────────
+    ///   DagEdit 개념              VCA 개념
+    ///   ─────────────────────     ──────────────────────────────────────────────────
+    ///   ViewportLocation (vl)  ≡  VirtualCanvas.Offset (Point)
+    ///   ViewportScale    (s)   ≡  VirtualCanvas.Scale  (double)
+    ///   ScreenToWorld(pt,vl,s) ≡  (pt + Offset) / Scale
+    ///   WorldToScreen(pt,vl,s) ≡  pt * Scale − Offset
+    ///   ─ 수식이 완전히 일치한다 ─
+    ///
+    ///   VCA.ActualViewbox = VCRect(Offset.X/Scale, Offset.Y/Scale, W/Scale, H/Scale)
+    ///   DagEdit 등가: ScreenToWorld(Point(0,0), vl, s) = (vl.X/s, vl.Y/s) — 뷰포트 월드 원점
+    ///</summary>
     public static class ViewportTransform
     {
         /// <summary>

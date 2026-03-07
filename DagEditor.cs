@@ -200,6 +200,9 @@ namespace DagEdit
         private Point _selectionStart;
         private Rectangle? _selectionRect;
 
+        // Viewport 양방향 동기화 재진입 방지 플래그 (Step 19)
+        private bool _syncingViewport;
+
         // TODO 일단 이렇게 남겨 두는데, Menu 디자인시 수정 해야 함.
         private EditorContextFlyout _contextMenu;
 
@@ -214,12 +217,47 @@ namespace DagEdit
             _contextMenu = new EditorContextFlyout(this);
             this.Unloaded += (_, _) => this.Dispose();
 
-            // ViewModel → DagEditor 속성 동기화 (PendingConnectionTemplate $parent 바인딩 지원)
+            // ─── Viewport 양방향 동기화 (Step 19: Viewport Contract Hardening) ───────
+            // ViewModel이 Source of Truth. DagEditor StyledProperty는 PendingConnectionTemplate
+            // $parent 바인딩 전용 패스스루다. 양방향 동기화는 외부 코드가 DagEditor 속성에
+            // 직접 쓸 때(예: 테스트 하네스, 미래 VCA 바인딩)에도 ViewModel이 일치하도록 보장한다.
+            // Avalonia StyledProperty와 ReactiveUI RaiseAndSetIfChanged는 모두
+            // 값이 변하지 않으면 알림을 억제하므로 순환 루프가 발생하지 않는다.
             _viewModel.WhenAnyValue(x => x.ViewportLocation)
-                .Subscribe(v => ViewportLocation = v)
+                .Subscribe(v =>
+                {
+                    if (_syncingViewport) { return; }
+                    _syncingViewport = true;
+                    ViewportLocation = v;
+                    _syncingViewport = false;
+                })
                 .DisposeWith(_disposables);
             _viewModel.WhenAnyValue(x => x.ViewportScale)
-                .Subscribe(v => ViewportScale = v)
+                .Subscribe(v =>
+                {
+                    if (_syncingViewport) { return; }
+                    _syncingViewport = true;
+                    ViewportScale = v;
+                    _syncingViewport = false;
+                })
+                .DisposeWith(_disposables);
+            this.GetObservable(ViewportLocationProperty)
+                .Subscribe(v =>
+                {
+                    if (_syncingViewport) { return; }
+                    _syncingViewport = true;
+                    _viewModel.ViewportLocation = v;
+                    _syncingViewport = false;
+                })
+                .DisposeWith(_disposables);
+            this.GetObservable(ViewportScaleProperty)
+                .Subscribe(v =>
+                {
+                    if (_syncingViewport) { return; }
+                    _syncingViewport = true;
+                    _viewModel.ViewportScale = v;
+                    _syncingViewport = false;
+                })
                 .DisposeWith(_disposables);
         }
 
