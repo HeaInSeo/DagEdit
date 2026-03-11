@@ -217,6 +217,7 @@ DagEdit 에 변경을 가하기 전 아래 질문을 확인한다.
 | 19 | 2026-03-07 | Viewport Contract Hardening, 양방향 sync, VCA 매핑 문서 | 114 |
 | 20 | 2026-03-07 | INTEGRATION_CONTRACT.md, INTEGRATION_EXECUTION_DAGEDIT.md 작성 | 114 |
 | 21 | 2026-03-11 | Phase 1 Viewer adapter spike — NodeViewItem projection seam, VirtualCanvas.Core 참조 추가 | 120 |
+| 22 | 2026-03-11 | Phase 1 Viewer projection trigger spike — DagViewerProjectionAdapter (add/remove/move/flush) | 130 |
 
 ---
 
