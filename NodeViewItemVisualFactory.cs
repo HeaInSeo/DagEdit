@@ -27,6 +27,29 @@ namespace DagEdit
     {
         private readonly Dictionary<ISpatialItem, Control> _pool = new();
 
+        // ─── H-0 Observability counters ──────────────────────────────────────
+
+        /// <summary>
+        /// VCA가 factory.Realize를 호출해 새 Border를 생성한 횟수.
+        /// VCA._visualMap에 없는 item에 대해서만 호출되므로:
+        ///   - add: 1 증가
+        ///   - move: 0 증가 (VCA가 _visualMap에서 기존 Control 재사용)
+        ///   - pool hit(기존에 virtualize된 item 재실현): 0 증가 (pool에서 반환)
+        /// </summary>
+        public int RealizeNewCount { get; private set; }
+
+        /// <summary>
+        /// factory._pool에서 기존 Control을 반환한 횟수 (VCA가 virtualize 후 재실현).
+        /// IsVirtualizing=False + stable ref 패턴에서는 일반적으로 0.
+        /// </summary>
+        public int RealizeHitCount { get; private set; }
+
+        /// <summary>
+        /// VCA가 factory.Virtualize를 호출한 횟수 (item이 snapshot에서 제거됨).
+        /// remove 1회당 1 증가.
+        /// </summary>
+        public int VirtualizeCount { get; private set; }
+
         public void BeginRealize()
         {
         }
@@ -40,9 +63,11 @@ namespace DagEdit
 
             if (_pool.TryGetValue(nodeItem, out Control? existing))
             {
+                RealizeHitCount++;
                 return existing;
             }
 
+            RealizeNewCount++;
             var border = new Border
             {
                 Width = nodeItem.Bounds.Width,
@@ -59,6 +84,7 @@ namespace DagEdit
 
         public bool Virtualize(Control visual)
         {
+            VirtualizeCount++;
             return true;
         }
 

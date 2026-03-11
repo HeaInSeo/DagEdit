@@ -54,6 +54,20 @@ namespace DagEdit
         /// </summary>
         public IReadOnlyDictionary<Guid, NodeViewItem> Snapshots => _snapshots;
 
+        // ─── H-0 Observability counters ──────────────────────────────────────
+
+        /// <summary>
+        /// Flush() 호출 시 ProjectionChanged가 실제로 발생한 누적 횟수.
+        /// per-operation flush 정책 하에서는 add/remove/move 각 1회씩 증가한다.
+        /// </summary>
+        public int ProjectionChangedCount { get; private set; }
+
+        /// <summary>
+        /// BuildSnapshot() 호출 누적 횟수 (ProjectionChanged 수신자가 호출하는 경우).
+        /// ProjectionChangedCount와 1:1이어야 정상 — 수신자가 BuildSnapshot을 누락하면 diverge.
+        /// </summary>
+        public int SnapshotBuildCount { get; private set; }
+
         // ─── Changed signal ───────────────────────────────────────────────────
 
         /// <summary>
@@ -168,6 +182,7 @@ namespace DagEdit
             }
 
             _pendingFlush = false;
+            ProjectionChangedCount++;
             ProjectionChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -175,8 +190,27 @@ namespace DagEdit
 
         /// <summary>
         /// Viewer wiring용 기본 world extent.
-        /// DagEdit 노드는 양의 좌표에 배치되므로 (0, 0) 기준 50,000 × 50,000 단위로 설정.
-        /// 증명용 wiring 기본값 — 실제 환경에서는 canvas 크기에 맞게 조정.
+        ///
+        /// ─── Extent 정책 (H-0 hardening 기준) ────────────────────────────────
+        /// 현재 값: VCRect(0, 0, 50_000, 50_000) — 임시 고정값.
+        ///
+        /// 이 값의 근거:
+        ///   - DagEdit 노드는 기본적으로 양의 좌표(x≥0, y≥0)에 배치된다.
+        ///   - Grid snap = 15px, NodeWidth = 200 기준으로 50,000 × 50,000 영역은
+        ///     노드 ~250 × 400개 배치를 커버한다 (현실적 scene에 충분).
+        ///   - 음의 좌표로의 pan은 현재 DagEditorCanvas에서 제한되지 않지만
+        ///     대부분의 노드는 컨텍스트 메뉴 → 뷰포트 중심 근처에 배치된다.
+        ///
+        /// 임시 값인 이유:
+        ///   SpatialIndex.Extent는 QuadTree 빌드 시점에 고정된다.
+        ///   이 범위 밖 좌표의 Insert는 silently 무시될 수 있다.
+        ///   동적 extent(scene bounding box + margin)가 더 안전하지만
+        ///   BuildSnapshot()마다 2-pass(bounds union + insert) 비용이 발생한다.
+        ///
+        /// 다음 단계에서 바뀔 조건 (Hybrid 진입 전 검토):
+        ///   - scene이 음의 좌표로 확장되는 경우
+        ///   - 노드 배치 범위가 50,000을 실제로 넘는 경우
+        ///   - VCA.ActualViewbox 기반 frustum-culled extent로 전환할 경우
         /// </summary>
         internal static readonly VCRect DefaultProjectionExtent =
             new VCRect(0, 0, 50_000, 50_000);
@@ -203,6 +237,7 @@ namespace DagEdit
         /// </summary>
         public SpatialIndex BuildSnapshot(VCRect extent)
         {
+            SnapshotBuildCount++;
             var snapshot = new SpatialIndex { Extent = extent };
             foreach (NodeViewItem item in _snapshots.Values)
             {

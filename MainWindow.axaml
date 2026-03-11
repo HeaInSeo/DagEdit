@@ -12,7 +12,17 @@
     <Grid RowDefinitions="3*,2,2*">
         <controls:DagEditor x:Name="EditorTester" Grid.Row="0" />
         <Border Grid.Row="1" Background="#444444" />
-        <vca:VirtualCanvas x:Name="ViewerCanvas" Grid.Row="2"
-                           IsVirtualizing="False" />
+        <!-- H-0: viewer panel — VCA + debug stats overlay -->
+        <Grid Grid.Row="2">
+            <vca:VirtualCanvas x:Name="ViewerCanvas" IsVirtualizing="False" />
+            <!-- H-0: debug stats overlay (read-only, top-right corner) -->
+            <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Background="#BB000000" Margin="4" Padding="6,3"
+                    IsHitTestVisible="False">
+                <TextBlock x:Name="ViewerStatsText"
+                           Foreground="White" FontSize="10"
+                           Text="VCA viewer — waiting" />
+            </Border>
+        </Grid>
     </Grid>
 </Window>
