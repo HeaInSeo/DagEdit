@@ -2,14 +2,17 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="675"
         x:Class="DagEdit.MainWindow"
         Title="DagEdit"
         xmlns:controls="using:DagEdit"
+        xmlns:vca="using:VirtualCanvas.Avalonia.Controls"
         x:CompileBindings="True">
-    <Canvas x:Name="MainCanvas">
-        <controls:DagEditor x:Name="EditorTester" Width="800" Height="450"
-                            Canvas.Top="0" Canvas.Left="0">
-        </controls:DagEditor>
-    </Canvas>
+    <!-- G-0 Viewer wiring: 상단 3/5 = DagEditor, 구분선, 하단 2/5 = VCA viewer (read-only) -->
+    <Grid RowDefinitions="3*,2,2*">
+        <controls:DagEditor x:Name="EditorTester" Grid.Row="0" />
+        <Border Grid.Row="1" Background="#444444" />
+        <vca:VirtualCanvas x:Name="ViewerCanvas" Grid.Row="2"
+                           IsVirtualizing="False" />
+    </Grid>
 </Window>

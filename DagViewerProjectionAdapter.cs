@@ -107,6 +107,23 @@ namespace DagEdit
         /// VCA identity contract: 같은 NodeId에 대해 항상 같은 NodeViewItem object를 반환해야
         /// VCA가 기존 Control을 재사용할 수 있다. object를 교체하면 Control이 재생성된다.
         /// </summary>
+        public void OnNodeMovedById(Guid nodeId, Avalonia.Point newLocation)
+        {
+            if (_snapshots.TryGetValue(nodeId, out NodeViewItem? existing))
+            {
+                existing.UpdateLocation(newLocation);
+                _pendingFlush = true;
+            }
+        }
+
+        /// <summary>
+        /// 노드 위치가 변경되었을 때 호출한다.
+        /// cache에 이미 있으면 Bounds를 in-place 변경하여 stable reference를 유지한다.
+        /// cache에 없으면 (방어적) 새 projection을 생성하여 등록한다.
+        ///
+        /// VCA identity contract: 같은 NodeId에 대해 항상 같은 NodeViewItem object를 반환해야
+        /// VCA가 기존 Control을 재사용할 수 있다. object를 교체하면 Control이 재생성된다.
+        /// </summary>
         public void OnNodeMoved(DagNode node)
         {
             if (node.NodeId == null || node.Location == null)

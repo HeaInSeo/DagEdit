@@ -86,6 +86,15 @@ namespace DagEdit
         /// <summary>현재 그래프에 포함된 연결 수 (반응형 파생값).</summary>
         public int ConnectionCount => _connectionCount.Value;
 
+        // ─── Viewer Adapter (G-0) ─────────────────────────────────────────────
+
+        private readonly DagViewerProjectionAdapter _viewerAdapter = new();
+
+        /// <summary>
+        /// Phase 1 Viewer wiring용 adapter. MainWindow.OnLoaded에서 ProjectionChanged를 구독한다.
+        /// </summary>
+        internal DagViewerProjectionAdapter ViewerAdapter => _viewerAdapter;
+
         // ─── Undo / Redo (Feature 2) ──────────────────────────────────────────
 
         private readonly UndoRedoStack _undoRedo = new();
@@ -118,6 +127,33 @@ namespace DagEdit
                 .Select(c => c.Count)
                 .ToProperty(this, x => x.ConnectionCount, initialValue: 0);
             _disposables.Add(_connectionCount);
+
+            // G-0: viewer adapter 동기화 — 노드 add/remove를 projection cache에 반영
+            Dag.Connect()
+                .Filter(x => x.NodeItem != null)
+                .Subscribe(changes =>
+                {
+                    foreach (var change in changes)
+                    {
+                        switch (change.Reason)
+                        {
+                            case DynamicData.ListChangeReason.Add:
+                                _viewerAdapter.OnNodeAdded(change.Item.Current.NodeItem!);
+                                break;
+                            case DynamicData.ListChangeReason.Remove:
+                                var removedId = change.Item.Current.NodeItem?.NodeId;
+                                if (removedId.HasValue)
+                                {
+                                    _viewerAdapter.OnNodeRemoved(removedId.Value);
+                                }
+
+                                break;
+                        }
+                    }
+
+                    _viewerAdapter.Flush();
+                })
+                .DisposeWith(_disposables);
         }
 
         // ─── Execute (undo 스택에 push하는 사용자 동작) ───────────────────────
@@ -177,6 +213,8 @@ namespace DagEdit
             // AlreadyExecutedCommand는 첫 번째 Execute() 호출을 건너뛰고,
             // 이후 Redo 경로에서만 inner.Execute()를 수행한다.
             _undoRedo.Execute(new AlreadyExecutedCommand(new MoveNodeCommand(this, nodeId, oldLocation, newLocation)));
+            _viewerAdapter.OnNodeMovedById(nodeId, newLocation);
+            _viewerAdapter.Flush();
         }
 
         // ─── Direct Dag Access (명령 없이 직접 접근; 주로 내부/테스트용) ────────

@@ -36,8 +36,10 @@
 
 
   <!-- Phase 1 Viewer spike: VirtualCanvas.Core (UI 의존 없음, spatial primitives만) -->
+  <!-- G-0 Viewer wiring: VirtualCanvas.Avalonia (Avalonia Control, UI 의존 있음) -->
   <ItemGroup>
     <ProjectReference Include="../virtualcanvas-avalonia/src/VirtualCanvas.Core/VirtualCanvas.Core.csproj" />
+    <ProjectReference Include="../virtualcanvas-avalonia/src/VirtualCanvas.Avalonia/VirtualCanvas.Avalonia.csproj" />
   </ItemGroup>
 
   <!-- 테스트 프로젝트에서 internal 타입(NodeViewItem 등) 접근 허용 -->

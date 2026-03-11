@@ -220,17 +220,21 @@ DagEdit 에 변경을 가하기 전 아래 질문을 확인한다.
 | 22 | 2026-03-11 | Phase 1 Viewer projection trigger spike — DagViewerProjectionAdapter (add/remove/move/flush) | 130 |
 | F-0-prep | 2026-03-11 | Stable projection cache spike — NodeViewItem mutable Bounds + in-place OnNodeMoved | 134 |
 | F-0 | 2026-03-11 | Actual wiring spike — BuildSnapshot() (same refs + new index snapshot), F-0 loop 검증 | 143 |
+| G-0 | 2026-03-11 | Actual repo viewer wiring — VCA.Avalonia ProjectRef 추가, NodeViewItemVisualFactory, DagEditorViewModel ViewerAdapter + Dag.Connect() 구독, MainWindow Grid+VirtualCanvas 레이아웃 | 143 |
 
 ---
 
 ## 11. Next Single Small Diff
 
-**다음 공은 VCA 쪽이다.**
+**G-0 DagEdit 쪽 완료. 다음 공은 VCA 쪽이다.**
 
-DagEdit 가 할 수 있는 것은 Step 21 에서 완료되었다:
+DagEdit 가 할 수 있는 것은 G-0 에서 완료되었다:
 - projection seam (`NodeViewItem`) 정의
 - viewport 매핑 규칙 확인
-- `VirtualCanvas.Core` 참조 추가
+- `VirtualCanvas.Core` + `VirtualCanvas.Avalonia` 참조 추가
+- `NodeViewItemVisualFactory` (IVisualFactory 최소 구현, Border 실현)
+- `DagEditorViewModel.ViewerAdapter` + `Dag.Connect()` 구독 (add/remove/move 반영)
+- `MainWindow` Grid 레이아웃 + `VirtualCanvas` viewer 패널 (하단 2/5)
 
 **VCA 쪽에서 필요한 다음 한 가지**:
 
