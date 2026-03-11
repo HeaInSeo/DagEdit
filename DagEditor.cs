@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
@@ -183,6 +184,10 @@ namespace DagEdit
         // 이건 node 에서 올라오는 event
         private EventHandler<ConnectionChangedEventArgs>? _connectionChangedHandler;
         private EventHandler<NodeMovedEventArgs>? _nodeMovedHandler;
+        private EventHandler<NodeDragStartedEventArgs>? _nodeDragStartedHandler;
+
+        // H-3: 현재 선택으로 인해 pin된 노드 ID 집합
+        private readonly HashSet<Guid> _pinnedBySelection = new();
 
         private bool _IsRightBtnClicked;
         private readonly DagEditorViewModel _viewModel = new();
@@ -272,6 +277,7 @@ namespace DagEdit
             _connectionCompleteHandler = HandleConnectionComplete;
             _connectionChangedHandler = HandleConnectionChanged;
             _nodeMovedHandler = HandleNodeMoved;
+            _nodeDragStartedHandler = HandleNodeDragStarted;
 
             Observable.FromEventPattern<PointerPressedEventArgs>(
                     h => this.PointerPressed += h,
@@ -318,6 +324,8 @@ namespace DagEdit
             AddHandler(Node.ConnectionChangedEvent, _connectionChangedHandler);
             // Node Moved (Undo/Redo 용)
             AddHandler(Node.NodeMovedEvent, _nodeMovedHandler);
+            // Node Drag Started (H-3 Pin용)
+            AddHandler(Node.NodeDragStartedEvent, _nodeDragStartedHandler);
 
             // 이벤트 핸들러 해제
             _disposables.Add(Disposable.Create(() =>
@@ -330,6 +338,8 @@ namespace DagEdit
                 RemoveHandler(Node.ConnectionChangedEvent, _connectionChangedHandler);
                 // Node Moved
                 RemoveHandler(Node.NodeMovedEvent, _nodeMovedHandler);
+                // Node Drag Started
+                RemoveHandler(Node.NodeDragStartedEvent, _nodeDragStartedHandler);
             }));
         }
 
@@ -522,6 +532,20 @@ namespace DagEdit
         {
             // 드래그 완료 후 MoveNodeCommand를 Undo 스택에 push한다 (Feature 2).
             _viewModel.PushMoveNode(args.NodeId, args.OldLocation, args.NewLocation);
+
+            // H-3: 드래그 완료 → 선택 집합에 없으면 unpin
+            if (!_pinnedBySelection.Contains(args.NodeId))
+            {
+                _viewModel.RequestUnpinNode(args.NodeId);
+            }
+
+            args.Handled = true;
+        }
+
+        private void HandleNodeDragStarted(object? sender, NodeDragStartedEventArgs args)
+        {
+            // H-3: 드래그 시작 → pin (이미 선택으로 pinned여도 중복 pin은 no-op)
+            _viewModel.RequestPinNode(args.NodeId);
             args.Handled = true;
         }
 
@@ -650,18 +674,30 @@ namespace DagEdit
                 ViewportTransform.ScreenToWorld(SelectedArea.TopLeft, _viewModel.ViewportLocation, _viewModel.ViewportScale),
                 ViewportTransform.ScreenToWorld(SelectedArea.BottomRight, _viewModel.ViewportLocation, _viewModel.ViewportScale));
 
+            // H-3: 기존 selection pin 해제
+            foreach (var oldId in _pinnedBySelection)
+            {
+                _viewModel.RequestUnpinNode(oldId);
+            }
+
+            _pinnedBySelection.Clear();
+
             Selection.BeginBatchUpdate();
             Selection.Clear();
             var items = _viewModel.Items;
             for (int i = 0; i < items.Count; i++)
             {
                 var dagItem = items[i];
-                if (dagItem.NodeItem?.Location is { } loc)
+                if (dagItem.NodeItem?.Location is { } loc && dagItem.NodeItem.NodeId is { } nodeId)
                 {
                     var nodeWorldRect = new Rect(loc, new Size(Constants.NodeWidth, Constants.NodeHeight));
                     if (worldRect.Intersects(nodeWorldRect))
                     {
                         Selection.Select(i);
+
+                        // H-3: 새 선택 노드 pin
+                        _pinnedBySelection.Add(nodeId);
+                        _viewModel.RequestPinNode(nodeId);
                     }
                 }
             }

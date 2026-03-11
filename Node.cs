@@ -129,6 +129,20 @@ namespace DagEdit
             remove => RemoveHandler(NodeMovedEvent, value);
         }
 
+        /// <summary>
+        /// 노드 드래그 시작 시 발행. DagEditor가 수신하여 VCA Pin을 요청한다.
+        /// </summary>
+        public static readonly RoutedEvent<NodeDragStartedEventArgs> NodeDragStartedEvent =
+            RoutedEvent.Register<Node, NodeDragStartedEventArgs>(
+                nameof(NodeDragStarted),
+                RoutingStrategies.Bubble);
+
+        public event EventHandler<NodeDragStartedEventArgs> NodeDragStarted
+        {
+            add => AddHandler(NodeDragStartedEvent, value);
+            remove => RemoveHandler(NodeDragStartedEvent, value);
+        }
+
         #endregion
 
         #region fields
@@ -187,6 +201,7 @@ namespace DagEdit
                 _dragAccumulator = new Vector();
                 _dragStartLocation = Location; // Undo용 시작 위치 기록
                 IsDragging = true;
+                RaiseEvent(new NodeDragStartedEventArgs(NodeDragStartedEvent, _id));
                 args.Handled = true;
             }
         }

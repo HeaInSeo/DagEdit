@@ -95,6 +95,22 @@ namespace DagEdit
         /// </summary>
         internal DagViewerProjectionAdapter ViewerAdapter => _viewerAdapter;
 
+        // ─── H-3 Pin / Unpin (VCA 연동) ──────────────────────────────────────
+
+        /// <summary>
+        /// H-3: 노드를 VCA에 Pin 요청. DagEditor가 발생시키고 MainWindow가 ViewerCanvas.Pin()으로 처리.
+        /// </summary>
+        internal event EventHandler<Guid>? PinRequested;
+
+        /// <summary>
+        /// H-3: 노드의 VCA Pin 해제 요청. DagEditor가 발생시키고 MainWindow가 ViewerCanvas.Unpin()으로 처리.
+        /// </summary>
+        internal event EventHandler<Guid>? UnpinRequested;
+
+        internal void RequestPinNode(Guid nodeId) => PinRequested?.Invoke(this, nodeId);
+
+        internal void RequestUnpinNode(Guid nodeId) => UnpinRequested?.Invoke(this, nodeId);
+
         // ─── Undo / Redo (Feature 2) ──────────────────────────────────────────
 
         private readonly UndoRedoStack _undoRedo = new();

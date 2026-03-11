@@ -15,6 +15,11 @@ namespace DagEdit
         private DagViewerProjectionAdapter? _viewerAdapterRef;
         private EventHandler<NodeViewItem>? _onItemRemoved;
 
+        // H-3 Pin/Unpin wiring
+        private DagEditorViewModel? _viewModelRef;
+        private EventHandler<Guid>? _onPinRequested;
+        private EventHandler<Guid>? _onUnpinRequested;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -46,6 +51,25 @@ namespace DagEdit
             _viewerAdapterRef = vm.ViewerAdapter;
             _onItemRemoved = (_, item) => _viewerFactory?.RemoveFromPool(item);
             _viewerAdapterRef.ItemRemoved += _onItemRemoved;
+
+            // H-3: Pin/Unpin wiring — ViewModel이 ViewerCanvas를 직접 알지 못하도록 분리
+            _viewModelRef = vm;
+            _onPinRequested = (_, nodeId) =>
+            {
+                if (vm.ViewerAdapter.Snapshots.TryGetValue(nodeId, out var item))
+                {
+                    ViewerCanvas.Pin(item);
+                }
+            };
+            _onUnpinRequested = (_, nodeId) =>
+            {
+                if (vm.ViewerAdapter.Snapshots.TryGetValue(nodeId, out var item))
+                {
+                    ViewerCanvas.Unpin(item);
+                }
+            };
+            vm.PinRequested += _onPinRequested;
+            vm.UnpinRequested += _onUnpinRequested;
 
             // projection 변경 시 새 SpatialIndex snapshot을 VCA에 공급하고 stats 갱신
             vm.ViewerAdapter.ProjectionChanged += (_, _) =>
@@ -97,6 +121,13 @@ namespace DagEdit
             if (_viewerAdapterRef != null && _onItemRemoved != null)
             {
                 _viewerAdapterRef.ItemRemoved -= _onItemRemoved;
+            }
+
+            // H-3: Pin/Unpin 명시적 unsubscribe
+            if (_viewModelRef != null)
+            {
+                if (_onPinRequested != null) { _viewModelRef.PinRequested -= _onPinRequested; }
+                if (_onUnpinRequested != null) { _viewModelRef.UnpinRequested -= _onUnpinRequested; }
             }
 
             _disposables.Dispose();
