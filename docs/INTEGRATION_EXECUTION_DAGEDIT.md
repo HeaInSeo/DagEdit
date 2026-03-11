@@ -21,7 +21,7 @@
 
 | 항목 | 현재 상태 |
 |------|-----------|
-| Tests | 114개, 100% 통과 |
+| Tests | 120개, 100% 통과 |
 | Architecture | `DagEditor` (SelectingItemsControl) → `DagEditorCanvas` (custom Canvas) → `Node`, `Connection` |
 | Viewport | `DagEditorViewModel.ViewportLocation/Scale` (SoT), `DagEditorCanvas.RenderTransform` 적용 |
 | Coordinate math | `ViewportTransform.ScreenToWorld / WorldToScreen`, VCA 수식과 동일 확인 ✅ |
@@ -31,7 +31,8 @@
 | Connector snap | `GetClosestControlUnderPointer` (bounds center 최근접) |
 | Spatial query | `FinalizeSelection()` O(n) 루프 — VCA `ISpatialIndex` 교체 대상 |
 | Virtualization | 없음 — 모든 노드 항상 live |
-| VCA 통합 | 미시작 |
+| **Viewer projection seam** | `NodeViewItem : ISpatialItem` ✅ — DagNode → VCA item 투영 경로 검증 완료 |
+| VCA 통합 | Phase 1 Viewer adapter spike 완료, IVisualFactory / SpatialIndex 연결은 미검증 |
 
 ---
 
@@ -110,16 +111,24 @@ DagEditor
 
 **전제 조건**:
 - [x] 좌표계 수식 일치 확인 (완료 ✅ — `SelectionRectTests.TransformFormula_MatchesVcaFormula`)
+- [x] DagEdit 데이터 → VCA item 투영 seam 확인 (완료 ✅ — `NodeViewItem : ISpatialItem`)
 - [ ] VCA repo 에 `INTEGRATION_CONTRACT.md` canonical 생성 및 sync
-- [ ] DagEdit 데이터를 VCA 에 read-only 로 공급하는 어댑터 설계
+- [ ] VCA 쪽에서 `IVisualFactory` 구현으로 NodeViewItem → Control 실현 PoC
+- [ ] `SpatialIndex.Insert(NodeViewItem)` 연결 — 실제 렌더링 경로 확인
 
-**이 단계에서 DagEdit 가 할 일**:
-- VCA 어댑터 인터페이스 정의 (DagNode → VCA item)
-- `DagEditorViewModel.ViewportLocation` → `VCA.Offset` 단방향 동기화 PoC
+**이 단계에서 DagEdit 가 한 일** (완료):
+- `NodeViewItem : ISpatialItem` — DagNode read-only projection seam 정의
+- `VirtualCanvas.Core` 프로젝트 참조 추가 (UI 의존 없음)
+- Viewport 매핑 규칙 문서화: `ViewportLocation == VCA.Offset`, `ViewportScale == VCA.Scale`
+
+**이 단계에서 DagEdit 가 더 할 일** (VCA PoC 결과 대기 후):
+- `DagEditorViewModel.ViewportLocation` → `VCA.Offset` 단방향 동기화 (VCA PoC 확인 후)
 
 **금지**:
 - DagEditorCanvas 제거
 - 편집 이벤트 VCA 경유
+- `NodeViewItem` public API 승격 (VCA PoC 결과 보기 전)
+- `IViewportHost` 같은 큰 공용 인터페이스 지금 확정
 
 ---
 
@@ -207,25 +216,31 @@ DagEdit 에 변경을 가하기 전 아래 질문을 확인한다.
 | 18 (*)  | 2026-03-06 | Undo/Redo, Selection Rectangle, Viewport ViewModel Migration | 103 |
 | 19 | 2026-03-07 | Viewport Contract Hardening, 양방향 sync, VCA 매핑 문서 | 114 |
 | 20 | 2026-03-07 | INTEGRATION_CONTRACT.md, INTEGRATION_EXECUTION_DAGEDIT.md 작성 | 114 |
+| 21 | 2026-03-11 | Phase 1 Viewer adapter spike — NodeViewItem projection seam, VirtualCanvas.Core 참조 추가 | 120 |
 
 ---
 
 ## 11. Next Single Small Diff
 
-**제안**: `IViewportHost` 인터페이스 추출 (Viewer 단계 진입 전 필요 최소 추상화)
+**다음 공은 VCA 쪽이다.**
+
+DagEdit 가 할 수 있는 것은 Step 21 에서 완료되었다:
+- projection seam (`NodeViewItem`) 정의
+- viewport 매핑 규칙 확인
+- `VirtualCanvas.Core` 참조 추가
+
+**VCA 쪽에서 필요한 다음 한 가지**:
+
+`DagNodeVisualFactory` skeleton — `IVisualFactory.Realize(ISpatialItem)` 로 `NodeViewItem` 을 받아 Avalonia `Control` 을 반환하는 최소 구현.
 
 ```csharp
-// 제안 (미구현 — Phase 1 시작 시 평가)
-public interface IViewportHost
-{
-    Point Offset { get; set; }   // ≡ ViewportLocation
-    double Scale { get; set; }   // ≡ ViewportScale
-}
+// VCA DevApp 또는 별도 통합 포인트에 작성 (DagEdit 에 넣지 않는다)
+// NodeViewItem item = (NodeViewItem)spatialItem;
+// → new Border { Width = item.Bounds.Width, Height = item.Bounds.Height } 수준이면 충분
+// → R-C(lifecycle 충돌) 조기 확인 목적
 ```
 
-- `DagEditorCanvas` 와 `VirtualCanvas` 가 모두 구현 가능한 최소 계약
-- DagEditorViewModel 이 `IViewportHost` 를 통해 canvas 에 바인딩하면 Hybrid 교체가 단순해짐
-- **지금 바로 구현하지 않는다** — Phase 1 PoC 에서 VCA API 를 확인한 후 결정
+이 결과를 보기 전에 DagEdit 에서 `IViewportHost` 추출이나 추가 추상화를 시작하면 premature abstraction 이 된다.
 
 ---
 

@@ -23,10 +23,32 @@ namespace DagEdit
     /// 타입과 수식이 동일하므로 어댑터 변환 없이 직접 바인딩 가능하다.
     /// (SelectionRectTests.TransformFormula_MatchesVcaFormula 로 이미 검증 완료)
     ///
-    /// ─── 이 타입의 범위 ──────────────────────────────────────────────────────────
-    /// - 노드 위치/크기 → VCA SpatialIndex 등록용 Bounds
-    /// - Connection viewer item은 이번 spike 범위 밖 (노드 먼저 검증)
-    /// - IVisualFactory, SpatialIndex 연결은 다음 diff에서 수행
+    /// ─── VCA Handoff: Minimum Item Contract ────────────────────────────────────
+    /// VCA viewer가 NodeViewItem으로부터 기대할 수 있는 최소 계약:
+    ///
+    ///   ISpatialItem 필드    DagEdit 소스
+    ///   ─────────────────────────────────────────────────────────────────────
+    ///   Bounds.X / Y        DagNode.Location (world coordinates, 그리드 스냅 적용 후)
+    ///   Bounds.Width        Constants.NodeWidth  = 200
+    ///   Bounds.Height       Constants.NodeHeight = 124
+    ///   Priority            0.0  (단일 레벨, 향후 노드 타입별 구분 가능)
+    ///   ZIndex              0    (단일 레벨)
+    ///   IsVisible           true (항상 표시, 선택적 숨김 미지원)
+    ///   NodeId (Guid)       DagNode.NodeId — 검색/상관관계 추적용 (ISpatialItem 외 추가 필드)
+    ///
+    /// 현재 미포함 (DagNode에 해당 필드 없음):
+    ///   표시 레이블/제목    DagNode에 label 필드 없음 — 필요 시 별도 결정 필요
+    ///
+    /// 미검증 경로 (다음 spike에서 확인 필요):
+    ///   IVisualFactory.Realize(NodeViewItem) → Avalonia Control 생성 여부
+    ///   SpatialIndex.Insert(NodeViewItem)    → VCA 공간 인덱스 등록 연결
+    ///   Node lifecycle 충돌 (R-C)           → DagEditorCanvas 자식 Node와 VCA realized Control 공존
+    ///   Pinning                              → VCA API 미확정
+    ///   Connection viewer item               → 이번 spike 범위 밖 (노드 먼저 검증)
+    ///
+    /// ─── 이 타입을 더 확장하지 않는 이유 ─────────────────────────────────────────
+    /// 위 미검증 항목들이 해소되기 전에 NodeViewItem을 확장하면 premature abstraction이 된다.
+    /// IVisualFactory / SpatialIndex 연결은 VCA 쪽 PoC가 먼저 시작한 후에 결정한다.
     /// </summary>
     internal sealed class NodeViewItem : ISpatialItem
     {
