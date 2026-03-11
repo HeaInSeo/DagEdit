@@ -103,9 +103,48 @@ namespace DagEdit
 
         public bool CanRedo => _undoRedo.CanRedo;
 
-        public void Undo() => _undoRedo.Undo();
+        /// <summary>
+        /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
+        /// MoveNodeCommand.Undo/Execute 가 adapter.Flush()를 호출해도 batch 안에서 suppressed.
+        /// </summary>
+        public void Undo()
+        {
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Undo();
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
+        }
 
-        public void Redo() => _undoRedo.Redo();
+        /// <summary>
+        /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
+        /// </summary>
+        public void Redo()
+        {
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Redo();
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
+        }
+
+        /// <summary>
+        /// H-1 viewer sync: MoveNodeCommand.Execute/Undo에서 직접 호출.
+        /// Undo/Redo 래핑 안에서 호출되므로 Flush는 EndBatch까지 suppressed.
+        /// </summary>
+        internal void NotifyViewerNodeMoved(Guid nodeId, Point location)
+        {
+            _viewerAdapter.OnNodeMovedById(nodeId, location);
+            _viewerAdapter.Flush();
+        }
 
         // ─── Constructor ──────────────────────────────────────────────────────
 

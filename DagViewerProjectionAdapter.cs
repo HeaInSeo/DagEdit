@@ -46,6 +46,9 @@ namespace DagEdit
         // OnNode* 호출 후 Flush() 전에 미반영 변경이 있으면 true
         private bool _pendingFlush;
 
+        // H-1 batch: 0 이면 즉시 flush, > 0 이면 EndBatch까지 suppressed
+        private int _batchDepth;
+
         // ─── 읽기 전용 노출 ───────────────────────────────────────────────────
 
         /// <summary>
@@ -67,6 +70,12 @@ namespace DagEdit
         /// ProjectionChangedCount와 1:1이어야 정상 — 수신자가 BuildSnapshot을 누락하면 diverge.
         /// </summary>
         public int SnapshotBuildCount { get; private set; }
+
+        /// <summary>
+        /// H-1 batch: BeginBatch/EndBatch 쌍으로 묶여서 1회로 압축된 Flush 누적 횟수.
+        /// 예: 10 OnNodeAdded + 1 EndBatch → BatchedFlushCount + 1, ProjectionChangedCount + 1.
+        /// </summary>
+        public int BatchedFlushCount { get; private set; }
 
         // ─── Changed signal ───────────────────────────────────────────────────
 
@@ -163,19 +172,62 @@ namespace DagEdit
             _pendingFlush = true;
         }
 
+        // ─── Batch scope (H-1) ───────────────────────────────────────────────
+
+        /// <summary>
+        /// batch scope를 연다. 이 호출 이후 Flush()는 suppressed된다.
+        ///
+        /// 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 실제 Flush가 발생한다.
+        ///
+        /// 사용 패턴:
+        ///   adapter.BeginBatch();
+        ///   try { ... 여러 OnNode* + Flush() 호출 ... }
+        ///   finally { adapter.EndBatch(); }
+        ///
+        /// 현재 사용처:
+        ///   DagEditorViewModel.Undo() / Redo() — 하나의 command가 N개 SourceList 변경을
+        ///   유발할 경우 N회 Flush를 1회로 줄인다.
+        /// </summary>
+        public void BeginBatch() => _batchDepth++;
+
+        /// <summary>
+        /// batch scope를 닫는다.
+        /// 가장 바깥쪽 EndBatch() 시점에 pending flush가 있으면 1회 Flush한다.
+        /// </summary>
+        public void EndBatch()
+        {
+            if (_batchDepth > 0)
+            {
+                _batchDepth--;
+            }
+
+            if (_batchDepth == 0 && _pendingFlush)
+            {
+                BatchedFlushCount++;
+                Flush();
+            }
+        }
+
         // ─── Flush ────────────────────────────────────────────────────────────
 
         /// <summary>
         /// 보류 중인 변경이 있을 경우 ProjectionChanged를 1회 발생시킨다.
         /// 변경이 없으면 발생하지 않는다.
         ///
-        /// 호출 시점 (정책은 VCA PoC 결과 후 결정):
-        ///   - per-operation: OnNode* 직후 즉시 호출 (단순, 비용 미측정)
-        ///   - per-command: UndoableCommand.Execute/Undo 완료 후 호출 (batch)
-        ///   - per-frame: Dispatcher.Post 등 frame 단위 (throttle)
+        /// batch scope(_batchDepth > 0) 중에는 suppressed — EndBatch()가 대신 호출한다.
+        ///
+        /// 호출 시점:
+        ///   - per-operation (기본): OnNode* 직후 호출 (단건 add/remove/move)
+        ///   - per-batch: Undo/Redo 래핑 → EndBatch() 경유 (batch-per-command)
         /// </summary>
         public void Flush()
         {
+            // batch scope 중이면 suppressed: _pendingFlush는 유지, 실제 신호는 EndBatch에서
+            if (_batchDepth > 0)
+            {
+                return;
+            }
+
             if (!_pendingFlush)
             {
                 return;

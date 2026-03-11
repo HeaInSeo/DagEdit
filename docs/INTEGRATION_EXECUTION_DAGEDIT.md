@@ -222,6 +222,7 @@ DagEdit 에 변경을 가하기 전 아래 질문을 확인한다.
 | F-0 | 2026-03-11 | Actual wiring spike — BuildSnapshot() (same refs + new index snapshot), F-0 loop 검증 | 143 |
 | G-0 | 2026-03-11 | Actual repo viewer wiring — VCA.Avalonia ProjectRef 추가, NodeViewItemVisualFactory, DagEditorViewModel ViewerAdapter + Dag.Connect() 구독, MainWindow Grid+VirtualCanvas 레이아웃 | 143 |
 | H-0 | 2026-03-11 | Viewer hardening — extent 정책 문서화, ProjectionChangedCount/SnapshotBuildCount/RealizeNewCount/VirtualizeCount 관찰 카운터 추가, MainWindow stats overlay | 143 |
+| H-1 | 2026-03-11 | Batch flush hardening — BeginBatch/EndBatch 추가, Undo/Redo 래핑, MoveNodeCommand viewer sync (Undo/Redo 후 viewer 위치 stale 수정) | 149 |
 
 ---
 
@@ -242,11 +243,11 @@ DagEdit 가 할 수 있는 것은 G-0 에서 완료되었다:
 - move: `factory.Realize` 호출 0 (VCA `_visualMap` stable ref 재사용 확인)
 - extent `VCRect(0,0,50000,50000)`: 임시 고정값, 현재 scene에 충분
 - 다음 단계 후보:
-  - (A) **batching**: PushMoveNode 드래그 중 Flush를 drag-complete 시점으로 이동
-    (현재: move마다 1회 rebuild → drag 중 N회 발생 가능)
+  - ~~(A) batching~~: H-1 완료 — BeginBatch/EndBatch + Undo/Redo 래핑 완료
   - (B) **extent 동적화**: scene bounding box + margin 기반 동적 extent
     (현재: 고정값으로 충분하지만 음의 좌표 확장 시 문제)
   - (C) **Phase 2 Hybrid 준비 검토**: VCA pinning API 확정, items host 교체 전 계약
+  - (D) **factory pool cleanup**: remove 후 pooled Control이 잔류 — 대용량 scene에서 memory 누수 가능
 
 **다음 공은 VCA 쪽이다.**
 VCA 쪽에서 필요한 다음 한 가지:
