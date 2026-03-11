@@ -11,6 +11,10 @@ namespace DagEdit
         private readonly CompositeDisposable _disposables = new();
         private NodeViewItemVisualFactory? _viewerFactory;
 
+        // H-2 pool cleanup: unsubscribe를 위해 adapter 참조와 delegate 저장
+        private DagViewerProjectionAdapter? _viewerAdapterRef;
+        private EventHandler<NodeViewItem>? _onItemRemoved;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -27,6 +31,9 @@ namespace DagEdit
         /// H-0 Hardening additions:
         ///   4. _viewerFactory 를 필드로 유지 → realize/virtualize 카운터 관찰 가능
         ///   5. ProjectionChanged 마다 stats overlay 갱신
+        ///
+        /// H-2 Pool cleanup:
+        ///   6. ItemRemoved → factory.RemoveFromPool 연결 (명시적 unsubscribe 포함)
         /// </summary>
         private void OnLoaded(object? sender, RoutedEventArgs e)
         {
@@ -34,6 +41,11 @@ namespace DagEdit
 
             _viewerFactory = new NodeViewItemVisualFactory();
             ViewerCanvas.VisualFactory = _viewerFactory;
+
+            // H-2: ItemRemoved 이벤트 wiring — adapter가 factory를 직접 알지 못하도록 분리
+            _viewerAdapterRef = vm.ViewerAdapter;
+            _onItemRemoved = (_, item) => _viewerFactory?.RemoveFromPool(item);
+            _viewerAdapterRef.ItemRemoved += _onItemRemoved;
 
             // projection 변경 시 새 SpatialIndex snapshot을 VCA에 공급하고 stats 갱신
             vm.ViewerAdapter.ProjectionChanged += (_, _) =>
@@ -61,12 +73,8 @@ namespace DagEdit
         ///   items  — 현재 viewer projection item 수 (add = +1, remove = -1)
         ///   new    — factory.Realize 에서 새 Border 생성 횟수 (add 1회당 1 증가)
         ///   hit    — factory._pool 히트 횟수 (virtualize 후 재실현; 정상 흐름에서 0)
-        ///   virt   — factory.Virtualize 호출 횟수 (remove 1회당 1 증가)
-        ///
-        /// 기대 패턴 (IsVirtualizing=False, stable ref):
-        ///   add  1노드: flush+1, built+1, items+1, new+1, hit=0, virt=0
-        ///   move 1노드: flush+1, built+1, items=same, new=0, hit=0, virt=0  ← key proof
-        ///   del  1노드: flush+1, built+1, items-1, new=0, hit=0, virt+1
+        ///   virt   — factory.Virtualize 호출 횟수 (IsVirtualizing=False에서는 0)
+        ///   pool   — H-2: factory._pool 현재 크기 (remove+cleanup 후 감소해야 함)
         /// </summary>
         private void UpdateViewerStats(DagEditorViewModel vm)
         {
@@ -80,11 +88,17 @@ namespace DagEdit
             ViewerStatsText.Text =
                 $"flush={a.ProjectionChangedCount} built={a.SnapshotBuildCount} items={a.Snapshots.Count}"
                 + Environment.NewLine
-                + $"new={f.RealizeNewCount} hit={f.RealizeHitCount} virt={f.VirtualizeCount}";
+                + $"new={f.RealizeNewCount} hit={f.RealizeHitCount} virt={f.VirtualizeCount} pool={f.PoolCount}";
         }
 
         private void OnUnloaded(object? sender, RoutedEventArgs e)
         {
+            // H-2: ItemRemoved 명시적 unsubscribe
+            if (_viewerAdapterRef != null && _onItemRemoved != null)
+            {
+                _viewerAdapterRef.ItemRemoved -= _onItemRemoved;
+            }
+
             _disposables.Dispose();
         }
     }

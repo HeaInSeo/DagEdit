@@ -92,6 +92,17 @@ namespace DagEdit
         /// </summary>
         public event EventHandler? ProjectionChanged;
 
+        /// <summary>
+        /// H-2 pool cleanup: 노드가 _snapshots에서 제거될 때 해당 NodeViewItem을 인수로 발생.
+        ///
+        /// 수신자는 이 이벤트를 구독하여 자체 캐시(예: factory._pool)를 정리할 수 있다.
+        /// 어댑터는 factory를 직접 알지 못하며, wiring은 호출 측(MainWindow)이 담당한다.
+        ///
+        /// 발생 시점: OnNodeRemoved() 에서 실제로 제거가 일어날 때.
+        /// 발생하지 않는 경우: nodeId가 _snapshots에 없어 no-op인 경우.
+        /// </summary>
+        public event EventHandler<NodeViewItem>? ItemRemoved;
+
         // ─── Mutation methods ─────────────────────────────────────────────────
 
         /// <summary>
@@ -113,11 +124,15 @@ namespace DagEdit
         /// <summary>
         /// 노드가 Dag에서 제거되었을 때 호출한다.
         /// 존재하지 않는 nodeId는 무시한다.
+        ///
+        /// 제거 성공 시 ItemRemoved 이벤트를 발생시켜 외부 캐시(factory pool 등)가
+        /// 해당 projection item을 정리할 수 있게 한다.
         /// </summary>
         public void OnNodeRemoved(Guid nodeId)
         {
-            if (_snapshots.Remove(nodeId))
+            if (_snapshots.Remove(nodeId, out NodeViewItem? removed))
             {
+                ItemRemoved?.Invoke(this, removed);
                 _pendingFlush = true;
             }
         }

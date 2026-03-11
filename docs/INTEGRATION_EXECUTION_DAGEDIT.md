@@ -223,6 +223,7 @@ DagEdit 에 변경을 가하기 전 아래 질문을 확인한다.
 | G-0 | 2026-03-11 | Actual repo viewer wiring — VCA.Avalonia ProjectRef 추가, NodeViewItemVisualFactory, DagEditorViewModel ViewerAdapter + Dag.Connect() 구독, MainWindow Grid+VirtualCanvas 레이아웃 | 143 |
 | H-0 | 2026-03-11 | Viewer hardening — extent 정책 문서화, ProjectionChangedCount/SnapshotBuildCount/RealizeNewCount/VirtualizeCount 관찰 카운터 추가, MainWindow stats overlay | 143 |
 | H-1 | 2026-03-11 | Batch flush hardening — BeginBatch/EndBatch 추가, Undo/Redo 래핑, MoveNodeCommand viewer sync (Undo/Redo 후 viewer 위치 stale 수정) | 149 |
+| H-2 | 2026-03-11 | Pool cleanup — DagViewerProjectionAdapter.ItemRemoved 이벤트 추가, NodeViewItemVisualFactory.RemoveFromPool + PoolCount 추가, MainWindow wiring (명시적 unsubscribe) | 157 |
 
 ---
 
@@ -247,7 +248,7 @@ DagEdit 가 할 수 있는 것은 G-0 에서 완료되었다:
   - (B) **extent 동적화**: scene bounding box + margin 기반 동적 extent
     (현재: 고정값으로 충분하지만 음의 좌표 확장 시 문제)
   - (C) **Phase 2 Hybrid 준비 검토**: VCA pinning API 확정, items host 교체 전 계약
-  - (D) **factory pool cleanup**: remove 후 pooled Control이 잔류 — 대용량 scene에서 memory 누수 가능
+  - ~~(D) factory pool cleanup~~: H-2 완료 — ItemRemoved 이벤트 + RemoveFromPool 추가
 
 **다음 공은 VCA 쪽이다.**
 VCA 쪽에서 필요한 다음 한 가지:
