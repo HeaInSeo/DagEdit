@@ -96,21 +96,32 @@ namespace DagEdit
 
         /// <summary>
         /// 노드 위치가 변경되었을 때 호출한다.
-        /// NodeViewItem은 불변이므로 기존 스냅샷을 제거하고 새 위치로 재생성한다.
+        /// cache에 이미 있으면 Bounds를 in-place 변경하여 stable reference를 유지한다.
+        /// cache에 없으면 (방어적) 새 projection을 생성하여 등록한다.
+        ///
+        /// VCA identity contract: 같은 NodeId에 대해 항상 같은 NodeViewItem object를 반환해야
+        /// VCA가 기존 Control을 재사용할 수 있다. object를 교체하면 Control이 재생성된다.
         /// </summary>
         public void OnNodeMoved(DagNode node)
         {
-            if (node.NodeId == null)
+            if (node.NodeId == null || node.Location == null)
             {
                 return;
             }
 
-            _snapshots.Remove(node.NodeId.Value);
-
-            var item = NodeViewItem.From(node);
-            if (item != null)
+            if (_snapshots.TryGetValue(node.NodeId.Value, out NodeViewItem? existing))
             {
-                _snapshots[item.NodeId] = item;
+                // Stable reference: 기존 object의 위치만 갱신
+                existing.UpdateLocation(node.Location.Value);
+            }
+            else
+            {
+                // 방어적 경로: cache miss (move before add 등)
+                var item = NodeViewItem.From(node);
+                if (item != null)
+                {
+                    _snapshots[item.NodeId] = item;
+                }
             }
 
             _pendingFlush = true;

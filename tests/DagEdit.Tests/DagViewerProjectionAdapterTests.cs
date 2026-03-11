@@ -153,5 +153,52 @@ namespace DagEdit.Tests
 
             Assert.Equal(0, callCount);
         }
+
+        // ─── Stable Reference Contract (F-0-prep) ─────────────────────────────
+
+        [Fact]
+        public void OnNodeMoved_ReturnsSameObjectReference()
+        {
+            var adapter = new DagViewerProjectionAdapter();
+            var node = ValidNode(100, 200);
+            adapter.OnNodeAdded(node);
+            var before = adapter.Snapshots[node.NodeId!.Value];
+
+            node.Location = new Point(300, 400);
+            adapter.OnNodeMoved(node);
+
+            var after = adapter.Snapshots[node.NodeId!.Value];
+            Assert.Same(before, after);
+        }
+
+        [Fact]
+        public void OnNodeRemoved_ThenOnNodeAdded_SameId_CreatesNewObject()
+        {
+            var adapter = new DagViewerProjectionAdapter();
+            var node = ValidNode(100, 200);
+            adapter.OnNodeAdded(node);
+            var original = adapter.Snapshots[node.NodeId!.Value];
+
+            adapter.OnNodeRemoved(node.NodeId!.Value);
+            node.Location = new Point(300, 400);
+            adapter.OnNodeAdded(node);
+
+            var renewed = adapter.Snapshots[node.NodeId!.Value];
+            Assert.NotSame(original, renewed);
+        }
+
+        [Fact]
+        public void DifferentNodeIds_ProduceSeparateProjectionObjects()
+        {
+            var adapter = new DagViewerProjectionAdapter();
+            var node1 = ValidNode(0, 0);
+            var node2 = ValidNode(100, 100);
+            adapter.OnNodeAdded(node1);
+            adapter.OnNodeAdded(node2);
+
+            Assert.NotSame(
+                adapter.Snapshots[node1.NodeId!.Value],
+                adapter.Snapshots[node2.NodeId!.Value]);
+        }
     }
 }

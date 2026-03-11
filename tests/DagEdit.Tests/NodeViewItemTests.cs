@@ -110,5 +110,19 @@ namespace DagEdit.Tests
             Assert.Equal(0.0, item.Priority);
             Assert.Equal(0, item.ZIndex);
         }
+
+        [Fact]
+        public void UpdateLocation_ChangesBoundsInPlace()
+        {
+            var node = new DagNode { NodeId = Guid.NewGuid(), Location = new Point(0, 0) };
+            var item = NodeViewItem.From(node)!;
+
+            item.UpdateLocation(new Point(150, 250));
+
+            Assert.Equal(150, item.Bounds.X);
+            Assert.Equal(250, item.Bounds.Y);
+            Assert.Equal(Constants.NodeWidth, item.Bounds.Width);
+            Assert.Equal(Constants.NodeHeight, item.Bounds.Height);
+        }
     }
 }

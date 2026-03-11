@@ -218,6 +218,7 @@ DagEdit 에 변경을 가하기 전 아래 질문을 확인한다.
 | 20 | 2026-03-07 | INTEGRATION_CONTRACT.md, INTEGRATION_EXECUTION_DAGEDIT.md 작성 | 114 |
 | 21 | 2026-03-11 | Phase 1 Viewer adapter spike — NodeViewItem projection seam, VirtualCanvas.Core 참조 추가 | 120 |
 | 22 | 2026-03-11 | Phase 1 Viewer projection trigger spike — DagViewerProjectionAdapter (add/remove/move/flush) | 130 |
+| F-0-prep | 2026-03-11 | Stable projection cache spike — NodeViewItem mutable Bounds + in-place OnNodeMoved | 134 |
 
 ---
 

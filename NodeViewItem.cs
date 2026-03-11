@@ -13,8 +13,15 @@ namespace DagEdit
     /// TargetConnections 등 editor 전용 상태를 포함한다.
     /// DagNode를 ISpatialItem으로 직접 노출하면 VCA가 editor domain에 직접 의존하게 된다.
     ///
-    /// NodeViewItem은 viewer가 필요한 최소 데이터만 캡처한 불변 스냅샷이다.
+    /// NodeViewItem은 viewer가 필요한 최소 데이터만 캡처한다.
     /// editor 상태(NodeInstance, 연결 목록, UndoRedoStack 등)는 포함하지 않는다.
+    ///
+    /// ─── Stable Reference Contract (F-0-prep) ───────────────────────────────────
+    /// VCA는 reference identity 기반으로 Control을 캐싱한다.
+    /// 같은 논리적 노드를 매번 새 NodeViewItem으로 교체하면 VCA가 기존 Control을 버리고 재생성한다.
+    /// 따라서 move/update 시 기존 object를 재사용하고 Bounds만 in-place 변경한다.
+    /// → Bounds는 이 이유로 mutable(private set)이다.
+    /// → NodeId는 여전히 불변 — object의 논리 identity.
     ///
     /// ─── Viewport 매핑 (참고용) ──────────────────────────────────────────────────
     /// DagEditorViewModel.ViewportLocation (Point)  ↔  VirtualCanvas.Offset (Point)
@@ -59,8 +66,9 @@ namespace DagEdit
 
         /// <summary>
         /// DagNode.Location을 TopLeft으로, NodeWidth/NodeHeight를 크기로 하는 world-coordinate 범위.
+        /// VCA stable reference contract를 위해 private set 허용 — UpdateLocation()으로만 변경한다.
         /// </summary>
-        public VCRect Bounds { get; }
+        public VCRect Bounds { get; private set; }
 
         /// <summary>기본 우선순위. viewer에서 노드 간 렌더링 순서는 현재 미구분.</summary>
         public double Priority => 0.0;
@@ -77,6 +85,18 @@ namespace DagEdit
         {
             NodeId = nodeId;
             Bounds = bounds;
+        }
+
+        // ─── In-place update ──────────────────────────────────────────────────
+
+        /// <summary>
+        /// 노드 위치가 변경되었을 때 Bounds를 in-place로 갱신한다.
+        /// 이 메서드는 object reference를 유지하면서 위치만 바꾼다 (VCA stable reference contract).
+        /// DagViewerProjectionAdapter.OnNodeMoved()만 호출한다.
+        /// </summary>
+        internal void UpdateLocation(Point location)
+        {
+            Bounds = new VCRect(location.X, location.Y, Constants.NodeWidth, Constants.NodeHeight);
         }
 
         // ─── Factory ──────────────────────────────────────────────────────────
