@@ -67,13 +67,15 @@ namespace DagEdit.Tests
             /// <summary>HandleNodeDragStarted — 항상 pin 요청.</summary>
             public void DragStart(Guid id) => Vm.RequestPinNode(id);
 
-            /// <summary>HandleNodeMoved — 이동이 있을 때만 발행. 선택 집합 외부면 unpin.</summary>
-            public void NodeMoved(Guid id)
+            /// <summary>
+            /// HandleNodeMoved — 이동이 있을 때만 발행.
+            /// H-6: unpin 제거. PushMoveNode(undo 스택) 담당만 유지.
+            /// unpin은 DragEnd(HandleNodeDragEnded)가 단일 경로로 담당.
+            /// </summary>
+            public void NodeMoved(Guid _)
             {
-                if (!_selection.Contains(id))
-                {
-                    Vm.RequestUnpinNode(id);
-                }
+                // PushMoveNode에 해당하는 side-effect는 여기서 없음 (VM 테스트 대상 아님).
+                // unpin 없음 — DragEnd가 담당 (H-6).
             }
 
             /// <summary>HandleNodeDragEnded — 항상 발행. 선택 집합 외부면 unpin.</summary>
@@ -218,23 +220,22 @@ namespace DagEdit.Tests
         // ─── S-6b: drag only, 이동 있음 — double UnpinRequested ────────────────
 
         [Fact]
-        public void S6b_DragOnly_WithMove_UnpinRequestedTwice_IsHarmless()
+        public void S6b_DragOnly_WithMove_UnpinRequestedOnce()
         {
+            // H-6 정규화 이후: unpin은 HandleNodeDragEnded 단일 경로.
+            // HandleNodeMoved는 PushMoveNode만 담당하고 unpin을 호출하지 않는다.
             // Node.HandlePointerReleased 발행 순서:
-            //   1) RaiseNodeMovedEvent → DagEditor.HandleNodeMoved → UnpinRequested [1st]
-            //   2) RaiseEvent(NodeDragEndedEvent) → DagEditor.HandleNodeDragEnded → UnpinRequested [2nd]
-            //
-            // 비선택 노드이므로 두 핸들러 모두 RequestUnpinNode를 호출한다.
-            // VCA는 HashSet.Remove — 두 번째 호출은 no-op이므로 실제 영향 없음.
+            //   1) RaiseNodeMovedEvent → DagEditor.HandleNodeMoved → PushMoveNode only
+            //   2) RaiseEvent(NodeDragEndedEvent) → DagEditor.HandleNodeDragEnded → UnpinRequested [1회]
             using var sim = new PinSim();
             var id = Guid.NewGuid();
 
             sim.DragStart(id);
-            sim.NodeMoved(id);   // HandleNodeMoved → UnpinRequested [1st]
-            sim.DragEnd(id);     // HandleNodeDragEnded → UnpinRequested [2nd]
+            sim.NodeMoved(id);   // HandleNodeMoved → unpin 없음 (H-6)
+            sim.DragEnd(id);     // HandleNodeDragEnded → UnpinRequested [1회]
 
             Assert.Equal(1, sim.PinCount(id));
-            Assert.Equal(2, sim.UnpinCount(id)); // 중복 발행, VCA는 idempotent로 처리
+            Assert.Equal(1, sim.UnpinCount(id));
         }
 
         // ─── Selection 교체: 기존 노드 unpin, 신규 노드 pin ───────────────────

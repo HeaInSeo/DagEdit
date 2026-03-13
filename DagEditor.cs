@@ -537,14 +537,8 @@ namespace DagEdit
         private void HandleNodeMoved(object? sender, NodeMovedEventArgs args)
         {
             // 드래그 완료 후 MoveNodeCommand를 Undo 스택에 push한다 (Feature 2).
+            // unpin은 NodeDragEndedEvent(HandleNodeDragEnded)가 단일 경로로 담당한다.
             _viewModel.PushMoveNode(args.NodeId, args.OldLocation, args.NewLocation);
-
-            // H-3: 드래그 완료 → 선택 집합에 없으면 unpin
-            if (!_pinnedBySelection.Contains(args.NodeId))
-            {
-                _viewModel.RequestUnpinNode(args.NodeId);
-            }
-
             args.Handled = true;
         }
 
