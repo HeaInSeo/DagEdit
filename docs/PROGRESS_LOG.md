@@ -318,6 +318,18 @@
 
 ---
 
+### [Step 22] Overlapping pin lifecycle 검증 (H-5)
+- **날짜**: 2026-03-13
+- **수행 내용**:
+  - **아키텍처 불변조건 확인**: "drag 활성 중 deselection" 시나리오(S-3/S-4)는 현재 DagEditor에서 발생 불가 — `Node.HandlePointerPressed`가 `args.Handled = true`를 설정하므로, DagEditor의 `IsSelecting = true` 진입 조건(`!args.Handled`)이 차단됨
+  - **VCA Pin/Unpin 계약 확인**: `HashSet<ISpatialItem>`기반 set-semantics — `Pin(x)` 중복 호출은 idempotent, `Unpin(x)` 1회로 즉시 해제
+  - **S-6b 중복 unpin 문서화**: 이동이 있는 drag 종료 시 `NodeMovedEvent` + `NodeDragEndedEvent`가 모두 발행되어 비선택 노드에 `UnpinRequested` 2회 발행 — VCA HashSet이 idempotent이므로 실제 영향 없음, 코드 수정 없이 테스트로 명시
+  - `PinLifecycleTests.cs` (9개): S-1/2/2b/5×2/6a/6b + SelectionChange + ArchitecturalInvariant
+- **코드 수정 없음** — H-3/H-4 현재 구현이 모든 도달 가능 시나리오를 올바르게 처리함
+- **검증 지표**: 빌드 0 Error, 170 → 179개 테스트 100% 통과
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
@@ -325,7 +337,7 @@
 | High | StyleCop 경고 0건 달성 (295 → 0, 전체 Error 격상 가능 시점) |
 | High | `DelDagNodeItem` 해피패스 테스트 (Node 인스턴스 분리 필요) |
 | High | Connection 삭제 테스트 추가 (Step 13 구현에 대한 단위 테스트) |
-| Medium | overlapping pin scenario 검증 (동일 노드가 selection + drag pin 동시 획득 시 lifecycle 정합) |
+| Medium | S-6b double-unpin 제거 (NodeMovedEvent 핸들러에서 unpin 제거, DragEnded에 일원화) |
 | Medium | 커버리지 목표 설정 (목표: 80% 이상, 현재 4%) |
 | Medium | Zoom 기능 구현 |
 | Low | `docs/performance_trend.png` 생성 (히스토리 3회 이상 누적 후) |
