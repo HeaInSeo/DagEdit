@@ -342,6 +342,24 @@
 
 ---
 
+### [Step 24] Undo-after-delete pin contract 고정 (H-8)
+- **날짜**: 2026-03-13
+- **수행 내용**:
+  - `tests/DagEdit.Tests/UndoAfterDeletePinContractTests.cs` 신규 (10개 테스트)
+  - **코드 수정 없음** — 기존 계약 불일치 없음. 테스트로만 계약 명문화.
+  - `UndoAfterDeleteSim`: DagEditor pin guard + `DelNodeCommand.Undo()` 경로를 test-local pure 클래스로 미러링
+  - 검증 계약:
+    - **C2**: `Undo`는 `PinRequested`를 발행하지 않는다
+    - **C3**: `Undo` 후 `_pinnedBySelection`에 nodeId 없음
+    - **C4**: `Undo` 후 adapter snapshot 복원됨 (새 object ref)
+    - **C5**: `Undo` 후 selection → 새 pin cycle이 정상 시작됨
+    - **C6**: `Undo` 후 drag start/end → 새 pin cycle이 정상 동작함
+  - 전체 시퀀스 테스트: Select → Delete → Undo → Select → Drag → Deselect
+  - 비선택 노드 케이스, 아키텍처 불변조건(Undo 경로에 pin/unpin 코드 경로 없음) 3회 반복 검증 포함
+- **검증 지표**: 빌드 0 Error, 188 → **198개** 테스트 100% 통과
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
