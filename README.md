@@ -187,6 +187,7 @@ dotnet build --configuration Release 2>&1 | grep -c ": warning SA"
 ## CI/CD (GitHub Actions)
 
 PR 또는 `master` 브랜치 push 시 `.github/workflows/verify.yml`이 자동 실행됩니다.
+무료 ReSharper inspection CI는 `.github/workflows/inspectcode.yml`에서 별도로 실행되며, `DagEdit.sln` 기준 SARIF 리포트를 아티팩트로 남깁니다.
 
 | 단계 | 내용 |
 |------|------|
