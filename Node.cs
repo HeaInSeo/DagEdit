@@ -143,6 +143,21 @@ namespace DagEdit
             remove => RemoveHandler(NodeDragStartedEvent, value);
         }
 
+        /// <summary>
+        /// 노드 드래그 종료 시 항상 발행 (위치 변화 없는 경우 포함).
+        /// DagEditor가 수신하여 drag pin을 해제한다 — pin leak 방지.
+        /// </summary>
+        public static readonly RoutedEvent<NodeDragEndedEventArgs> NodeDragEndedEvent =
+            RoutedEvent.Register<Node, NodeDragEndedEventArgs>(
+                nameof(NodeDragEnded),
+                RoutingStrategies.Bubble);
+
+        public event EventHandler<NodeDragEndedEventArgs> NodeDragEnded
+        {
+            add => AddHandler(NodeDragEndedEvent, value);
+            remove => RemoveHandler(NodeDragEndedEvent, value);
+        }
+
         #endregion
 
         #region fields
@@ -261,6 +276,9 @@ namespace DagEdit
                 {
                     RaiseNodeMovedEvent(_id, _dragStartLocation, Location);
                 }
+
+                // drag pin leak 방지 — 항상 발행 (NodeMovedEvent 발행 여부 무관)
+                RaiseEvent(new NodeDragEndedEventArgs(NodeDragEndedEvent, _id));
 
                 args.Handled = true;
             }

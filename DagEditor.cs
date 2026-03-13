@@ -185,6 +185,7 @@ namespace DagEdit
         private EventHandler<ConnectionChangedEventArgs>? _connectionChangedHandler;
         private EventHandler<NodeMovedEventArgs>? _nodeMovedHandler;
         private EventHandler<NodeDragStartedEventArgs>? _nodeDragStartedHandler;
+        private EventHandler<NodeDragEndedEventArgs>? _nodeDragEndedHandler;
 
         // H-3: 현재 선택으로 인해 pin된 노드 ID 집합
         private readonly HashSet<Guid> _pinnedBySelection = new();
@@ -278,6 +279,7 @@ namespace DagEdit
             _connectionChangedHandler = HandleConnectionChanged;
             _nodeMovedHandler = HandleNodeMoved;
             _nodeDragStartedHandler = HandleNodeDragStarted;
+            _nodeDragEndedHandler = HandleNodeDragEnded;
 
             Observable.FromEventPattern<PointerPressedEventArgs>(
                     h => this.PointerPressed += h,
@@ -326,6 +328,8 @@ namespace DagEdit
             AddHandler(Node.NodeMovedEvent, _nodeMovedHandler);
             // Node Drag Started (H-3 Pin용)
             AddHandler(Node.NodeDragStartedEvent, _nodeDragStartedHandler);
+            // Node Drag Ended (drag pin leak 방지)
+            AddHandler(Node.NodeDragEndedEvent, _nodeDragEndedHandler);
 
             // 이벤트 핸들러 해제
             _disposables.Add(Disposable.Create(() =>
@@ -340,6 +344,8 @@ namespace DagEdit
                 RemoveHandler(Node.NodeMovedEvent, _nodeMovedHandler);
                 // Node Drag Started
                 RemoveHandler(Node.NodeDragStartedEvent, _nodeDragStartedHandler);
+                // Node Drag Ended
+                RemoveHandler(Node.NodeDragEndedEvent, _nodeDragEndedHandler);
             }));
         }
 
@@ -546,6 +552,18 @@ namespace DagEdit
         {
             // H-3: 드래그 시작 → pin (이미 선택으로 pinned여도 중복 pin은 no-op)
             _viewModel.RequestPinNode(args.NodeId);
+            args.Handled = true;
+        }
+
+        private void HandleNodeDragEnded(object? sender, NodeDragEndedEventArgs args)
+        {
+            // drag pin leak 방지: 선택에 포함되지 않은 노드의 drag pin을 해제한다.
+            // 위치 변화가 없어 NodeMovedEvent가 발행되지 않은 경우에도 반드시 unpin.
+            if (!_pinnedBySelection.Contains(args.NodeId))
+            {
+                _viewModel.RequestUnpinNode(args.NodeId);
+            }
+
             args.Handled = true;
         }
 
