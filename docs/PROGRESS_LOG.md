@@ -330,6 +330,18 @@
 
 ---
 
+### [Step 23] Unpin 경로 정규화 (H-6)
+- **날짜**: 2026-03-13
+- **수행 내용**:
+  - `DagEditor.HandleNodeMoved`에서 `RequestUnpinNode` 로직 제거
+  - `HandleNodeMoved`는 `PushMoveNode + args.Handled = true`만 유지
+  - drag pin 해제의 단일 경로를 `HandleNodeDragEnded`로 확정
+  - `PinLifecycleTests.cs`: `PinSim.NodeMoved` unpin 제거 일치, S-6b assertion 2→1회 수정
+- **동기**: S-6b에서 이동 있는 drag 종료 시 `UnpinRequested` 2회 중복 발행이 있었음. 현재는 VCA가 idempotent이므로 무해하나, 미래에 Unpin이 ref-counted로 변경될 경우에 대비
+- **검증 지표**: 빌드 0 Error, 179개 테스트 100% 통과 (테스트 수 변동 없음)
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
