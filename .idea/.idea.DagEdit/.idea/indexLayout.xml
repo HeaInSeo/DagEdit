@@ -3,6 +3,12 @@
   <component name="UserContentModel">
     <attachedFolders />
     <explicitIncludes />
-    <explicitExcludes />
+    <explicitExcludes>
+      <!-- VCA 자체 .sln 파일이 Rider에 의해 auto-detect되지 않도록 제외.
+           DagEdit.sln의 명시적 ProjectReference는 영향 없음.
+           이 설정이 없으면 VCA.sln(백슬래시 경로)과 DagEdit.sln의 GUID 충돌로
+           Solution 탭에서 프로젝트/파일이 사라지는 증상이 발생함. -->
+      <url value="file://$PROJECT_DIR$/external/virtualcanvas-avalonia" />
+    </explicitExcludes>
   </component>
 </project>
