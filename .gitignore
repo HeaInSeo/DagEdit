@@ -361,5 +361,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-# 로컬 전용 솔루션 — VCA ProjectReference 포함, Rider용, GitHub 제외
-DagEdit.local.sln

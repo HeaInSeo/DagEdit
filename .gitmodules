@@ -1,0 +1,3 @@
+[submodule "external/virtualcanvas-avalonia"]
+	path = external/virtualcanvas-avalonia
+	url = https://github.com/HeaInSeo/virtualcanvas-avalonia.git

@@ -38,8 +38,8 @@
   <!-- Phase 1 Viewer spike: VirtualCanvas.Core (UI 의존 없음, spatial primitives만) -->
   <!-- G-0 Viewer wiring: VirtualCanvas.Avalonia (Avalonia Control, UI 의존 있음) -->
   <ItemGroup>
-    <ProjectReference Include="../virtualcanvas-avalonia/src/VirtualCanvas.Core/VirtualCanvas.Core.csproj" />
-    <ProjectReference Include="../virtualcanvas-avalonia/src/VirtualCanvas.Avalonia/VirtualCanvas.Avalonia.csproj" />
+    <ProjectReference Include="external/virtualcanvas-avalonia/src/VirtualCanvas.Core/VirtualCanvas.Core.csproj" />
+    <ProjectReference Include="external/virtualcanvas-avalonia/src/VirtualCanvas.Avalonia/VirtualCanvas.Avalonia.csproj" />
   </ItemGroup>
 
   <!-- 테스트 프로젝트에서 internal 타입(NodeViewItem 등) 접근 허용 -->
@@ -53,11 +53,20 @@
     <UpToDateCheckInput Remove="Styles.axaml" />
   </ItemGroup>
 
-  <!-- tests/, benchmarks/, VirtualCanvas_ref/ 는 별도 프로젝트/참조용이므로 메인 프로젝트에서 명시적 제외 -->
+  <!-- tests/, benchmarks/, VirtualCanvas_ref/, external/ 는 별도 프로젝트/참조용이므로 메인 프로젝트에서 명시적 제외 -->
   <!-- VirtualCanvas_ref: WPF 의존 참조 코드 — Avalonia 프로젝트에서 컴파일 불가 -->
+  <!-- external/: git submodule (VCA) — 별도 csproj가 있으므로 여기서 직접 컴파일/임베드하지 않음 -->
   <ItemGroup>
     <Compile Remove="tests/**/*.cs" />
     <Compile Remove="benchmarks/**/*.cs" />
     <Compile Remove="VirtualCanvas_ref/**/*.cs" />
+    <Compile Remove="external/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Remove="external/**" />
+    <AvaloniaXaml Remove="external/**" />
+    <EmbeddedResource Remove="external/**" />
+    <None Remove="external/**" />
+    <Content Remove="external/**" />
   </ItemGroup>
 </Project>

@@ -5,6 +5,10 @@ VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DagEdit", "DagEdit.csproj", "{8DFF1784-D4B5-481C-BFD0-453D66313D17}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtualCanvas.Core", "external\virtualcanvas-avalonia\src\VirtualCanvas.Core\VirtualCanvas.Core.csproj", "{E865630A-B991-4CFD-A4CA-8B250019295F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtualCanvas.Avalonia", "external\virtualcanvas-avalonia\src\VirtualCanvas.Avalonia\VirtualCanvas.Avalonia.csproj", "{54A42216-C138-46BE-B8CE-E4E821E55EE7}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DagEdit.Tests", "tests\DagEdit.Tests\DagEdit.Tests.csproj", "{A4F1E8B2-3C7D-4F9A-8B2E-1D6C3A7F0E5B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DagEdit.Benchmarks", "benchmarks\DagEdit.Benchmarks\DagEdit.Benchmarks.csproj", "{B8C2D4E6-F0A2-4C8E-A0B4-C6D8E0F2A4B6}"
@@ -19,6 +23,14 @@ Global
 		{8DFF1784-D4B5-481C-BFD0-453D66313D17}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8DFF1784-D4B5-481C-BFD0-453D66313D17}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DFF1784-D4B5-481C-BFD0-453D66313D17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E865630A-B991-4CFD-A4CA-8B250019295F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E865630A-B991-4CFD-A4CA-8B250019295F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E865630A-B991-4CFD-A4CA-8B250019295F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E865630A-B991-4CFD-A4CA-8B250019295F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54A42216-C138-46BE-B8CE-E4E821E55EE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54A42216-C138-46BE-B8CE-E4E821E55EE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54A42216-C138-46BE-B8CE-E4E821E55EE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54A42216-C138-46BE-B8CE-E4E821E55EE7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A4F1E8B2-3C7D-4F9A-8B2E-1D6C3A7F0E5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A4F1E8B2-3C7D-4F9A-8B2E-1D6C3A7F0E5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4F1E8B2-3C7D-4F9A-8B2E-1D6C3A7F0E5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
