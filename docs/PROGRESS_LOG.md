@@ -294,6 +294,30 @@
 
 ---
 
+### [Step 20] VCA Pin/Unpin consumer-side wiring (H-3)
+- **날짜**: 2026-03-11
+- **수행 내용**:
+  - `DagEditorViewModel`: `PinRequested`/`UnpinRequested` internal event 추가 — ViewModel은 `ViewerCanvas`를 직접 참조하지 않고 이벤트로 위임
+  - `DagEditor`: `_pinnedBySelection: HashSet<Guid>` 도입; selection 확정 시 기존 pin 해제 후 신규 선택 pin; `NodeDragStartedEvent` 수신 시 drag 노드 pin 요청
+  - `Node.cs`: `NodeDragStartedEvent` (Bubble) 추가, drag 시작 시 발행
+  - `MainWindow.axaml.cs`: `vm.PinRequested → ViewerCanvas.Pin`, `vm.UnpinRequested → ViewerCanvas.Unpin` wiring; `Unloaded`에서 명시적 unsubscribe
+- **책임 경계**: DagEdit가 "어느 노드를 pin할지" 결정(selection/drag 의미론 소유), VCA는 Pin/Unpin 수행만 담당. VCA pinning contract 상세는 VCA canonical 문서 참조.
+- **검증 지표**: 빌드 0 Error, → 165개 테스트 100% 통과 (`ViewerPinUnpinTests` 8개 신규)
+
+---
+
+### [Step 21] NodeDragEndedEvent — drag pin leak 방지 (H-4)
+- **날짜**: 2026-03-13
+- **수행 내용**:
+  - **버그**: drag 시작 후 같은 셀에 놓이면 `NodeMovedEvent` 미발행 → drag pin 누수
+  - `NodeMovedEventArgs.cs`: `NodeDragEndedEventArgs` 추가
+  - `Node.cs`: `NodeDragEndedEvent` (Bubble) 추가; `HandlePointerReleased`에서 이동 여부와 무관하게 항상 발행
+  - `DagEditor.cs`: `HandleNodeDragEnded` — 선택 집합에 없는 노드에 한해 `RequestUnpinNode` 호출
+  - drag pin lifecycle 기준을 "이동 발생 여부"에서 "drag 종료"로 교정
+- **검증 지표**: 빌드 0 Error, 165 → 170개 테스트 100% 통과 (`NodeDragEndedTests` 5개 신규)
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
@@ -301,6 +325,7 @@
 | High | StyleCop 경고 0건 달성 (295 → 0, 전체 Error 격상 가능 시점) |
 | High | `DelDagNodeItem` 해피패스 테스트 (Node 인스턴스 분리 필요) |
 | High | Connection 삭제 테스트 추가 (Step 13 구현에 대한 단위 테스트) |
+| Medium | overlapping pin scenario 검증 (동일 노드가 selection + drag pin 동시 획득 시 lifecycle 정합) |
 | Medium | 커버리지 목표 설정 (목표: 80% 이상, 현재 4%) |
 | Medium | Zoom 기능 구현 |
 | Low | `docs/performance_trend.png` 생성 (히스토리 3회 이상 누적 후) |
