@@ -622,6 +622,10 @@ namespace DagEdit
 
             if (args.Source is Node node)
             {
+                // H-7: ExecuteDelNode 이후에는 snapshot이 제거되어 VCA.Unpin이 silently skip됨.
+                // 삭제 전에 selection pin을 먼저 해제해야 MainWindow._onUnpinRequested가 정상 동작한다.
+                if (_pinnedBySelection.Remove(node.Id))
+                    _viewModel.RequestUnpinNode(node.Id);
                 _viewModel.ExecuteDelNode(node.Id); // Undo/Redo 스택에 등록
                 args.Handled = true;
             }
