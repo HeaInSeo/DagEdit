@@ -164,7 +164,7 @@ jobs:
               d = cur - prev_val
               if d == 0:
                   return "±0"
-              return f"+{d} ⚠️" if d > 0 else f"{d} ✅"
+              return f"+{d} [up]" if d > 0 else f"{d} [down]"
 
           # ── severity rows (column set differs by availability of prev) ───
           sev_rows = ""
@@ -172,12 +172,11 @@ jobs:
               cur_cnt = by_severity.get(sev, 0)
               if not cur_cnt and sev not in ("error", "warning"):
                   continue
-              icon = {"error": "🔴", "warning": "🟡", "note": "🔵"}.get(sev, "⚪")
               if prev_data is not None:
                   prev_cnt = prev_data.get("bySeverity", {}).get(sev, 0)
-                  sev_rows += f"| {icon} {sev} | {prev_cnt} | {cur_cnt} | {delta_str(cur_cnt, prev_cnt)} |\n"
+                  sev_rows += f"| {sev} | {prev_cnt} | {cur_cnt} | {delta_str(cur_cnt, prev_cnt)} |\n"
               else:
-                  sev_rows += f"| {icon} {sev} | {cur_cnt} |\n"
+                  sev_rows += f"| {sev} | {cur_cnt} |\n"
 
           # ── rule rows ────────────────────────────────────────────────────
           rule_rows = ""
@@ -203,7 +202,7 @@ jobs:
               sev_table_header = "| Severity | 이전 | 현재 | 증감 |\n|---|---|---|---|"
           else:
               total_headline   = f"### 총 경고: **{total}**"
-              compare_note     = "> ℹ️ 이전 비교 데이터 없음 (첫 실행이거나 이전 artifact 없음)"
+              compare_note     = "> [INFO] 이전 비교 데이터 없음 (첫 실행이거나 이전 artifact 없음)"
               sev_table_header = "| Severity | Count |\n|---|---|"
 
           # ── write Job Summary ────────────────────────────────────────────
@@ -278,10 +277,10 @@ jobs:
           if not os.path.exists(prev_path):
               append_summary(
                   "\n### 회귀 검사\n\n"
-                  "> ℹ️ **baseline 없음** — 첫 실행이거나 이전 artifact 없음. "
+                  "> [INFO] **baseline 없음** — 첫 실행이거나 이전 artifact 없음. "
                   "이번 실행이 새 baseline이 된다.\n\n"
               )
-              print("ℹ️ No previous baseline — regression check skipped (this run becomes the baseline)")
+              print("[INFO] No previous baseline — regression check skipped (this run becomes the baseline)")
               sys.exit(0)
 
           with open(cur_path,  encoding="utf-8") as f:
@@ -316,15 +315,15 @@ jobs:
               "| 항목 | 이전 | 현재 | 증감 |\n"
               "|---|---|---|---|\n"
               f"| 총 경고 | {prev_total} | {cur_total} | {sign(dt)} |\n"
-              f"| 🔴 error | {prev_err} | {cur_err} | {sign(de)} |\n"
-              f"| 🟡 warning | {prev_warn} | {cur_warn} | {sign(dw)} |\n"
+              f"| error | {prev_err} | {cur_err} | {sign(de)} |\n"
+              f"| warning | {prev_warn} | {cur_warn} | {sign(dw)} |\n"
           )
 
           if failed:
               gate_md = (
-                  "\n### 회귀 검사 결과: ❌ FAIL\n\n"
+                  "\n### 회귀 검사 결과: [FAIL]\n\n"
                   + table
-                  + f"\n> ❌ **Regression detected**: {'; '.join(reasons)}\n\n"
+                  + f"\n> **Regression detected**: {'; '.join(reasons)}\n\n"
                   "> Policy: *InspectCode warnings may decrease or stay flat, but must not increase.*\n\n"
               )
               append_summary(gate_md)
@@ -333,13 +332,13 @@ jobs:
               sys.exit(1)
           else:
               gate_md = (
-                  "\n### 회귀 검사 결과: ✅ PASS\n\n"
+                  "\n### 회귀 검사 결과: [PASS]\n\n"
                   + table
-                  + "\n> ✅ No warning regression.\n\n"
+                  + "\n> No warning regression.\n\n"
                   "> Policy: *InspectCode warnings may decrease or stay flat, but must not increase.*\n\n"
               )
               append_summary(gate_md)
-              print(f"✅ No regression. total: {prev_total}→{cur_total} ({sign(dt)}), warning: {prev_warn}→{cur_warn} ({sign(dw)})")
+              print(f"[PASS] No regression. total: {prev_total}->{cur_total} ({sign(dt)}), warning: {prev_warn}->{cur_warn} ({sign(dw)})")
               sys.exit(0)
           PYEOF
 
