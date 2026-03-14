@@ -44,11 +44,13 @@ jobs:
         run: dotnet restore DagEdit.sln
 
       - name: Run ReSharper InspectCode
+        # dotnet-version: JetBrains action 내부 setup-dotnet@v4에도 전달되어야 8.0.0 404 방지
         uses: JetBrains/ReSharper-InspectCode@v0.11
         with:
           solution: DagEdit.sln
           format: Sarif
           output: inspectcode.sarif.json
+          dotnet-version: "8.0.x"
           dotnetcoresdk: "8.0.415"
 
       # 현재 run 이전의 가장 최근 성공 실행에서 warning-count artifact를 취득
