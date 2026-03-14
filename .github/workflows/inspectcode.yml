@@ -13,6 +13,7 @@ concurrency:
 permissions:
   contents: read
   security-events: write
+  actions: read          # gh run download (이전 artifact 취득)용
 
 jobs:
   inspectcode:
@@ -49,6 +50,47 @@ jobs:
           format: Sarif
           output: inspectcode.sarif.json
 
+      # 현재 run 이전의 가장 최근 성공 실행에서 warning-count artifact를 취득
+      # 실패해도 workflow 전체를 실패시키지 않는다 (비교는 best-effort)
+      - name: Fetch previous warning-count artifact
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREV_RUN_ID=$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow "inspectcode.yml" \
+            --branch "$GITHUB_REF_NAME" \
+            --status success \
+            --limit 10 \
+            --json databaseId \
+            --jq ".[] | select(.databaseId | tostring != \"$GITHUB_RUN_ID\") | .databaseId" \
+            2>/dev/null | head -1 || true)
+
+          if [ -z "$PREV_RUN_ID" ]; then
+            echo "No previous successful run found — comparison will be skipped"
+            exit 0
+          fi
+
+          echo "Previous run ID: $PREV_RUN_ID"
+
+          gh run download "$PREV_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "warning-count" \
+            --dir "_prev_artifact" 2>/dev/null || {
+            echo "::warning::Could not download previous warning-count artifact"
+            exit 0
+          }
+
+          # gh run download 는 --dir 아래 <artifact-name>/ 디렉토리를 만든다
+          FOUND=$(find _prev_artifact -name "warning-count.json" -type f | head -1)
+          if [ -n "$FOUND" ]; then
+            cp "$FOUND" prev-warning-count.json
+            echo "Loaded previous artifact from run $PREV_RUN_ID: $FOUND"
+          else
+            echo "::warning::warning-count.json not found in downloaded artifact"
+          fi
+
       - name: Parse SARIF and generate summary + count artifact
         if: always()
         run: |
@@ -67,10 +109,9 @@ jobs:
 
           # ── collect results ──────────────────────────────────────────────
           results = []
-          rules_map = {}  # ruleId -> rule metadata
+          rules_map: dict[str, dict] = {}
 
           for run in sarif.get("runs", []):
-              # build rule lookup from tool.driver.rules
               driver = run.get("tool", {}).get("driver", {})
               for rule in driver.get("rules", []):
                   rid = rule.get("id", "")
@@ -86,59 +127,108 @@ jobs:
 
           total = len(results)
 
-          # ── severity breakdown ───────────────────────────────────────────
+          # ── severity / rule breakdown ────────────────────────────────────
           SEV_ORDER = ["error", "warning", "note", "none", "unknown"]
           by_severity: dict[str, int] = defaultdict(int)
           by_rule: dict[str, int] = defaultdict(int)
 
           for r in results:
-              level = r.get("level", "warning")
-              by_severity[level] += 1
-              rule_id = r.get("ruleId", "unknown")
-              by_rule[rule_id] += 1
+              by_severity[r.get("level", "warning")] += 1
+              by_rule[r.get("ruleId", "unknown")] += 1
 
-          # top-10 rules by count
           top_rules = sorted(by_rule.items(), key=lambda x: x[1], reverse=True)[:10]
 
-          # ── Job Summary (Markdown) ───────────────────────────────────────
+          # ── env vars → absolute URLs (상대경로 사용 금지) ─────────────────
+          server_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+          repo       = os.environ.get("GITHUB_REPOSITORY", "")
+          sha        = os.environ.get("GITHUB_SHA", "unknown")
+          branch     = os.environ.get("GITHUB_REF_NAME", "unknown")
+          run_id     = os.environ.get("GITHUB_RUN_ID", "unknown")
           summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
-          commit = os.environ.get("GITHUB_SHA", "unknown")[:7]
-          branch = os.environ.get("GITHUB_REF_NAME", "unknown")
-          run_id = os.environ.get("GITHUB_RUN_ID", "unknown")
           generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+          run_url          = f"{server_url}/{repo}/actions/runs/{run_id}"
+          commit_url       = f"{server_url}/{repo}/commit/{sha}"
+          decision_log_url = f"{server_url}/{repo}/blob/{sha}/docs/DECISION_LOG.md"
+
+          # ── load previous run data ───────────────────────────────────────
+          prev_data: dict | None = None
+          if os.path.exists("prev-warning-count.json"):
+              try:
+                  with open("prev-warning-count.json", encoding="utf-8") as f:
+                      prev_data = json.load(f)
+              except Exception as e:
+                  print(f"::warning::Failed to parse prev-warning-count.json: {e}")
+
+          def delta_str(cur: int, prev_val: int) -> str:
+              d = cur - prev_val
+              if d == 0:
+                  return "±0"
+              return f"+{d} ⚠️" if d > 0 else f"{d} ✅"
+
+          # ── severity rows (column set differs by availability of prev) ───
           sev_rows = ""
           for sev in SEV_ORDER:
-              count = by_severity.get(sev, 0)
-              if count or sev in ("error", "warning"):
-                  icon = {"error": "🔴", "warning": "🟡", "note": "🔵"}.get(sev, "⚪")
-                  sev_rows += f"| {icon} {sev} | {count} |\n"
+              cur_cnt = by_severity.get(sev, 0)
+              if not cur_cnt and sev not in ("error", "warning"):
+                  continue
+              icon = {"error": "🔴", "warning": "🟡", "note": "🔵"}.get(sev, "⚪")
+              if prev_data is not None:
+                  prev_cnt = prev_data.get("bySeverity", {}).get(sev, 0)
+                  sev_rows += f"| {icon} {sev} | {prev_cnt} | {cur_cnt} | {delta_str(cur_cnt, prev_cnt)} |\n"
+              else:
+                  sev_rows += f"| {icon} {sev} | {cur_cnt} |\n"
 
+          # ── rule rows ────────────────────────────────────────────────────
           rule_rows = ""
           for rule_id, count in top_rules:
               name = rules_map.get(rule_id, {}).get("name", rule_id)
               rule_rows += f"| `{rule_id}` | {name} | {count} |\n"
 
+          # ── comparison / fallback block ──────────────────────────────────
+          if prev_data is not None:
+              prev_total   = prev_data.get("total", 0)
+              prev_commit  = str(prev_data.get("commit", "unknown"))[:7]
+              prev_run_id  = prev_data.get("workflowRunId", "unknown")
+              prev_run_url = f"{server_url}/{repo}/actions/runs/{prev_run_id}"
+
+              total_headline = (
+                  f"### 총 경고: **{total}** "
+                  f"(이전: {prev_total}, 증감: {delta_str(total, prev_total)})"
+              )
+              compare_note = (
+                  f"> 이전 실행: [{prev_commit}]({prev_run_url})"
+                  f" | 현재 실행: [{sha[:7]}]({commit_url})"
+              )
+              sev_table_header = "| Severity | 이전 | 현재 | 증감 |\n|---|---|---|---|"
+          else:
+              total_headline   = f"### 총 경고: **{total}**"
+              compare_note     = "> ℹ️ 이전 비교 데이터 없음 (첫 실행이거나 이전 artifact 없음)"
+              sev_table_header = "| Severity | Count |\n|---|---|"
+
+          # ── write Job Summary ────────────────────────────────────────────
           md = f"""## ReSharper InspectCode — {generated_at}
 
-  > **이번 실행 기준** | branch: `{branch}` | commit: `{commit}` | run: [{run_id}](https://github.com/${{{{GITHUB_REPOSITORY}}}}/actions/runs/{run_id})
+> **이번 실행** | branch: `{branch}` | commit: [`{sha[:7]}`]({commit_url}) | [run #{run_id}]({run_url})
 
-  ### 총 경고: **{total}**
+{total_headline}
 
-  #### Severity 별
+{compare_note}
 
-  | Severity | Count |
-  |---|---|
-  {sev_rows.rstrip()}
+#### Severity 별
 
-  #### Rule 별 (Top 10)
+{sev_table_header}
+{sev_rows.rstrip()}
 
-  | Rule ID | Name | Count |
-  |---|---|---|
-  {rule_rows.rstrip()}
+#### Rule 별 (Top 10)
 
-  > SARIF artifact: `inspectcode-sarif`  |  Count artifact: `warning-count`
-  """
+| Rule ID | Name | Count |
+|---|---|---|
+{rule_rows.rstrip()}
+
+---
+> 참고: [DECISION_LOG DEC-005]({decision_log_url}) | artifacts: `inspectcode-sarif`, `warning-count`
+"""
           with open(summary_path, "a", encoding="utf-8") as f:
               f.write(md)
 
@@ -147,7 +237,7 @@ jobs:
               "total": total,
               "bySeverity": dict(by_severity),
               "byRule": dict(by_rule),
-              "commit": os.environ.get("GITHUB_SHA", "unknown"),
+              "commit": sha,
               "branch": branch,
               "workflowRunId": run_id,
               "generatedAt": generated_at,
@@ -155,7 +245,7 @@ jobs:
           with open("warning-count.json", "w", encoding="utf-8") as f:
               json.dump(count_payload, f, indent=2)
 
-          print(f"Summary written. total={total}")
+          print(f"Summary written. total={total}, prev_found={prev_data is not None}")
           PYEOF
 
       - name: Upload InspectCode SARIF report
