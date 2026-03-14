@@ -49,7 +49,116 @@ jobs:
           format: Sarif
           output: inspectcode.sarif.json
 
-      - name: Upload InspectCode report
+      - name: Parse SARIF and generate summary + count artifact
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, sys
+          from collections import defaultdict
+          from datetime import datetime, timezone
+
+          sarif_path = "inspectcode.sarif.json"
+          if not os.path.exists(sarif_path):
+              print("::warning::inspectcode.sarif.json not found — skipping summary")
+              sys.exit(0)
+
+          with open(sarif_path, encoding="utf-8") as f:
+              sarif = json.load(f)
+
+          # ── collect results ──────────────────────────────────────────────
+          results = []
+          rules_map = {}  # ruleId -> rule metadata
+
+          for run in sarif.get("runs", []):
+              # build rule lookup from tool.driver.rules
+              driver = run.get("tool", {}).get("driver", {})
+              for rule in driver.get("rules", []):
+                  rid = rule.get("id", "")
+                  rules_map[rid] = {
+                      "name": rule.get("name", rid),
+                      "severity": (
+                          rule.get("defaultConfiguration", {})
+                              .get("level", "warning")
+                      ),
+                  }
+              for r in run.get("results", []):
+                  results.append(r)
+
+          total = len(results)
+
+          # ── severity breakdown ───────────────────────────────────────────
+          SEV_ORDER = ["error", "warning", "note", "none", "unknown"]
+          by_severity: dict[str, int] = defaultdict(int)
+          by_rule: dict[str, int] = defaultdict(int)
+
+          for r in results:
+              level = r.get("level", "warning")
+              by_severity[level] += 1
+              rule_id = r.get("ruleId", "unknown")
+              by_rule[rule_id] += 1
+
+          # top-10 rules by count
+          top_rules = sorted(by_rule.items(), key=lambda x: x[1], reverse=True)[:10]
+
+          # ── Job Summary (Markdown) ───────────────────────────────────────
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
+          commit = os.environ.get("GITHUB_SHA", "unknown")[:7]
+          branch = os.environ.get("GITHUB_REF_NAME", "unknown")
+          run_id = os.environ.get("GITHUB_RUN_ID", "unknown")
+          generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+          sev_rows = ""
+          for sev in SEV_ORDER:
+              count = by_severity.get(sev, 0)
+              if count or sev in ("error", "warning"):
+                  icon = {"error": "🔴", "warning": "🟡", "note": "🔵"}.get(sev, "⚪")
+                  sev_rows += f"| {icon} {sev} | {count} |\n"
+
+          rule_rows = ""
+          for rule_id, count in top_rules:
+              name = rules_map.get(rule_id, {}).get("name", rule_id)
+              rule_rows += f"| `{rule_id}` | {name} | {count} |\n"
+
+          md = f"""## ReSharper InspectCode — {generated_at}
+
+  > **이번 실행 기준** | branch: `{branch}` | commit: `{commit}` | run: [{run_id}](https://github.com/${{{{GITHUB_REPOSITORY}}}}/actions/runs/{run_id})
+
+  ### 총 경고: **{total}**
+
+  #### Severity 별
+
+  | Severity | Count |
+  |---|---|
+  {sev_rows.rstrip()}
+
+  #### Rule 별 (Top 10)
+
+  | Rule ID | Name | Count |
+  |---|---|---|
+  {rule_rows.rstrip()}
+
+  > SARIF artifact: `inspectcode-sarif`  |  Count artifact: `warning-count`
+  """
+          with open(summary_path, "a", encoding="utf-8") as f:
+              f.write(md)
+
+          # ── warning-count.json ───────────────────────────────────────────
+          count_payload = {
+              "total": total,
+              "bySeverity": dict(by_severity),
+              "byRule": dict(by_rule),
+              "commit": os.environ.get("GITHUB_SHA", "unknown"),
+              "branch": branch,
+              "workflowRunId": run_id,
+              "generatedAt": generated_at,
+          }
+          with open("warning-count.json", "w", encoding="utf-8") as f:
+              json.dump(count_payload, f, indent=2)
+
+          print(f"Summary written. total={total}")
+          PYEOF
+
+      - name: Upload InspectCode SARIF report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -57,3 +166,19 @@ jobs:
           path: inspectcode.sarif.json
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Upload warning count artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: warning-count
+          path: warning-count.json
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: inspectcode.sarif.json
+          category: resharper-inspectcode
