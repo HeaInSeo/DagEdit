@@ -248,6 +248,96 @@ jobs:
           print(f"Summary written. total={total}, prev_found={prev_data is not None}")
           PYEOF
 
+      # Policy: InspectCode warnings may decrease or stay flat, but must not increase.
+      # Fail conditions: total OR warning-severity count goes up vs previous run.
+      # note/info: tracked in summary but do NOT trigger failure.
+      # No baseline: first run or missing artifact → pass with info notice.
+      - name: Check warning regression
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, sys
+
+          cur_path  = "warning-count.json"
+          prev_path = "prev-warning-count.json"
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
+
+          def append_summary(text: str) -> None:
+              with open(summary_path, "a", encoding="utf-8") as f:
+                  f.write(text)
+
+          if not os.path.exists(cur_path):
+              print("::warning::warning-count.json not found — regression check skipped")
+              sys.exit(0)
+
+          if not os.path.exists(prev_path):
+              append_summary(
+                  "\n### 회귀 검사\n\n"
+                  "> ℹ️ **baseline 없음** — 첫 실행이거나 이전 artifact 없음. "
+                  "이번 실행이 새 baseline이 된다.\n\n"
+              )
+              print("ℹ️ No previous baseline — regression check skipped (this run becomes the baseline)")
+              sys.exit(0)
+
+          with open(cur_path,  encoding="utf-8") as f:
+              cur  = json.load(f)
+          with open(prev_path, encoding="utf-8") as f:
+              prev = json.load(f)
+
+          cur_total   = cur.get("total", 0)
+          prev_total  = prev.get("total", 0)
+          cur_warn    = cur.get("bySeverity",  {}).get("warning", 0)
+          prev_warn   = prev.get("bySeverity", {}).get("warning", 0)
+          cur_err     = cur.get("bySeverity",  {}).get("error",   0)
+          prev_err    = prev.get("bySeverity", {}).get("error",   0)
+
+          failed  = False
+          reasons = []
+          if cur_total > prev_total:
+              reasons.append(f"total {prev_total} → {cur_total} (+{cur_total - prev_total})")
+              failed = True
+          if cur_warn > prev_warn:
+              reasons.append(f"warning {prev_warn} → {cur_warn} (+{cur_warn - prev_warn})")
+              failed = True
+
+          dt  = cur_total - prev_total
+          dw  = cur_warn  - prev_warn
+          de  = cur_err   - prev_err
+
+          def sign(n: int) -> str:
+              return f"+{n}" if n > 0 else str(n)
+
+          table = (
+              "| 항목 | 이전 | 현재 | 증감 |\n"
+              "|---|---|---|---|\n"
+              f"| 총 경고 | {prev_total} | {cur_total} | {sign(dt)} |\n"
+              f"| 🔴 error | {prev_err} | {cur_err} | {sign(de)} |\n"
+              f"| 🟡 warning | {prev_warn} | {cur_warn} | {sign(dw)} |\n"
+          )
+
+          if failed:
+              gate_md = (
+                  "\n### 회귀 검사 결과: ❌ FAIL\n\n"
+                  + table
+                  + f"\n> ❌ **Regression detected**: {'; '.join(reasons)}\n\n"
+                  "> Policy: *InspectCode warnings may decrease or stay flat, but must not increase.*\n\n"
+              )
+              append_summary(gate_md)
+              print(f"::error::InspectCode regression detected: {'; '.join(reasons)}")
+              print("Policy: InspectCode warnings may decrease or stay flat, but must not increase.")
+              sys.exit(1)
+          else:
+              gate_md = (
+                  "\n### 회귀 검사 결과: ✅ PASS\n\n"
+                  + table
+                  + "\n> ✅ No warning regression.\n\n"
+                  "> Policy: *InspectCode warnings may decrease or stay flat, but must not increase.*\n\n"
+              )
+              append_summary(gate_md)
+              print(f"✅ No regression. total: {prev_total}→{cur_total} ({sign(dt)}), warning: {prev_warn}→{cur_warn} ({sign(dw)})")
+              sys.exit(0)
+          PYEOF
+
       - name: Upload InspectCode SARIF report
         if: always()
         uses: actions/upload-artifact@v4

@@ -204,6 +204,19 @@
 
 ---
 
+### [DEC-016] InspectCode 경고 회귀 금지 기준선 채택
+- **날짜**: 2026-03-14
+- **결정**: `inspectcode.yml`에 "Check warning regression" 게이트 추가
+- **정책**: *InspectCode warnings may decrease or stay flat, but must not increase.*
+  - 감소·동일: 통과 ✅
+  - 증가 (total 또는 warning severity): 빌드 실패 ❌
+  - note/info: Summary 표시만, 게이트 조건 제외
+  - baseline 없음 (첫 실행): info 통과, 이번 실행이 새 baseline
+- **이유**: 경고 총량이 많더라도 "지금부터 늘지 않게"를 CI로 강제하면, 매 PR에서 경고 증가를 즉시 차단할 수 있음
+- **연관 결정**: DEC-004 (StyleCop), DEC-005 (Error 격상 목표)
+
+---
+
 ### [DEC-013] VirtualCanvas_ref 빌드 제외
 - **날짜**: 2026-03-04
 - **결정**: `DagEdit.csproj`에 `<Compile Remove="VirtualCanvas_ref/**/*.cs" />` 추가

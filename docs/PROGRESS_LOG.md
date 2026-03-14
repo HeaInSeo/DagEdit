@@ -360,6 +360,24 @@
 
 ---
 
+### [Step 25] InspectCode 경고 1차 정리 + 회귀 게이트 고정
+- **날짜**: 2026-03-14
+- **수행 내용**:
+  - **경고 정리 (1차 패스)**:
+    - `BaseNode.cs`: 미사용 `using Microsoft.VisualBasic;` 제거
+    - `DagItems.cs`: 미사용 `using System.Data.Common;` 제거
+  - **회귀 게이트 (`inspectcode.yml`)**:
+    - "Check warning regression" 스텝 추가 (Parse SARIF 직후, artifact 업로드 전)
+    - 현재 `warning-count.json` vs 이전 `prev-warning-count.json` 비교
+    - total 또는 warning severity 증가 시 `exit 1` → workflow 실패
+    - baseline 없으면 info 통과, artifact 업로드는 `if: always()`로 항상 실행
+    - Job Summary에 ✅ PASS / ❌ FAIL 판단 테이블 추가
+  - `docs/DECISION_LOG.md`: DEC-016 추가 (회귀 금지 정책 명문화)
+- **정책**: *InspectCode warnings may decrease or stay flat, but must not increase.*
+- **검증 지표**: 빌드 0 Error, 198개 테스트 100% 통과, workflow YAML 구문 유효
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |

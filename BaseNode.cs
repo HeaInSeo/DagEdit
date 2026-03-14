@@ -7,8 +7,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.VisualTree;
-using Microsoft.VisualBasic;
-
 namespace DagEdit
 {
     public class BaseNode : ContentControl, IDisposable, ILocatable
