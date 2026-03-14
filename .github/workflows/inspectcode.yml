@@ -29,7 +29,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -49,6 +49,7 @@ jobs:
           solution: DagEdit.sln
           format: Sarif
           output: inspectcode.sarif.json
+          dotnetcoresdk: "8.0.415"
 
       # 현재 run 이전의 가장 최근 성공 실행에서 warning-count artifact를 취득
       # 실패해도 workflow 전체를 실패시키지 않는다 (비교는 best-effort)
@@ -361,8 +362,8 @@ jobs:
           retention-days: 90
 
       - name: Upload SARIF to GitHub Code Scanning
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('inspectcode.sarif.json') != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: inspectcode.sarif.json
           category: resharper-inspectcode
