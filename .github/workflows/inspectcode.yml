@@ -207,28 +207,33 @@ jobs:
               sev_table_header = "| Severity | Count |\n|---|---|"
 
           # ── write Job Summary ────────────────────────────────────────────
-          md = f"""## ReSharper InspectCode — {generated_at}
-
-> **이번 실행** | branch: `{branch}` | commit: [`{sha[:7]}`]({commit_url}) | [run #{run_id}]({run_url})
-
-{total_headline}
-
-{compare_note}
-
-#### Severity 별
-
-{sev_table_header}
-{sev_rows.rstrip()}
-
-#### Rule 별 (Top 10)
-
-| Rule ID | Name | Count |
-|---|---|---|
-{rule_rows.rstrip()}
-
----
-> 참고: [DECISION_LOG DEC-005]({decision_log_url}) | artifacts: `inspectcode-sarif`, `warning-count`
-"""
+          # list-join 방식: multiline f-string을 쓰면 문자열 내용이 0칸 들여쓰기로
+          # YAML run: | 블록을 이탈해 YAML 파서 오류가 발생하므로 이 방식을 사용.
+          md_parts = [
+              f"## ReSharper InspectCode — {generated_at}",
+              "",
+              f"> **이번 실행** | branch: `{branch}` | commit: [`{sha[:7]}`]({commit_url}) | [run #{run_id}]({run_url})",
+              "",
+              total_headline,
+              "",
+              compare_note,
+              "",
+              "#### Severity 별",
+              "",
+              sev_table_header,
+              sev_rows.rstrip(),
+              "",
+              "#### Rule 별 (Top 10)",
+              "",
+              "| Rule ID | Name | Count |",
+              "|---|---|---|",
+              rule_rows.rstrip(),
+              "",
+              "---",
+              f"> 참고: [DECISION_LOG DEC-005]({decision_log_url}) | artifacts: `inspectcode-sarif`, `warning-count`",
+              "",
+          ]
+          md = "\n".join(md_parts)
           with open(summary_path, "a", encoding="utf-8") as f:
               f.write(md)
 
