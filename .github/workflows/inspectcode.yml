@@ -363,9 +363,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
-      - name: Upload SARIF to GitHub Code Scanning
-        if: always() && hashFiles('inspectcode.sarif.json') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: inspectcode.sarif.json
-          category: resharper-inspectcode
+      # Note: JetBrains/ReSharper-InspectCode@v0.11 already uploads SARIF internally
+      # via github/codeql-action/upload-sarif@v3 (category: resharper-inspectcode).
+      # A second upload-sarif call in the same job triggers "duplicate tool/category" error.
