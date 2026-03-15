@@ -265,6 +265,24 @@ public class UndoRedoTests
 
         Assert.Equal(1, vm.NodeCount);
     }
+
+    [Fact]
+    public void ViewModel_ExecuteDelNode_NodeInstanceNull_RemovesAndUndoRestores()
+    {
+        using var vm = new DagEditorViewModel();
+        vm.ExecuteAddNode(new Point(0, 0));
+        var nodeId = vm.Items[0].NodeItem!.NodeId!.Value;
+
+        vm.ExecuteDelNode(nodeId);
+
+        Assert.Equal(0, vm.NodeCount);
+
+        vm.Undo();
+
+        Assert.Equal(1, vm.NodeCount);
+        Assert.Equal(nodeId, vm.Items[0].NodeItem!.NodeId);
+        Assert.Null(vm.Items[0].NodeItem!.NodeInstance);
+    }
 }
 
 /// <summary>테스트용 더미 명령: Execute/Undo 호출 횟수를 추적한다.</summary>

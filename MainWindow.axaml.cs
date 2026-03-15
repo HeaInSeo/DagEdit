@@ -9,11 +9,13 @@ namespace DagEdit
     public partial class MainWindow : Window
     {
         private readonly CompositeDisposable _disposables = new();
+        private readonly ProjectionChangedSubscription _projectionChangedSubscription = new();
         private NodeViewItemVisualFactory? _viewerFactory;
 
         // H-2 pool cleanup: unsubscribe를 위해 adapter 참조와 delegate 저장
         private DagViewerProjectionAdapter? _viewerAdapterRef;
         private EventHandler<NodeViewItem>? _onItemRemoved;
+        private EventHandler? _onProjectionChanged;
 
         // H-3 Pin/Unpin wiring
         private DagEditorViewModel? _viewModelRef;
@@ -72,11 +74,8 @@ namespace DagEdit
             vm.UnpinRequested += _onUnpinRequested;
 
             // projection 변경 시 새 SpatialIndex snapshot을 VCA에 공급하고 stats 갱신
-            vm.ViewerAdapter.ProjectionChanged += (_, _) =>
-            {
-                ViewerCanvas.Items = vm.ViewerAdapter.BuildSnapshot();
-                UpdateViewerStats(vm);
-            };
+            _onProjectionChanged = HandleProjectionChanged;
+            _projectionChangedSubscription.Attach(vm.ViewerAdapter, _onProjectionChanged);
 
             // DagEditor viewport → VCA viewer 단방향 동기화 (read-only viewer)
             vm.WhenAnyValue(x => x.ViewportLocation)
@@ -130,7 +129,50 @@ namespace DagEdit
                 if (_onUnpinRequested != null) { _viewModelRef.UnpinRequested -= _onUnpinRequested; }
             }
 
+            _projectionChangedSubscription.Detach();
+
             _disposables.Dispose();
+        }
+
+        private void HandleProjectionChanged(object? sender, EventArgs e)
+        {
+            if (_viewModelRef == null)
+            {
+                return;
+            }
+
+            ViewerCanvas.Items = _viewModelRef.ViewerAdapter.BuildSnapshot();
+            UpdateViewerStats(_viewModelRef);
+        }
+    }
+
+    internal sealed class ProjectionChangedSubscription
+    {
+        private DagViewerProjectionAdapter? _adapter;
+        private EventHandler? _handler;
+
+        public void Attach(DagViewerProjectionAdapter adapter, EventHandler handler)
+        {
+            if (ReferenceEquals(_adapter, adapter) && ReferenceEquals(_handler, handler))
+            {
+                return;
+            }
+
+            Detach();
+            _adapter = adapter;
+            _handler = handler;
+            _adapter.ProjectionChanged += _handler;
+        }
+
+        public void Detach()
+        {
+            if (_adapter != null && _handler != null)
+            {
+                _adapter.ProjectionChanged -= _handler;
+            }
+
+            _adapter = null;
+            _handler = null;
         }
     }
 }

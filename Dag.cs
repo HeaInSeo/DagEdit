@@ -15,10 +15,15 @@ namespace DagEdit
         private readonly ReadOnlyObservableCollection<DagItems> _readOnlyItems;
         private readonly CompositeDisposable _disposables = new();
         private readonly Dictionary<Guid, DagNode> _nodeIndex = new();
+        private bool _disposed;
 
         public ReadOnlyObservableCollection<DagItems> DAGItemsSource => _readOnlyItems;
 
-        public IObservable<IChangeSet<DagItems>> Connect() => _dagItemsSource.Connect();
+        public IObservable<IChangeSet<DagItems>> Connect()
+        {
+            ThrowIfDisposed();
+            return _dagItemsSource.Connect();
+        }
 
         public Dag()
         {
@@ -34,6 +39,8 @@ namespace DagEdit
         /// <summary>커넥션을 추가한다. 실패 시 null 반환.</summary>
         public DagItems? AddDagConnectionItem(Point? source, Guid? sourceNodeId, Point? target, Guid? targetNodeId)
         {
+            ThrowIfDisposed();
+
             if (source is null || target is null)
             {
                 return null;
@@ -55,6 +62,8 @@ namespace DagEdit
         /// <summary>노드를 추가한다. 실패 시 null 반환.</summary>
         public DagItems? AddDagNodeItem(Point? location)
         {
+            ThrowIfDisposed();
+
             if (!location.HasValue)
             {
                 return null;
@@ -71,6 +80,8 @@ namespace DagEdit
 
         public bool DelDagConnectionItem(Guid? connectionId)
         {
+            ThrowIfDisposed();
+
             var itemToDelete = _dagItemsSource.Items
                 .FirstOrDefault(i => i.ConnectionItem?.ConnectionId == connectionId);
             if (itemToDelete == null)
@@ -91,12 +102,13 @@ namespace DagEdit
 
         public bool DelDagNodeItem(Guid? NodeId)
         {
+            ThrowIfDisposed();
+
             // 일부러 여기서는 ?. 안씀. 명시적으로 null 체크 함.
             var itemToDelete = _dagItemsSource.Items.FirstOrDefault(i => i.NodeItem != null && i.NodeItem.NodeId == NodeId);
             if (itemToDelete != null)
             {
-                // NodeInstance 가 null 인 상태에서 삭제하는 것은 위험하다.
-                if (itemToDelete.NodeItem!.NodeInstance != null)
+                if (itemToDelete.NodeItem!.NodeId.HasValue)
                 {
                     // 연결된 모든 Connection 먼저 삭제
                     var connectionsToRemove = new List<DagConnection>();
@@ -107,9 +119,7 @@ namespace DagEdit
                         DelDagConnectionItem(conn.ConnectionId);
                     }
 
-                    // SourceList에서 제거 → Avalonia가 비주얼 트리에서 컨테이너를 제거
-                    // → BaseNode.Unloaded 핸들러가 Node.Dispose()를 직접 호출
-                    // 모델 계층이 UI lifecycle을 직접 건드리지 않는다.
+                    // 모델에서 먼저 제거하고, UI 참조는 후처리로 끊는다.
                     _nodeIndex.Remove(NodeId!.Value);
                     _dagItemsSource.Remove(itemToDelete);
                     itemToDelete.NodeItem.NodeInstance = null; // GC 를 위한 참조 해제
@@ -128,6 +138,8 @@ namespace DagEdit
         /// </summary>
         public bool RemoveDagItem(DagItems item)
         {
+            ThrowIfDisposed();
+
             if (item.ConnectionItem is { } conn)
             {
                 var sourceNode = conn.SourceNodeId.HasValue ? FindNode(conn.SourceNodeId.Value) : null;
@@ -150,6 +162,8 @@ namespace DagEdit
         /// </summary>
         public bool RestoreDagNodeItem(DagItems item)
         {
+            ThrowIfDisposed();
+
             if (item.NodeItem?.NodeId == null)
             {
                 return false;
@@ -167,6 +181,8 @@ namespace DagEdit
         /// </summary>
         public bool RestoreDagConnectionItem(DagItems item)
         {
+            ThrowIfDisposed();
+
             if (item.ConnectionItem == null)
             {
                 return false;
@@ -191,11 +207,14 @@ namespace DagEdit
 
         /// <summary>nodeId에 해당하는 DagItems를 반환한다.</summary>
         public DagItems? GetDagItemForNode(Guid nodeId) =>
-            _dagItemsSource.Items.FirstOrDefault(i => i.NodeItem?.NodeId == nodeId);
+            !_disposed
+                ? _dagItemsSource.Items.FirstOrDefault(i => i.NodeItem?.NodeId == nodeId)
+                : throw new ObjectDisposedException(nameof(Dag));
 
         /// <summary>nodeId와 연결된 모든 커넥션 DagItems를 반환한다.</summary>
         public List<DagItems> GetConnectionItemsForNode(Guid nodeId)
         {
+            ThrowIfDisposed();
             var result = new List<DagItems>();
             foreach (var item in _dagItemsSource.Items)
             {
@@ -211,7 +230,16 @@ namespace DagEdit
 
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
             _disposables.Dispose();
+            _dagItemsSource.Dispose();
         }
+
+        private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
     }
 }

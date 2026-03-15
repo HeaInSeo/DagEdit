@@ -170,19 +170,69 @@ public class DagTests
     }
 
     [Fact]
-    public void DelDagNodeItem_WithValidIdButNoNodeInstance_ReturnsFalse()
+    public void DelDagNodeItem_WithValidIdButNoNodeInstance_ReturnsTrue()
     {
-        // 현재 구현: NodeInstance가 null인 경우 삭제 거부 (안전 장치)
-        // CreateDagNode()는 NodeInstance를 설정하지 않으므로
-        // 단순 모델 레이어 테스트에서는 항상 false를 반환한다.
-        // 해피패스 테스트는 UI와 통합된 [AvaloniaFact] 테스트로 작성 예정.
         var dag = new Dag();
-        dag.AddDagNodeItem(new Point(10, 10)); // 테스트 전제: 노드 1개 명시적 추가
+        dag.AddDagNodeItem(new Point(10, 10));
         var firstNodeId = dag.DAGItemsSource[0].NodeItem!.NodeId;
 
         var result = dag.DelDagNodeItem(firstNodeId);
 
-        Assert.False(result); // NodeInstance == null이므로 false 반환 (현재 설계상 정상)
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void DelDagNodeItem_WithValidIdButNoNodeInstance_RemovesNode()
+    {
+        var dag = new Dag();
+        dag.AddDagNodeItem(new Point(10, 10));
+        var firstNodeId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+
+        dag.DelDagNodeItem(firstNodeId);
+
+        Assert.Empty(dag.DAGItemsSource);
+        Assert.Null(dag.FindNode(firstNodeId));
+    }
+
+    [Fact]
+    public void DelDagNodeItem_WithValidIdButNoNodeInstance_RemovesConnectedItems()
+    {
+        var dag = new Dag();
+        var source = dag.AddDagNodeItem(new Point(10, 10))!;
+        var target = dag.AddDagNodeItem(new Point(40, 10))!;
+        dag.AddDagConnectionItem(
+            new Point(20, 20), source.NodeItem!.NodeId,
+            new Point(50, 20), target.NodeItem!.NodeId);
+
+        dag.DelDagNodeItem(source.NodeItem.NodeId);
+
+        Assert.Single(dag.DAGItemsSource);
+        Assert.NotNull(dag.DAGItemsSource[0].NodeItem);
+        Assert.Empty(target.NodeItem.TargetConnections);
+    }
+
+    [Fact]
+    public void Dispose_CanBeCalledTwice()
+    {
+        var dag = new Dag();
+
+        var ex = Record.Exception(() =>
+        {
+            dag.Dispose();
+            dag.Dispose();
+        });
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void Dispose_DisposesUnderlyingSourceList()
+    {
+        var dag = new Dag();
+        dag.Dispose();
+
+        var ex = Assert.Throws<ObjectDisposedException>(() => dag.AddDagNodeItem(new Point(1, 1)));
+        Assert.Contains(nameof(Dag), ex.ObjectName ?? string.Empty);
     }
 
     // ─── DelDagConnectionItem ────────────────────────────────────

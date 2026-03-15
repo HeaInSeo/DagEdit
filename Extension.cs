@@ -297,16 +297,38 @@ namespace DagEdit
 
         public static void WriteErrorsToFile(string message)
         {
+            _ = TryWriteErrorsToFile(message);
+        }
+
+        internal static bool TryWriteErrorsToFile(string message, string? errorsPath = null, Action<string>? fallback = null)
+        {
+            string targetPath = errorsPath ?? logErrorsPath;
+            fallback ??= WriteDiagnosticFallback;
+
             try
             {
-                // C# 8.0 이상에서 사용할 수 있는 간소화된 using 구문
-                using var writer = new StreamWriter(logErrorsPath, true);
+                string? directory = Path.GetDirectoryName(targetPath);
+
+                if (!string.IsNullOrWhiteSpace(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                using var writer = new StreamWriter(targetPath, true);
                 writer.WriteLine(message);
+                return true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Log file write error: " + ex.Message);
+                fallback($"Error log write failed for '{targetPath}': {ex.Message}");
+                return false;
             }
+        }
+
+        private static void WriteDiagnosticFallback(string message)
+        {
+            Debug.WriteLine(message);
+            Trace.WriteLine(message);
         }
 
         #endregion

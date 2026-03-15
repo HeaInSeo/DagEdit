@@ -5,6 +5,8 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- 병렬 솔루션 빌드에서도 Avalonia XAML compile이 copy 이전에 실행되도록 순서를 고정 -->
+    <CopyFilesToOutputDirectoryDependsOn>CompileAvaloniaXaml;$(CopyFilesToOutputDirectoryDependsOn)</CopyFilesToOutputDirectoryDependsOn>
     <TargetFramework>net8.0</TargetFramework>
     <!-- 정적 분석 설정 -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
