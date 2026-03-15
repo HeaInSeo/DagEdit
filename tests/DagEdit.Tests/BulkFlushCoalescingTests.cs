@@ -28,7 +28,7 @@ namespace DagEdit.Tests
         public void BulkAdd_OuterBatch_SingleProjectionChanged()
         {
             using var vm = new DagEditorViewModel();
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.BeginBatch();
@@ -71,7 +71,7 @@ namespace DagEdit.Tests
         {
             // batch 없이 N번 호출 → N회 Flush (기준선: outer batch 없을 때 동작)
             using var vm = new DagEditorViewModel();
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.ExecuteAddNode(new Point(0, 0));
@@ -91,7 +91,7 @@ namespace DagEdit.Tests
             Guid id1 = AddNodeAndGetId(vm, 0, 0);
             Guid id2 = AddNodeAndGetId(vm, 100, 0);
             Guid id3 = AddNodeAndGetId(vm, 200, 0);
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.BeginBatch();
@@ -138,7 +138,7 @@ namespace DagEdit.Tests
         public void SingleAdd_NoOuterBatch_ExactlyOneFlush()
         {
             using var vm = new DagEditorViewModel();
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.ExecuteAddNode(new Point(0, 0));
@@ -152,7 +152,7 @@ namespace DagEdit.Tests
         {
             using var vm = new DagEditorViewModel();
             Guid id = AddNodeAndGetId(vm, 0, 0);
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.ExecuteDelNode(id);
@@ -168,7 +168,7 @@ namespace DagEdit.Tests
         {
             using var vm = new DagEditorViewModel();
             vm.ExecuteAddNode(new Point(0, 0));
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.Undo();
@@ -183,7 +183,7 @@ namespace DagEdit.Tests
             using var vm = new DagEditorViewModel();
             vm.ExecuteAddNode(new Point(0, 0));
             vm.Undo();
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.Redo();
@@ -198,7 +198,7 @@ namespace DagEdit.Tests
             using var vm = new DagEditorViewModel();
             Guid id = AddNodeAndGetId(vm, 50, 50);
             vm.ExecuteDelNode(id);
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.Undo();
@@ -240,7 +240,7 @@ namespace DagEdit.Tests
         {
             using var vm = new DagEditorViewModel();
             Guid id = AddNodeAndGetId(vm, 0, 0);
-            var flushCount = 0;
+            int flushCount = 0;
             vm.ViewerAdapter.ProjectionChanged += (_, _) => flushCount++;
 
             vm.PushMoveNode(id, new Point(0, 0), new Point(100, 100));

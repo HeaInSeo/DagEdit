@@ -152,13 +152,11 @@ namespace DagEdit
             }
         }
 
-        // ─── H-1 Batch scope (bulk caller용) ────────────────────────────────
-        // 외부에서 여러 Execute* 호출을 하나의 ProjectionChanged로 묶고 싶을 때 사용.
-        //   vm.BeginBatch();
-        //   try { vm.ExecuteAddNode(...); vm.ExecuteAddNode(...); }
-        //   finally { vm.EndBatch(); }
-        // 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 Flush가 발생한다.
-        /// <summary>H-1: 외부 batch scope를 연다. adapter.BeginBatch() 위임.</summary>
+        /// <summary>
+        /// H-1: 외부 batch scope를 연다. adapter.BeginBatch() 위임.
+        /// 외부에서 여러 Execute* 호출을 하나의 ProjectionChanged로 묶고 싶을 때 사용.
+        /// 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 Flush가 발생한다.
+        /// </summary>
         internal void BeginBatch() => _viewerAdapter.BeginBatch();
 
         /// <summary>H-1: 외부 batch scope를 닫는다. adapter.EndBatch() 위임.</summary>
