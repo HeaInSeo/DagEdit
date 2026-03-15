@@ -21,7 +21,7 @@ namespace DagEdit.Tests
     public class DagViewerProjectionAdapterTests
     {
         private static DagNode ValidNode(double x = 0, double y = 0) =>
-            new DagNode { NodeId = Guid.NewGuid(), Location = new Point(x, y) };
+            new() { NodeId = Guid.NewGuid(), Location = new Point(x, y) };
 
         [Fact]
         public void OnNodeAdded_IncreasesSnapshotCount()
@@ -64,7 +64,7 @@ namespace DagEdit.Tests
         public void OnNodeMoved_SnapshotCountUnchanged()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = ValidNode(0, 0);
+            var node = ValidNode();
             adapter.OnNodeAdded(node);
 
             node.Location = new Point(50, 50);
@@ -102,7 +102,7 @@ namespace DagEdit.Tests
         public void MultipleChanges_SingleFlush_RaisesOnce()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node1 = ValidNode(0, 0);
+            var node1 = ValidNode();
             var node2 = ValidNode(100, 100);
             adapter.OnNodeAdded(node1);
             adapter.OnNodeAdded(node2);
@@ -191,7 +191,7 @@ namespace DagEdit.Tests
         public void DifferentNodeIds_ProduceSeparateProjectionObjects()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node1 = ValidNode(0, 0);
+            var node1 = ValidNode();
             var node2 = ValidNode(100, 100);
             adapter.OnNodeAdded(node1);
             adapter.OnNodeAdded(node2);

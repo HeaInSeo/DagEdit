@@ -119,20 +119,6 @@ namespace DagEdit
 
         public bool CanRedo => _undoRedo.CanRedo;
 
-        // ─── H-1 Batch scope (bulk caller용) ────────────────────────────────
-        //
-        // 외부에서 여러 Execute* 호출을 하나의 ProjectionChanged로 묶고 싶을 때 사용.
-        //   vm.BeginBatch();
-        //   try { vm.ExecuteAddNode(...); vm.ExecuteAddNode(...); }
-        //   finally { vm.EndBatch(); }
-        // 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 Flush가 발생한다.
-
-        /// <summary>H-1: 외부 batch scope를 연다. adapter.BeginBatch() 위임.</summary>
-        internal void BeginBatch() => _viewerAdapter.BeginBatch();
-
-        /// <summary>H-1: 외부 batch scope를 닫는다. adapter.EndBatch() 위임.</summary>
-        internal void EndBatch() => _viewerAdapter.EndBatch();
-
         /// <summary>
         /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
         /// MoveNodeCommand.Undo/Execute 가 adapter.Flush()를 호출해도 batch 안에서 suppressed.
@@ -165,6 +151,18 @@ namespace DagEdit
                 _viewerAdapter.EndBatch();
             }
         }
+
+        // ─── H-1 Batch scope (bulk caller용) ────────────────────────────────
+        // 외부에서 여러 Execute* 호출을 하나의 ProjectionChanged로 묶고 싶을 때 사용.
+        //   vm.BeginBatch();
+        //   try { vm.ExecuteAddNode(...); vm.ExecuteAddNode(...); }
+        //   finally { vm.EndBatch(); }
+        // 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 Flush가 발생한다.
+        /// <summary>H-1: 외부 batch scope를 연다. adapter.BeginBatch() 위임.</summary>
+        internal void BeginBatch() => _viewerAdapter.BeginBatch();
+
+        /// <summary>H-1: 외부 batch scope를 닫는다. adapter.EndBatch() 위임.</summary>
+        internal void EndBatch() => _viewerAdapter.EndBatch();
 
         /// <summary>
         /// H-1 viewer sync: MoveNodeCommand.Execute/Undo에서 직접 호출.
@@ -206,10 +204,10 @@ namespace DagEdit
                     {
                         switch (change.Reason)
                         {
-                            case DynamicData.ListChangeReason.Add:
+                            case ListChangeReason.Add:
                                 _viewerAdapter.OnNodeAdded(change.Item.Current.NodeItem!);
                                 break;
-                            case DynamicData.ListChangeReason.Remove:
+                            case ListChangeReason.Remove:
                                 var removedId = change.Item.Current.NodeItem?.NodeId;
                                 if (removedId.HasValue)
                                 {
