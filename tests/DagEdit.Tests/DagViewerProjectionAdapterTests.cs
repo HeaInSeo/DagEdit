@@ -30,7 +30,7 @@ namespace DagEdit.Tests
 
             adapter.OnNodeAdded(ValidNode());
 
-            Assert.Equal(1, adapter.Snapshots.Count);
+            Assert.Single(adapter.Snapshots);
         }
 
         [Fact]
@@ -42,7 +42,7 @@ namespace DagEdit.Tests
 
             adapter.OnNodeRemoved(node.NodeId!.Value);
 
-            Assert.Equal(0, adapter.Snapshots.Count);
+            Assert.Empty(adapter.Snapshots);
         }
 
         [Fact]
@@ -70,7 +70,7 @@ namespace DagEdit.Tests
             node.Location = new Point(50, 50);
             adapter.OnNodeMoved(node);
 
-            Assert.Equal(1, adapter.Snapshots.Count);
+            Assert.Single(adapter.Snapshots);
         }
 
         [Fact]
@@ -138,7 +138,7 @@ namespace DagEdit.Tests
 
             adapter.OnNodeAdded(node);
 
-            Assert.Equal(0, adapter.Snapshots.Count);
+            Assert.Empty(adapter.Snapshots);
         }
 
         [Fact]

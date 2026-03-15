@@ -119,6 +119,20 @@ namespace DagEdit
 
         public bool CanRedo => _undoRedo.CanRedo;
 
+        // ─── H-1 Batch scope (bulk caller용) ────────────────────────────────
+        //
+        // 외부에서 여러 Execute* 호출을 하나의 ProjectionChanged로 묶고 싶을 때 사용.
+        //   vm.BeginBatch();
+        //   try { vm.ExecuteAddNode(...); vm.ExecuteAddNode(...); }
+        //   finally { vm.EndBatch(); }
+        // 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 Flush가 발생한다.
+
+        /// <summary>H-1: 외부 batch scope를 연다. adapter.BeginBatch() 위임.</summary>
+        internal void BeginBatch() => _viewerAdapter.BeginBatch();
+
+        /// <summary>H-1: 외부 batch scope를 닫는다. adapter.EndBatch() 위임.</summary>
+        internal void EndBatch() => _viewerAdapter.EndBatch();
+
         /// <summary>
         /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
         /// MoveNodeCommand.Undo/Execute 가 adapter.Flush()를 호출해도 batch 안에서 suppressed.
@@ -213,7 +227,11 @@ namespace DagEdit
 
         // ─── Execute (undo 스택에 push하는 사용자 동작) ───────────────────────
 
-        /// <summary>노드 추가. Undo/Redo 스택에 등록된다.</summary>
+        /// <summary>
+        /// 노드 추가. Undo/Redo 스택에 등록된다.
+        /// H-1: BeginBatch/EndBatch로 래핑 — 커맨드 내부에서 발생하는 복수 Flush를 1회로 압축.
+        /// 외부에서 BeginBatch를 열면 중첩 batch로 동작하여 여러 ExecuteAddNode 호출도 1회 Flush.
+        /// </summary>
         public void ExecuteAddNode(Point? location)
         {
             if (!location.HasValue)
@@ -221,10 +239,21 @@ namespace DagEdit
                 return;
             }
 
-            _undoRedo.Execute(new AddNodeCommand(Dag, location.Value));
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Execute(new AddNodeCommand(Dag, location.Value));
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
         }
 
-        /// <summary>커넥션 추가. Undo/Redo 스택에 등록된다.</summary>
+        /// <summary>
+        /// 커넥션 추가. Undo/Redo 스택에 등록된다.
+        /// H-1: BeginBatch/EndBatch 래핑.
+        /// </summary>
         public void ExecuteAddConnection(Point? source, Guid? sourceNodeId, Point? target, Guid? targetNodeId)
         {
             if (source == null || target == null)
@@ -232,10 +261,21 @@ namespace DagEdit
                 return;
             }
 
-            _undoRedo.Execute(new AddConnectionCommand(Dag, source.Value, sourceNodeId, target.Value, targetNodeId));
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Execute(new AddConnectionCommand(Dag, source.Value, sourceNodeId, target.Value, targetNodeId));
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
         }
 
-        /// <summary>노드 삭제. 삭제 전 스냅샷을 캡처하여 Undo/Redo 스택에 등록한다.</summary>
+        /// <summary>
+        /// 노드 삭제. 삭제 전 스냅샷을 캡처하여 Undo/Redo 스택에 등록한다.
+        /// H-1: BeginBatch/EndBatch 래핑 — cascade connection 삭제 포함 복수 변경을 1회 Flush로.
+        /// </summary>
         public void ExecuteDelNode(Guid nodeId)
         {
             var nodeItem = Dag.GetDagItemForNode(nodeId);
@@ -245,10 +285,21 @@ namespace DagEdit
             }
 
             var connItems = Dag.GetConnectionItemsForNode(nodeId);
-            _undoRedo.Execute(new DelNodeCommand(Dag, nodeItem, connItems));
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Execute(new DelNodeCommand(Dag, nodeItem, connItems));
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
         }
 
-        /// <summary>커넥션 삭제. 삭제 전 스냅샷을 캡처하여 Undo/Redo 스택에 등록한다.</summary>
+        /// <summary>
+        /// 커넥션 삭제. 삭제 전 스냅샷을 캡처하여 Undo/Redo 스택에 등록한다.
+        /// H-1: BeginBatch/EndBatch 래핑.
+        /// </summary>
         public void ExecuteDelConnection(Guid connectionId)
         {
             var connItem = Dag.DAGItemsSource
@@ -258,7 +309,15 @@ namespace DagEdit
                 return;
             }
 
-            _undoRedo.Execute(new DelConnectionCommand(Dag, connItem));
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Execute(new DelConnectionCommand(Dag, connItem));
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
         }
 
         /// <summary>노드 이동 Undo/Redo. 드래그 완료 시 DagEditor에서 호출한다.</summary>
