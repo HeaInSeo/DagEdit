@@ -56,7 +56,7 @@ Each commit must have a single, stated purpose. Do not clean up surrounding code
 InspectCode warnings must not increase (CI gate: `inspectcode.yml`).
 Baseline: `docs/INSPECTCODE_REDUCTION_PLAN.md`. Before writing code, verify the current baseline.
 Error-level rules: SA1503, CS8600–CS8625, SA1400, SA1106, IDE0059, IDE0060, CS0168, CS0219, `_camelCase` private fields.
-No new warnings may be introduced. Prefer reducing the baseline when touching existing code. Do not mix broad warning cleanup with feature work in the same commit unless explicitly requested.
+No new warnings may be introduced. Prefer reducing the baseline when touching existing code.
 
 ## 9. Coordinate formula (frozen)
 
