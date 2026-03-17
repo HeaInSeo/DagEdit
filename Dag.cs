@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reactive.Disposables;
 using Avalonia;
 using DynamicData;
-using DynamicData.Binding;
 
 namespace DagEdit
 {

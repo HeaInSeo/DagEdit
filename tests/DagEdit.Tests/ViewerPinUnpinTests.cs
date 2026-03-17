@@ -1,5 +1,4 @@
 using Avalonia;
-using DagEdit;
 using Xunit;
 
 namespace DagEdit.Tests

@@ -1,6 +1,4 @@
 using Avalonia;
-using DagEdit;
-using VirtualCanvas.Core.Geometry;
 using Xunit;
 
 namespace DagEdit.Tests
