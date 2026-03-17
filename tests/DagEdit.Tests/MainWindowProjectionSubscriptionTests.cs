@@ -1,6 +1,5 @@
 namespace DagEdit.Tests;
 
-using System;
 using Avalonia;
 using Xunit;
 

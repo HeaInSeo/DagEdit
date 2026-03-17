@@ -1,7 +1,5 @@
 namespace DagEdit.Tests;
 
-using System;
-using System.IO;
 using Xunit;
 
 public class ExtensionTests

@@ -1,6 +1,5 @@
 namespace DagEdit.Tests;
 
-using System.Collections.Generic;
 using Xunit;
 
 /// <summary>

@@ -1,6 +1,5 @@
 namespace DagEdit.Tests;
 
-using System.Linq;
 using System.Reflection;
 using Xunit;
 
