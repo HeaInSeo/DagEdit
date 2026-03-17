@@ -77,6 +77,26 @@ Minor or Major changes must be proposed in `INTEGRATION_EXECUTION_DAGEDIT.md §1
 
 Any write to `VirtualCanvas_ref/` or the `VirtualCanvas` repo is a hard violation. These are read-only references.
 
+### 8. Completion and validation quality
+
+Is the change claiming completion without sufficient evidence?
+
+A complete task must report:
+- What files/logic changed
+- What validation was run (test names, lint, manual steps)
+- Actual results (pass counts, warning counts, regressions)
+- Remaining risks or unverified assumptions
+
+Is the validation level appropriate for the change type?
+- New feature or bug fix with no added or updated tests → flag as incomplete unless the change type genuinely exempts it (purely mechanical cleanup, wording-only edit)
+- Relevant existing tests not run after a change that touches the corresponding code path → flag
+
+Were hidden failure modes considered? Flag if the change touches:
+- Undo/redo command chain without verifying full state restoration (including viewer projection and selection)
+- Selection state without verifying multi-select and modifier-key paths
+- Projection seam or SpatialIndex without verifying all update paths (add/remove/move/batch)
+- Coordinate formula without running both `SelectionRectTests` and `ViewportTransformTests`
+
 ## Output format
 
 For each violation found, report:

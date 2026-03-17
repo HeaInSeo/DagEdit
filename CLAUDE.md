@@ -51,11 +51,12 @@ Run the checklist in `docs/INTEGRATION_EXECUTION_DAGEDIT.md §9` before writing 
 
 Each commit must have a single, stated purpose. Do not clean up surrounding code, add comments to unchanged lines, or refactor while fixing a bug. Unrelated SA* warning fixes belong in a dedicated cleanup commit.
 
-## 8. InspectCode regression gate
+## 8. Warning debt policy
 
 InspectCode warnings must not increase (CI gate: `inspectcode.yml`).
 Baseline: `docs/INSPECTCODE_REDUCTION_PLAN.md`. Before writing code, verify the current baseline.
 Error-level rules: SA1503, CS8600–CS8625, SA1400, SA1106, IDE0059, IDE0060, CS0168, CS0219, `_camelCase` private fields.
+No new warnings may be introduced. Prefer reducing the baseline when touching existing code. Do not mix broad warning cleanup with feature work in the same commit unless explicitly requested.
 
 ## 9. Coordinate formula (frozen)
 
@@ -66,3 +67,38 @@ screen =  world  × Scale   − Offset
 
 Validated by `tests/DagEdit.Tests/SelectionRectTests.cs` and `ViewportTransformTests.cs`.
 Any change here is a **Major** contract update requiring user approval and sync to both repos.
+
+## 10. Validation responsibility
+
+Every change carries a validation obligation appropriate to its type:
+
+| Change type | Expected validation |
+|---|---|
+| New feature | New or updated tests covering the added behavior |
+| Bug fix | A regression test that would have caught the bug |
+| Refactor | Existing tests must remain green; add tests if coverage was absent |
+| Purely mechanical cleanup (SA* warnings, wording) | No new tests required; relevant existing tests must still pass |
+
+Do not demand tests blindly. Do demand that validation matches the risk of the change.
+
+## 11. Completion reporting
+
+A task is not complete until the following are stated explicitly:
+
+- **What changed**: files and logic affected
+- **Validation run**: which tests, lint checks, or manual verifications were performed
+- **Results**: pass/fail counts, warning counts, any regressions
+- **Remaining risks**: known unknowns, deferred items, or assumptions that were not verified
+
+## 12. Hidden failure mode review
+
+Before marking a change complete, explicitly check for failure modes beyond the happy path:
+
+- null / empty boundary conditions
+- drag-time state inconsistency (mid-drag model mutations not committed on cancel)
+- selection breakage during virtualization transitions
+- SpatialIndex update omissions after model changes
+- undo/redo inconsistency (command does not fully restore state)
+- coordinate drift across pan/zoom cycles
+
+These are examples, not a closed list. The obligation is to actively look, not merely to avoid accidentally introducing.

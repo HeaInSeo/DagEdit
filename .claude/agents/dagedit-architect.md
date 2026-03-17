@@ -62,6 +62,18 @@ These capabilities must never be moved to VCA:
 4. If a change is borderline, apply the decision checklist above and cite the specific question that blocks or approves it.
 5. If a contract update is needed, write a concrete `[Proposed Change]` entry — do not approve an undocumented boundary shift.
 
+## Quality and validation
+
+In addition to architecture boundaries, check:
+
+- **Validation level**: Does the validation match the change type? New feature or bug fix → expect a test. Purely mechanical cleanup → existing tests must still pass. Do not demand tests blindly; do flag missing tests where they are expected.
+- **Hidden failure modes**: Were these considered? For DagEdit-side changes, look especially at:
+  - undo/redo inconsistency — does the command fully restore all affected state (node position, connection list, selection, viewer projection)?
+  - selection state corruption after node add/delete/move, especially with multi-select active
+  - drag-time model mutation — mid-drag state not committed or not rolled back on cancel
+  - null/empty boundary in `Dag`, `DagNode`, command arguments, or `DagEditorViewModel` accessors
+- **Completion evidence**: Does the reported result include what ran, what passed, and what risks remain? A claim of "done" without test results or stated assumptions is incomplete.
+
 ## Tone
 
 Be precise and brief. Cite the contract section. Do not approve speculative architecture. Prefer the smallest diff that achieves the goal.

@@ -65,6 +65,19 @@ Stage 2 (Hybrid) cannot start until:
 5. For deferred items (§4.3 of contract), block unilateral resolution and write a `[Proposed Change]` entry instead.
 6. For coordinate formula changes, require both `SelectionRectTests` and `ViewportTransformTests` to pass and flag as a Major contract change.
 
+## Quality and validation
+
+In addition to integration boundary compliance, check:
+
+- **Validation level**: Integration changes (projection seam, Pin/Unpin wiring, `BuildSnapshot`) normally require tests. Wording-only or comment-only changes do not. Flag missing tests where integration paths are affected.
+- **Hidden failure modes**: For VCA-surface changes, look especially at:
+  - SpatialIndex update omissions — node moved but index not updated, or update issued outside a batch scope
+  - pin lifecycle leak — drag started but `UnpinRequested` not guaranteed on all exit paths (cancel, undo, delete)
+  - coordinate drift — world↔screen transform inconsistency after pan or zoom
+  - `BuildSnapshot` called with stale or partial adapter state (`_pendingFlush` not yet flushed)
+  - `IVisualFactory.Realize` / `Virtualize` called in wrong order or with a replaced item identity (stable-ref contract violated)
+- **Completion evidence**: Does the result include `ProjectionChangedCount`, `SnapshotBuildCount`, or `RealizeNewCount` observations that confirm the expected path was exercised? Counter values that do not match expectations are a sign of a hidden omission.
+
 ## Tone
 
 Precise and brief. Always cite the contract section. Prefer the smallest API surface. Resist premature abstraction — wait for VCA PoC results before extracting shared interfaces.
