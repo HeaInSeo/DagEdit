@@ -96,7 +96,7 @@ namespace DagEdit
         /// </summary>
         internal void UpdateLocation(Point location)
         {
-            Bounds = new VCRect(location.X, location.Y, Constants.NodeWidth, Constants.NodeHeight);
+            Bounds = new(location.X, location.Y, Constants.NodeWidth, Constants.NodeHeight);
         }
 
         // ─── Factory ──────────────────────────────────────────────────────────

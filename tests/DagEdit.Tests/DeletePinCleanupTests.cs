@@ -116,7 +116,7 @@ namespace DagEdit.Tests
 
             public DeleteSim()
             {
-                Vm = new DagEditorViewModel();
+                Vm = new();
                 Vm.PinRequested   += (_, id) => Events.Add(("pin",   id));
                 Vm.UnpinRequested += (_, id) => Events.Add(("unpin", id));
             }

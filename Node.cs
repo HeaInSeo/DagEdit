@@ -212,7 +212,7 @@ namespace DagEdit
                 args.Pointer.Capture(this);
                 Debug.Print("Dragging Start");
                 _initialPointerPosition = args.GetPosition(ParentControl);
-                _dragAccumulator = new Vector();
+                _dragAccumulator = new();
                 _dragStartLocation = Location; // Undo용 시작 위치 기록
                 IsDragging = true;
                 RaiseEvent(new NodeDragStartedEventArgs(NodeDragStartedEvent, _id));

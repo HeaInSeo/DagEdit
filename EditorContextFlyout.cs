@@ -45,8 +45,8 @@ namespace DagEdit
             var newMenuItem = new EditorMenuItem
             {
                 Header = "Add Node(_A)",
-                InputGesture = new KeyGesture(Key.N, KeyModifiers.Control),
-                HotKey = new KeyGesture(Key.N, KeyModifiers.Control),
+                InputGesture = new(Key.N, KeyModifiers.Control),
+                HotKey = new(Key.N, KeyModifiers.Control),
             };
             newMenuItem.Click += (sender, e) => editor.AddNode();
 

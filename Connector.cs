@@ -80,7 +80,7 @@ namespace DagEdit
             set => SetValue(FillProperty, value);
         }
 
-        private readonly CompositeDisposable _disposables = new CompositeDisposable();
+        private readonly CompositeDisposable _disposables = new();
         protected bool IsPointerPressed;
         protected Connector? PreviousConnector;
 

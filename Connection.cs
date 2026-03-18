@@ -336,7 +336,7 @@ namespace DagEdit
         {
             // TODO 사각형의 크기를 정의 (예: 10x10 픽셀)
             double size = 10;
-            Rect rect = new Rect(source.X - size / 2, source.Y - size / 2, size, size);
+            Rect rect = new(source.X - size / 2, source.Y - size / 2, size, size);
 
             // 사각형 그리기
             context.BeginFigure(rect.TopLeft, isFilled: true);
@@ -363,17 +363,17 @@ namespace DagEdit
                 var sinT = Math.Sin(angle);
                 var cosT = Math.Cos(angle);
 
-                from = new Point(target.X + (headWidth * cosT - headHeight * sinT),
+                from = new(target.X + (headWidth * cosT - headHeight * sinT),
                     target.Y + (headWidth * sinT + headHeight * cosT));
-                to = new Point(target.X + (headWidth * cosT + headHeight * sinT),
+                to = new(target.X + (headWidth * cosT + headHeight * sinT),
                     target.Y - (headHeight * cosT - headWidth * sinT));
             }
             // Spacing이 1보다 큰 경우, 화살표의 머리 부분을 방향에 따라 계산.
             else
             {
                 var direction = arrowDirection == ConnectionDirection.Forward ? 1d : -1d;
-                from = new Point(target.X - headWidth * direction, target.Y + headHeight);
-                to = new Point(target.X - headWidth * direction, target.Y - headHeight);
+                from = new(target.X - headWidth * direction, target.Y + headHeight);
+                to = new(target.X - headWidth * direction, target.Y - headHeight);
             }
 
             return (from, to);

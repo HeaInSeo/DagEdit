@@ -175,7 +175,7 @@ namespace DagEdit
 
         #region Fields
 
-        private readonly CompositeDisposable _disposables = new CompositeDisposable();
+        private readonly CompositeDisposable _disposables = new();
 
         // 이건 connector 에서 올라오는 event
         private EventHandler<PendingConnectionEventArgs>? _connectionStartedHandler;
@@ -220,7 +220,7 @@ namespace DagEdit
         {
             DataContext = _viewModel;
             InitializeSubscriptions();
-            _contextMenu = new EditorContextFlyout(this);
+            _contextMenu = new(this);
             this.Unloaded += (_, _) => this.Dispose();
 
             // ─── Viewport 양방향 동기화 (Step 19: Viewport Contract Hardening) ───────
@@ -368,7 +368,7 @@ namespace DagEdit
                 // 빈 캔버스 영역 좌클릭 → Selection Rectangle 시작 (Feature 1)
                 args.Pointer.Capture(this);
                 _selectionStart = args.GetPosition(topLayer);
-                SelectedArea = new Rect(_selectionStart, new Size(0, 0));
+                SelectedArea = new(_selectionStart, new Size(0, 0));
                 IsSelecting = true;
                 if (_selectionRect != null)
                 {
@@ -472,7 +472,7 @@ namespace DagEdit
             {
                 if (args.Offset.HasValue)
                 {
-                    TargetAnchor = new Point(args.Offset.Value.X, args.Offset.Value.Y);
+                    TargetAnchor = new(args.Offset.Value.X, args.Offset.Value.Y);
                 }
 
                 args.Handled = true;
@@ -589,7 +589,7 @@ namespace DagEdit
             var cursorPos = args.GetPosition(this);
 
             var worldUnderCursor = ViewportTransform.ScreenToWorld(cursorPos, _viewModel.ViewportLocation, oldScale);
-            _viewModel.ViewportLocation = new Point(
+            _viewModel.ViewportLocation = new(
                 worldUnderCursor.X * newScale - cursorPos.X,
                 worldUnderCursor.Y * newScale - cursorPos.Y);
 

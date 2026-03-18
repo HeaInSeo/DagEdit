@@ -1,7 +1,6 @@
 ﻿using System;
 using Avalonia;
 using Avalonia.Collections;
-using DynamicData;
 
 namespace DagEdit
 {
@@ -87,8 +86,8 @@ namespace DagEdit
 
         // TODO 이름은 추후 생각하자. Source, Target 으로 고치다. 현재는 start, end 로 되어 있음.
         // 이 녀석을 통해서 connection 을 검색할 수 있어야 한다.
-        public AvaloniaList<DagConnection> SourceConnections { get; } = new AvaloniaList<DagConnection>();
-        public AvaloniaList<DagConnection> TargetConnections { get; } = new AvaloniaList<DagConnection>();
+        public AvaloniaList<DagConnection> SourceConnections { get; } = new();
+        public AvaloniaList<DagConnection> TargetConnections { get; } = new();
         public DagItemsType DAGItemType { get; set; }
     }
 

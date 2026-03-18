@@ -46,7 +46,7 @@ namespace DagEdit
         {
             var vm = (DagEditorViewModel)EditorTester.DataContext!;
 
-            _viewerFactory = new NodeViewItemVisualFactory();
+            _viewerFactory = new();
             ViewerCanvas.VisualFactory = _viewerFactory;
 
             // H-2: ItemRemoved 이벤트 wiring — adapter가 factory를 직접 알지 못하도록 분리

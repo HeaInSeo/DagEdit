@@ -303,7 +303,7 @@ namespace DagEdit
 
             // 이전 템플릿 구독 정리 — 테마 변경 등으로 재호출 시 누적 방지(#2)
             _templateDisposables.Dispose();
-            _templateDisposables = new CompositeDisposable();
+            _templateDisposables = new();
 
             _partConnection = e.NameScope.Find<Connection>("PART_Connection");
 

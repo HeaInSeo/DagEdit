@@ -61,7 +61,7 @@ namespace DagEdit
 
         #region Fields
 
-        private readonly CompositeDisposable _disposables = new CompositeDisposable();
+        private readonly CompositeDisposable _disposables = new();
         protected bool IsDragging = false;
 
         // Pointer location
