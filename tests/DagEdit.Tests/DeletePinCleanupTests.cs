@@ -34,7 +34,7 @@ namespace DagEdit.Tests
     public class DeletePinCleanupTests
     {
         private static DagNode MakeNode(double x = 10, double y = 10) =>
-            new DagNode { NodeId = Guid.NewGuid(), Location = new Point(x, y) };
+            new() { NodeId = Guid.NewGuid(), Location = new Point(x, y) };
 
         // ═══════════════════════════════════════════════════════════════════════
         // Part A: Adapter snapshot 타이밍 — 3개

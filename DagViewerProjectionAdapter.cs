@@ -280,7 +280,7 @@ namespace DagEdit
         ///   - VCA.ActualViewbox 기반 frustum-culled extent로 전환할 경우
         /// </summary>
         internal static readonly VCRect DefaultProjectionExtent =
-            new VCRect(0, 0, 50_000, 50_000);
+            new(0, 0, 50_000, 50_000);
 
         /// <summary>
         /// 현재 stable projection refs로 새 SpatialIndex snapshot을 생성한다.

@@ -17,7 +17,7 @@ namespace DagEdit.Tests
     /// </summary>
     public class ViewerPinUnpinTests
     {
-        private static DagEditorViewModel MakeVm() => new DagEditorViewModel();
+        private static DagEditorViewModel MakeVm() => new();
 
         // ─── RequestPinNode → PinRequested ───────────────────────────────────
 

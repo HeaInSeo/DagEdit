@@ -21,7 +21,7 @@ namespace DagEdit.Tests
     public class DagViewerWiringTests
     {
         private static DagNode ValidNode(double x = 0, double y = 0) =>
-            new DagNode { NodeId = Guid.NewGuid(), Location = new Point(x, y) };
+            new() { NodeId = Guid.NewGuid(), Location = new Point(x, y) };
 
         private static List<ISpatialItem> AllItems(SpatialIndex snapshot) =>
             snapshot.ToList();

@@ -41,7 +41,7 @@ namespace DagEdit
         /// <param name="scale">현재 ViewportScale.</param>
         /// <returns>월드 좌표.</returns>
         public static Point ScreenToWorld(Point screen, Point viewportLocation, double scale)
-            => new Point(
+            => new(
                 (screen.X + viewportLocation.X) / scale,
                 (screen.Y + viewportLocation.Y) / scale);
 
@@ -53,7 +53,7 @@ namespace DagEdit
         /// <param name="scale">현재 ViewportScale.</param>
         /// <returns>DagEditor 로컬 스크린 좌표.</returns>
         public static Point WorldToScreen(Point world, Point viewportLocation, double scale)
-            => new Point(
+            => new(
                 world.X * scale - viewportLocation.X,
                 world.Y * scale - viewportLocation.Y);
     }
