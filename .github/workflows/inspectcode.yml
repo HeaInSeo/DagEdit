@@ -49,6 +49,7 @@ jobs:
           solution: DagEdit.sln
           format: Sarif
           output: inspectcode.sarif.json
+          dotnet-version: "8.0.x"
           dotnetcoresdk: "8.0.415"
 
       # 현재 run 이전의 가장 최근 성공 실행에서 warning-count artifact를 취득
