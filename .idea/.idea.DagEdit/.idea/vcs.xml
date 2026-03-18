@@ -2,6 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/VirtualCanvas_ref" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/virtualcanvas-avalonia" vcs="Git" />
   </component>
 </project>

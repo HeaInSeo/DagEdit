@@ -1,4 +1,5 @@
-# InspectCode Reduction Plan
+# 
+
 
 ## 1. Document purpose
 

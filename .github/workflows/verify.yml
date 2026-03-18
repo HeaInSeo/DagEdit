@@ -36,7 +36,7 @@ jobs:
 
       # ── 2. .NET 8 SDK 설정 ─────────────────────────────────
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -379,7 +379,7 @@ jobs:
 
       # ── 2. .NET 8 SDK 설정 ─────────────────────────────────
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -389,7 +389,7 @@ jobs:
       #   - security-and-quality: CWE 분류 기반 보안 + 코드 품질 쿼리
       #   - security-extended: 추가 보안 쿼리 (SQL Injection, Path Traversal 등)
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: csharp
           queries: security-extended
@@ -410,6 +410,6 @@ jobs:
 
       # ── 6. CodeQL 분석 실행 ─────────────────────────────────
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:csharp"

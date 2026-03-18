@@ -1,9 +1,9 @@
-﻿using Avalonia;
+﻿using System;
+using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform;
-using System;
 
 namespace DagEdit
 {
@@ -30,7 +30,7 @@ namespace DagEdit
         Edge,
     }
 
-    //TODO 향후 이름은 수정할 수 있음.
+    // TODO 향후 이름은 수정할 수 있음.
     public enum LineShape
     {
         Line,
