@@ -177,8 +177,8 @@ public class UndoRedoTests
         using var stack = new UndoRedoStack();
         var dag = new Dag();
         DagItems connItem = dag.AddDagConnectionItem(
-            new Point(0, 0), System.Guid.NewGuid(),
-            new Point(100, 0), System.Guid.NewGuid())!;
+            new Point(0, 0), Guid.NewGuid(),
+            new Point(100, 0), Guid.NewGuid())!;
 
         stack.Execute(new DelConnectionCommand(dag, connItem));
 
@@ -191,8 +191,8 @@ public class UndoRedoTests
         using var stack = new UndoRedoStack();
         var dag = new Dag();
         DagItems connItem = dag.AddDagConnectionItem(
-            new Point(0, 0), System.Guid.NewGuid(),
-            new Point(100, 0), System.Guid.NewGuid())!;
+            new Point(0, 0), Guid.NewGuid(),
+            new Point(100, 0), Guid.NewGuid())!;
         stack.Execute(new DelConnectionCommand(dag, connItem));
 
         stack.Undo();
@@ -210,8 +210,8 @@ public class UndoRedoTests
 
         stack.Execute(new AddConnectionCommand(
             dag,
-            new Point(0, 0), System.Guid.NewGuid(),
-            new Point(100, 0), System.Guid.NewGuid()));
+            new Point(0, 0), Guid.NewGuid(),
+            new Point(100, 0), Guid.NewGuid()));
 
         Assert.Single(dag.DAGItemsSource);
     }
@@ -223,8 +223,8 @@ public class UndoRedoTests
         var dag = new Dag();
         stack.Execute(new AddConnectionCommand(
             dag,
-            new Point(0, 0), System.Guid.NewGuid(),
-            new Point(100, 0), System.Guid.NewGuid()));
+            new Point(0, 0), Guid.NewGuid(),
+            new Point(100, 0), Guid.NewGuid()));
 
         stack.Undo();
 

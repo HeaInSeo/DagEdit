@@ -30,7 +30,7 @@ public class ExtensionTests
     [Fact]
     public void TryWriteErrorsToFile_WhenWriteFails_InvokesFallbackHint()
     {
-        var fallbackMessages = new System.Collections.Generic.List<string>();
+        var fallbackMessages = new List<string>();
         string invalidPath = Path.Combine(Path.GetTempPath(), "DagEdit.Tests", "\0invalid");
 
         bool success = Extension.TryWriteErrorsToFile(

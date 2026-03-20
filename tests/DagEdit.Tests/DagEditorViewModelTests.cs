@@ -58,7 +58,7 @@ public class DagEditorViewModelTests
     {
         using var vm = new DagEditorViewModel();
 
-        vm.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        vm.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
 
         Assert.Equal(0, vm.NodeCount);
     }
@@ -70,7 +70,7 @@ public class DagEditorViewModelTests
     {
         using var vm = new DagEditorViewModel();
 
-        vm.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        vm.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
 
         Assert.Equal(1, vm.ConnectionCount);
     }
@@ -80,8 +80,8 @@ public class DagEditorViewModelTests
     {
         using var vm = new DagEditorViewModel();
 
-        vm.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
-        vm.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(200, 100), System.Guid.NewGuid());
+        vm.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
+        vm.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(200, 100), Guid.NewGuid());
 
         Assert.Equal(2, vm.ConnectionCount);
     }
@@ -100,7 +100,7 @@ public class DagEditorViewModelTests
     public void ConnectionCount_DecreasesWhenConnectionDeleted()
     {
         using var vm = new DagEditorViewModel();
-        vm.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        vm.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
         Guid connectionId = vm.Items[0].ConnectionItem!.ConnectionId!.Value;
 
         vm.DelDagConnectionItem(connectionId);
@@ -117,7 +117,7 @@ public class DagEditorViewModelTests
 
         vm.AddDagNodeItem(new Point(0, 0));
         vm.AddDagNodeItem(new Point(100, 0));
-        vm.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        vm.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
 
         Assert.Equal(2, vm.NodeCount);
         Assert.Equal(1, vm.ConnectionCount);

@@ -62,8 +62,8 @@ public class DagBenchmarks
         for (int i = 0; i < NodeCount; i++)
         {
             dag.AddDagConnectionItem(
-                source, System.Guid.NewGuid(),
-                target, System.Guid.NewGuid());
+                source, Guid.NewGuid(),
+                target, Guid.NewGuid());
         }
     }
 
@@ -90,9 +90,9 @@ public class DagBenchmarks
         {
             dag.AddDagConnectionItem(
                 new Point(i * 210.0 + 200.0, (i % 5) * 130.0 + 62.0),
-                System.Guid.NewGuid(),
+                Guid.NewGuid(),
                 new Point((i + 1) * 210.0, ((i + 1) % 5) * 130.0 + 62.0),
-                System.Guid.NewGuid());
+                Guid.NewGuid());
         }
 
         // 전체 순회 (순회 자체의 성능도 측정)

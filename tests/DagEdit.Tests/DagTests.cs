@@ -80,8 +80,8 @@ public class DagTests
         var dag = new Dag();
 
         DagItems? result = dag.AddDagConnectionItem(
-            new Point(0, 0), System.Guid.NewGuid(),
-            new Point(100, 100), System.Guid.NewGuid());
+            new Point(0, 0), Guid.NewGuid(),
+            new Point(100, 100), Guid.NewGuid());
 
         Assert.NotNull(result);
     }
@@ -93,8 +93,8 @@ public class DagTests
         int initialCount = dag.DAGItemsSource.Count;
 
         dag.AddDagConnectionItem(
-            new Point(0, 0), System.Guid.NewGuid(),
-            new Point(100, 100), System.Guid.NewGuid());
+            new Point(0, 0), Guid.NewGuid(),
+            new Point(100, 100), Guid.NewGuid());
 
         Assert.Equal(initialCount + 1, dag.DAGItemsSource.Count);
     }
@@ -105,8 +105,8 @@ public class DagTests
         var dag = new Dag();
 
         DagItems? result = dag.AddDagConnectionItem(
-            null, System.Guid.NewGuid(),
-            new Point(100, 100), System.Guid.NewGuid());
+            null, Guid.NewGuid(),
+            new Point(100, 100), Guid.NewGuid());
 
         Assert.Null(result);
     }
@@ -117,8 +117,8 @@ public class DagTests
         var dag = new Dag();
 
         DagItems? result = dag.AddDagConnectionItem(
-            new Point(0, 0), System.Guid.NewGuid(),
-            null, System.Guid.NewGuid());
+            new Point(0, 0), Guid.NewGuid(),
+            null, Guid.NewGuid());
 
         Assert.Null(result);
     }
@@ -139,8 +139,8 @@ public class DagTests
         var dag = new Dag();
 
         dag.AddDagConnectionItem(
-            new Point(10, 20), System.Guid.NewGuid(),
-            new Point(30, 40), System.Guid.NewGuid());
+            new Point(10, 20), Guid.NewGuid(),
+            new Point(30, 40), Guid.NewGuid());
 
         DagItems lastItem = dag.DAGItemsSource[dag.DAGItemsSource.Count - 1];
         Assert.NotNull(lastItem.ConnectionItem);
@@ -164,7 +164,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        bool result = dag.DelDagNodeItem(System.Guid.NewGuid()); // 존재하지 않는 ID
+        bool result = dag.DelDagNodeItem(Guid.NewGuid()); // 존재하지 않는 ID
 
         Assert.False(result);
     }
@@ -252,7 +252,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        bool result = dag.DelDagConnectionItem(System.Guid.NewGuid());
+        bool result = dag.DelDagConnectionItem(Guid.NewGuid());
 
         Assert.False(result);
     }
@@ -261,7 +261,7 @@ public class DagTests
     public void DelDagConnectionItem_WithValidId_ReturnsTrue()
     {
         var dag = new Dag();
-        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        dag.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
         Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
         bool result = dag.DelDagConnectionItem(connectionId);
@@ -273,7 +273,7 @@ public class DagTests
     public void DelDagConnectionItem_WithValidId_DecreasesItemCount()
     {
         var dag = new Dag();
-        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        dag.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
         int initialCount = dag.DAGItemsSource.Count;
         Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
@@ -286,7 +286,7 @@ public class DagTests
     public void DelDagConnectionItem_WithValidId_ConnectionNoLongerInItems()
     {
         var dag = new Dag();
-        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        dag.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
         Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
         dag.DelDagConnectionItem(connectionId);
@@ -298,7 +298,7 @@ public class DagTests
     public void DelDagConnectionItem_TwiceWithSameId_SecondReturnsFalse()
     {
         var dag = new Dag();
-        dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
+        dag.AddDagConnectionItem(new Point(0, 0), Guid.NewGuid(), new Point(100, 100), Guid.NewGuid());
         Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
         dag.DelDagConnectionItem(connectionId);
@@ -327,7 +327,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        DagNode? result = dag.FindNode(System.Guid.NewGuid());
+        DagNode? result = dag.FindNode(Guid.NewGuid());
 
         Assert.Null(result);
     }
