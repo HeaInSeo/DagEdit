@@ -76,5 +76,5 @@ Files changed:    <list>
 Delta after:      <count> (baseline now: <N'>)
 Build result:     0 errors, 0 new warnings
 Test result:      <X>/179 pass
-Next step:        <next batch or "Phase 1 complete">
+Next step:        <next batch or "Phase 1 prepared, pending approval">
 ```
