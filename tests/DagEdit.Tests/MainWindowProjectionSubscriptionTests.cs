@@ -10,7 +10,7 @@ public class MainWindowProjectionSubscriptionTests
     {
         var adapter = new DagViewerProjectionAdapter();
         var subscription = new ProjectionChangedSubscription();
-        var buildCount = 0;
+        int buildCount = 0;
 
         EventHandler handler = (_, _) =>
         {
@@ -35,7 +35,7 @@ public class MainWindowProjectionSubscriptionTests
     {
         var adapter = new DagViewerProjectionAdapter();
         var subscription = new ProjectionChangedSubscription();
-        var callbackCount = 0;
+        int callbackCount = 0;
 
         EventHandler handler = (_, _) => callbackCount++;
 

@@ -28,7 +28,7 @@ namespace DagEdit
 
             if (_match == Match.Any)
             {
-                foreach (var gesture in _gestures)
+                foreach (object gesture in _gestures)
                 {
                     if ((gesture is PointerGesture pointerGesture && pointerEventArgs != null &&
                          pointerGesture.Matches(targetElement, pointerEventArgs)) ||
@@ -42,7 +42,7 @@ namespace DagEdit
             }
             else // Match.All
             {
-                foreach (var gesture in _gestures)
+                foreach (object gesture in _gestures)
                 {
                     if ((gesture is PointerGesture pointerGesture && (pointerEventArgs == null ||
                                                                       !pointerGesture.Matches(targetElement,

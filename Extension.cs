@@ -162,11 +162,11 @@ namespace DagEdit
                     continue;
                 }
 
-                var cx = foundElement.Bounds.Width / 2.0;
-                var cy = foundElement.Bounds.Height / 2.0;
-                var dx = localPtr.X - cx;
-                var dy = localPtr.Y - cy;
-                var distSq = (dx * dx) + (dy * dy);
+                double cx = foundElement.Bounds.Width / 2.0;
+                double cy = foundElement.Bounds.Height / 2.0;
+                double dx = localPtr.X - cx;
+                double dy = localPtr.Y - cy;
+                double distSq = (dx * dx) + (dy * dy);
 
                 if (distSq < bestDistSq)
                 {

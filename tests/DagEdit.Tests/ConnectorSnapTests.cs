@@ -19,7 +19,7 @@ public class ConnectorSnapTests
     {
         var candidates = new List<(string Item, double DistanceSq)>();
 
-        var result = Extension.PickClosestCandidate<string>(candidates);
+        string? result = Extension.PickClosestCandidate<string>(candidates);
 
         Assert.Null(result);
     }
@@ -34,7 +34,7 @@ public class ConnectorSnapTests
             ("only", 999.0)
         };
 
-        var result = Extension.PickClosestCandidate<string>(candidates);
+        string? result = Extension.PickClosestCandidate<string>(candidates);
 
         Assert.Equal("only", result);
     }
@@ -51,7 +51,7 @@ public class ConnectorSnapTests
             ("medium",  25.0)
         };
 
-        var result = Extension.PickClosestCandidate<string>(candidates);
+        string? result = Extension.PickClosestCandidate<string>(candidates);
 
         Assert.Equal("close", result);
     }
@@ -66,7 +66,7 @@ public class ConnectorSnapTests
             ("closest",  1.0)
         };
 
-        var result = Extension.PickClosestCandidate<string>(candidates);
+        string? result = Extension.PickClosestCandidate<string>(candidates);
 
         Assert.Equal("closest", result);
     }
@@ -80,7 +80,7 @@ public class ConnectorSnapTests
             ("offCenter", 50.0)
         };
 
-        var result = Extension.PickClosestCandidate<string>(candidates);
+        string? result = Extension.PickClosestCandidate<string>(candidates);
 
         Assert.Equal("onCenter", result);
     }
@@ -97,7 +97,7 @@ public class ConnectorSnapTests
             ("third",  10.0)
         };
 
-        var result = Extension.PickClosestCandidate<string>(candidates);
+        string? result = Extension.PickClosestCandidate<string>(candidates);
 
         Assert.Equal("first", result);
     }

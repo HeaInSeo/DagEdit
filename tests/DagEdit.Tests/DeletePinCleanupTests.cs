@@ -68,7 +68,7 @@ namespace DagEdit.Tests
             DagNode node = MakeNode();
             adapter.OnNodeAdded(node);
 
-            var found = adapter.Snapshots.TryGetValue(node.NodeId!.Value, out NodeViewItem? item);
+            bool found = adapter.Snapshots.TryGetValue(node.NodeId!.Value, out NodeViewItem? item);
 
             Assert.True(found);
             Assert.NotNull(item);

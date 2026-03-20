@@ -40,7 +40,7 @@ public class DagBenchmarks
     {
         var dag = new Dag();
 
-        for (var i = 0; i < NodeCount; i++)
+        for (int i = 0; i < NodeCount; i++)
         {
             dag.AddDagNodeItem(new Point(i * 10.0, i * 10.0));
         }
@@ -59,7 +59,7 @@ public class DagBenchmarks
         var source = new Point(0.0, 0.0);
         var target = new Point(200.0, 62.0); // Node 기본 크기 (200x124) 중심점
 
-        for (var i = 0; i < NodeCount; i++)
+        for (int i = 0; i < NodeCount; i++)
         {
             dag.AddDagConnectionItem(
                 source, System.Guid.NewGuid(),
@@ -79,14 +79,14 @@ public class DagBenchmarks
         var dag = new Dag();
 
         // 노드 추가
-        for (var i = 0; i < NodeCount; i++)
+        for (int i = 0; i < NodeCount; i++)
         {
             dag.AddDagNodeItem(new Point(i * 210.0, (i % 5) * 130.0));
         }
 
         // 커넥션 추가 (노드 수의 절반)
-        var connectionCount = NodeCount / 2;
-        for (var i = 0; i < connectionCount; i++)
+        int connectionCount = NodeCount / 2;
+        for (int i = 0; i < connectionCount; i++)
         {
             dag.AddDagConnectionItem(
                 new Point(i * 210.0 + 200.0, (i % 5) * 130.0 + 62.0),
@@ -96,7 +96,7 @@ public class DagBenchmarks
         }
 
         // 전체 순회 (순회 자체의 성능도 측정)
-        var count = 0;
+        int count = 0;
         foreach (var item in dag.DAGItemsSource)
         {
             if (item.NodeItem != null || item.ConnectionItem != null)
@@ -120,7 +120,7 @@ public class DagBenchmarks
         var dag = new Dag();
 
         // NodeCount개 노드 추가
-        for (var i = 0; i < NodeCount; i++)
+        for (int i = 0; i < NodeCount; i++)
         {
             dag.AddDagNodeItem(new Point(i * 10.0, i * 10.0));
         }

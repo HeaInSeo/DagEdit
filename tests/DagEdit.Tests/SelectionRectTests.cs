@@ -181,8 +181,8 @@ public class SelectionRectTests
         var dagScreen = ViewportTransform.WorldToScreen(world, vl, scale);
 
         // VCA 수식 직접 계산
-        var vcaX = world.X * scale - vl.X;
-        var vcaY = world.Y * scale - vl.Y;
+        double vcaX = world.X * scale - vl.X;
+        double vcaY = world.Y * scale - vl.Y;
 
         Assert.Equal(vcaX, dagScreen.X, precision: 6);
         Assert.Equal(vcaY, dagScreen.Y, precision: 6);
@@ -198,8 +198,8 @@ public class SelectionRectTests
 
         var dagWorld = ViewportTransform.ScreenToWorld(new Point(0, 0), vl, scale);
 
-        var vcaViewboxX = vl.X / scale;
-        var vcaViewboxY = vl.Y / scale;
+        double vcaViewboxX = vl.X / scale;
+        double vcaViewboxY = vl.Y / scale;
 
         Assert.Equal(vcaViewboxX, dagWorld.X, precision: 6);
         Assert.Equal(vcaViewboxY, dagWorld.Y, precision: 6);

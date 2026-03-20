@@ -159,7 +159,7 @@ namespace DagEdit.Tests
             sim.Select(id);
             sim.DeleteFixed(id, adapter); // H-7: unpin 선행 후 삭제
 
-            var pinCountBeforeUndo = sim.PinCount(id);
+            int pinCountBeforeUndo = sim.PinCount(id);
             sim.UndoDelete(adapter, node); // Undo: RestoreDagNodeItem → OnNodeAdded
 
             // Undo 이후 PinCount가 증가하지 않아야 한다
@@ -267,7 +267,7 @@ namespace DagEdit.Tests
             sim.DeleteFixed(id, adapter); // unpin [1]
             sim.UndoDelete(adapter, node); // no pin
 
-            var pinCountAfterUndo = sim.PinCount(id);
+            int pinCountAfterUndo = sim.PinCount(id);
 
             sim.Select(id);           // pin [2]
 
@@ -294,7 +294,7 @@ namespace DagEdit.Tests
             sim.DeleteFixed(id, adapter);
             sim.UndoDelete(adapter, node);
 
-            var pinCountAfterUndo = sim.PinCount(id);
+            int pinCountAfterUndo = sim.PinCount(id);
 
             sim.DragStart(id); // HandleNodeDragStarted → RequestPinNode
 
@@ -321,7 +321,7 @@ namespace DagEdit.Tests
 
             sim.DragStart(id);
 
-            var unpinCountBeforeDragEnd = sim.UnpinCount(id);
+            int unpinCountBeforeDragEnd = sim.UnpinCount(id);
             sim.DragEnd(id); // 선택 없으므로 unpin 발행
 
             Assert.Equal(unpinCountBeforeDragEnd + 1, sim.UnpinCount(id));
@@ -430,12 +430,12 @@ namespace DagEdit.Tests
             var id = node.NodeId!.Value;
 
             // 여러 개의 select/delete/undo 사이클을 반복해도 Undo 자체에서 pin 이벤트 없음
-            for (var i = 0; i < 3; i++)
+            for (int i = 0; i < 3; i++)
             {
                 sim.Select(id);
                 sim.DeleteFixed(id, adapter);
-                var pinsBefore = sim.PinCount(id);
-                var unpinsBefore = sim.UnpinCount(id);
+                int pinsBefore = sim.PinCount(id);
+                int unpinsBefore = sim.UnpinCount(id);
 
                 sim.UndoDelete(adapter, node); // Undo: pin/unpin 없음
 
