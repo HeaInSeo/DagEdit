@@ -49,7 +49,7 @@ namespace DagEdit.Tests
         public void AfterOnNodeRemoved_TryGetValue_ReturnsFalse()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             adapter.OnNodeAdded(node);
 
             adapter.OnNodeRemoved(node.NodeId!.Value);
@@ -65,10 +65,10 @@ namespace DagEdit.Tests
         public void BeforeOnNodeRemoved_TryGetValue_ReturnsTrue()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             adapter.OnNodeAdded(node);
 
-            var found = adapter.Snapshots.TryGetValue(node.NodeId!.Value, out var item);
+            var found = adapter.Snapshots.TryGetValue(node.NodeId!.Value, out NodeViewItem? item);
 
             Assert.True(found);
             Assert.NotNull(item);
@@ -84,13 +84,13 @@ namespace DagEdit.Tests
         public void RemoveThenReAdd_SameId_SnapshotRefIsDifferentObject()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             adapter.OnNodeAdded(node);
-            var refBefore = adapter.Snapshots[node.NodeId!.Value];
+            NodeViewItem refBefore = adapter.Snapshots[node.NodeId!.Value];
 
             adapter.OnNodeRemoved(node.NodeId.Value);
             adapter.OnNodeAdded(node);
-            var refAfter = adapter.Snapshots[node.NodeId.Value];
+            NodeViewItem refAfter = adapter.Snapshots[node.NodeId.Value];
 
             Assert.NotSame(refBefore, refAfter);
         }
@@ -173,10 +173,10 @@ namespace DagEdit.Tests
         public void SelectedNodeDelete_Buggy_PinnedBySelectionNotCleaned()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             using var sim = new DeleteSim();
             sim.AddToAdapter(adapter, node);
-            var id = node.NodeId!.Value;
+            Guid id = node.NodeId!.Value;
 
             sim.Select(id);
             sim.DeleteBuggy(id, adapter);
@@ -196,10 +196,10 @@ namespace DagEdit.Tests
         public void SelectedNodeDelete_Fixed_PinnedBySelectionCleaned()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             using var sim = new DeleteSim();
             sim.AddToAdapter(adapter, node);
-            var id = node.NodeId!.Value;
+            Guid id = node.NodeId!.Value;
 
             sim.Select(id);
             sim.DeleteFixed(id, adapter);
@@ -214,10 +214,10 @@ namespace DagEdit.Tests
         public void SelectedNodeDelete_Fixed_UnpinEventFired()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             using var sim = new DeleteSim();
             sim.AddToAdapter(adapter, node);
-            var id = node.NodeId!.Value;
+            Guid id = node.NodeId!.Value;
 
             sim.Select(id);
             sim.DeleteFixed(id, adapter);
@@ -233,10 +233,10 @@ namespace DagEdit.Tests
         public void SelectedNodeDelete_Fixed_UnpinCalledWhileSnapshotStillPresent()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             using var sim = new DeleteSim();
             sim.AddToAdapter(adapter, node);
-            var id = node.NodeId!.Value;
+            Guid id = node.NodeId!.Value;
 
             bool snapshotPresentAtUnpinTime = false;
             sim.Vm.UnpinRequested += (_, nodeId) =>
@@ -263,10 +263,10 @@ namespace DagEdit.Tests
         public void NonSelectedNodeDelete_Fixed_NoUnpinEvent()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             using var sim = new DeleteSim();
             sim.AddToAdapter(adapter, node);
-            var id = node.NodeId!.Value;
+            Guid id = node.NodeId!.Value;
 
             // Select 없이 바로 delete
             sim.DeleteFixed(id, adapter);
@@ -285,10 +285,10 @@ namespace DagEdit.Tests
         public void DeleteThenReAdd_SameId_CleanState()
         {
             var adapter = new DagViewerProjectionAdapter();
-            var node = MakeNode();
+            DagNode node = MakeNode();
             using var sim = new DeleteSim();
             sim.AddToAdapter(adapter, node);
-            var id = node.NodeId!.Value;
+            Guid id = node.NodeId!.Value;
 
             sim.Select(id);
             sim.DeleteFixed(id, adapter);

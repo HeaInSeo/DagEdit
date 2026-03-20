@@ -23,7 +23,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var result = dag.AddDagNodeItem(new Point(100, 200));
+        DagItems? result = dag.AddDagNodeItem(new Point(100, 200));
 
         Assert.NotNull(result);
     }
@@ -44,7 +44,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var result = dag.AddDagNodeItem(null);
+        DagItems? result = dag.AddDagNodeItem(null);
 
         Assert.Null(result);
     }
@@ -67,7 +67,7 @@ public class DagTests
 
         dag.AddDagNodeItem(new Point(50, 75));
 
-        var lastItem = dag.DAGItemsSource[dag.DAGItemsSource.Count - 1];
+        DagItems lastItem = dag.DAGItemsSource[dag.DAGItemsSource.Count - 1];
         Assert.NotNull(lastItem.NodeItem);
         Assert.Null(lastItem.ConnectionItem); // 노드 아이템은 ConnectionItem이 없어야 함
     }
@@ -79,7 +79,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var result = dag.AddDagConnectionItem(
+        DagItems? result = dag.AddDagConnectionItem(
             new Point(0, 0), System.Guid.NewGuid(),
             new Point(100, 100), System.Guid.NewGuid());
 
@@ -104,7 +104,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var result = dag.AddDagConnectionItem(
+        DagItems? result = dag.AddDagConnectionItem(
             null, System.Guid.NewGuid(),
             new Point(100, 100), System.Guid.NewGuid());
 
@@ -116,7 +116,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var result = dag.AddDagConnectionItem(
+        DagItems? result = dag.AddDagConnectionItem(
             new Point(0, 0), System.Guid.NewGuid(),
             null, System.Guid.NewGuid());
 
@@ -128,7 +128,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var result = dag.AddDagConnectionItem(null, null, null, null);
+        DagItems? result = dag.AddDagConnectionItem(null, null, null, null);
 
         Assert.Null(result);
     }
@@ -142,7 +142,7 @@ public class DagTests
             new Point(10, 20), System.Guid.NewGuid(),
             new Point(30, 40), System.Guid.NewGuid());
 
-        var lastItem = dag.DAGItemsSource[dag.DAGItemsSource.Count - 1];
+        DagItems lastItem = dag.DAGItemsSource[dag.DAGItemsSource.Count - 1];
         Assert.NotNull(lastItem.ConnectionItem);
         Assert.Null(lastItem.NodeItem); // 커넥션 아이템은 NodeItem이 없어야 함
     }
@@ -174,7 +174,7 @@ public class DagTests
     {
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(10, 10));
-        var firstNodeId = dag.DAGItemsSource[0].NodeItem!.NodeId;
+        Guid? firstNodeId = dag.DAGItemsSource[0].NodeItem!.NodeId;
 
         var result = dag.DelDagNodeItem(firstNodeId);
 
@@ -186,7 +186,7 @@ public class DagTests
     {
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(10, 10));
-        var firstNodeId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        Guid firstNodeId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
 
         dag.DelDagNodeItem(firstNodeId);
 
@@ -198,8 +198,8 @@ public class DagTests
     public void DelDagNodeItem_WithValidIdButNoNodeInstance_RemovesConnectedItems()
     {
         var dag = new Dag();
-        var source = dag.AddDagNodeItem(new Point(10, 10))!;
-        var target = dag.AddDagNodeItem(new Point(40, 10))!;
+        DagItems source = dag.AddDagNodeItem(new Point(10, 10))!;
+        DagItems target = dag.AddDagNodeItem(new Point(40, 10))!;
         dag.AddDagConnectionItem(
             new Point(20, 20), source.NodeItem!.NodeId,
             new Point(50, 20), target.NodeItem!.NodeId);
@@ -216,7 +216,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var ex = Record.Exception(() =>
+        Exception? ex = Record.Exception(() =>
         {
             dag.Dispose();
             dag.Dispose();
@@ -231,7 +231,7 @@ public class DagTests
         var dag = new Dag();
         dag.Dispose();
 
-        var ex = Assert.Throws<ObjectDisposedException>(() => dag.AddDagNodeItem(new Point(1, 1)));
+        ObjectDisposedException ex = Assert.Throws<ObjectDisposedException>(() => dag.AddDagNodeItem(new Point(1, 1)));
         Assert.Contains(nameof(Dag), ex.ObjectName ?? string.Empty);
     }
 
@@ -262,7 +262,7 @@ public class DagTests
     {
         var dag = new Dag();
         dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
-        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+        Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
         var result = dag.DelDagConnectionItem(connectionId);
 
@@ -275,7 +275,7 @@ public class DagTests
         var dag = new Dag();
         dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
         var initialCount = dag.DAGItemsSource.Count;
-        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+        Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
         dag.DelDagConnectionItem(connectionId);
 
@@ -287,7 +287,7 @@ public class DagTests
     {
         var dag = new Dag();
         dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
-        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+        Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
         dag.DelDagConnectionItem(connectionId);
 
@@ -299,7 +299,7 @@ public class DagTests
     {
         var dag = new Dag();
         dag.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
-        var connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
+        Guid connectionId = dag.DAGItemsSource[0].ConnectionItem!.ConnectionId!.Value;
 
         dag.DelDagConnectionItem(connectionId);
         var result = dag.DelDagConnectionItem(connectionId);
@@ -314,9 +314,9 @@ public class DagTests
     {
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(10, 20));
-        var nodeId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        Guid nodeId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
 
-        var result = dag.FindNode(nodeId);
+        DagNode? result = dag.FindNode(nodeId);
 
         Assert.NotNull(result);
         Assert.Equal(nodeId, result.NodeId);
@@ -327,7 +327,7 @@ public class DagTests
     {
         var dag = new Dag();
 
-        var result = dag.FindNode(System.Guid.NewGuid());
+        DagNode? result = dag.FindNode(System.Guid.NewGuid());
 
         Assert.Null(result);
     }
@@ -339,9 +339,9 @@ public class DagTests
         dag.AddDagNodeItem(new Point(0, 0));
         dag.AddDagNodeItem(new Point(100, 0));
         dag.AddDagNodeItem(new Point(200, 0));
-        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        Guid targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
 
-        var result = dag.FindNode(targetId);
+        DagNode? result = dag.FindNode(targetId);
 
         Assert.NotNull(result);
         Assert.Equal(targetId, result.NodeId);
@@ -353,12 +353,12 @@ public class DagTests
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(0, 0));
         dag.AddDagNodeItem(new Point(100, 0));
-        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
-        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        Guid sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        Guid targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
 
         dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId);
 
-        var sourceNode = dag.FindNode(sourceId);
+        DagNode? sourceNode = dag.FindNode(sourceId);
         Assert.NotNull(sourceNode);
         Assert.Single(sourceNode.SourceConnections);
     }
@@ -369,12 +369,12 @@ public class DagTests
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(0, 0));
         dag.AddDagNodeItem(new Point(100, 0));
-        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
-        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        Guid sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        Guid targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
 
         dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId);
 
-        var targetNode = dag.FindNode(targetId);
+        DagNode? targetNode = dag.FindNode(targetId);
         Assert.NotNull(targetNode);
         Assert.Single(targetNode.TargetConnections);
     }
@@ -385,7 +385,7 @@ public class DagTests
     public void RemoveDagItem_RemovesNodeFromSourceList()
     {
         var dag = new Dag();
-        var item = dag.AddDagNodeItem(new Point(0, 0))!;
+        DagItems item = dag.AddDagNodeItem(new Point(0, 0))!;
 
         dag.RemoveDagItem(item);
 
@@ -398,9 +398,9 @@ public class DagTests
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(0, 0));
         dag.AddDagNodeItem(new Point(100, 0));
-        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
-        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
-        var connItem = dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId)!;
+        Guid sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        Guid targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        DagItems connItem = dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId)!;
 
         dag.RemoveDagItem(connItem);
 
@@ -412,7 +412,7 @@ public class DagTests
     public void RestoreDagNodeItem_RestoresItemToSourceList()
     {
         var dag = new Dag();
-        var item = dag.AddDagNodeItem(new Point(0, 0))!;
+        DagItems item = dag.AddDagNodeItem(new Point(0, 0))!;
         dag.RemoveDagItem(item);
 
         dag.RestoreDagNodeItem(item);
@@ -426,9 +426,9 @@ public class DagTests
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(0, 0));
         dag.AddDagNodeItem(new Point(100, 0));
-        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
-        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
-        var connItem = dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId)!;
+        Guid sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        Guid targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        DagItems connItem = dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId)!;
 
         dag.RemoveDagItem(connItem);
         dag.RestoreDagConnectionItem(connItem);
@@ -446,11 +446,11 @@ public class DagTests
         var dag = new Dag();
         dag.AddDagNodeItem(new Point(0, 0));
         dag.AddDagNodeItem(new Point(100, 0));
-        var sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
-        var targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
+        Guid sourceId = dag.DAGItemsSource[0].NodeItem!.NodeId!.Value;
+        Guid targetId = dag.DAGItemsSource[1].NodeItem!.NodeId!.Value;
         dag.AddDagConnectionItem(new Point(0, 0), sourceId, new Point(100, 0), targetId);
 
-        var result = dag.GetConnectionItemsForNode(sourceId);
+        List<DagItems> result = dag.GetConnectionItemsForNode(sourceId);
 
         Assert.Single(result);
     }

@@ -76,7 +76,7 @@ public class UndoRedoTests
     {
         using var stack = new UndoRedoStack();
 
-        var ex = Record.Exception(() => stack.Undo());
+        Exception? ex = Record.Exception(() => stack.Undo());
 
         Assert.Null(ex);
     }
@@ -86,7 +86,7 @@ public class UndoRedoTests
     {
         using var stack = new UndoRedoStack();
 
-        var ex = Record.Exception(() => stack.Redo());
+        Exception? ex = Record.Exception(() => stack.Redo());
 
         Assert.Null(ex);
     }
@@ -176,7 +176,7 @@ public class UndoRedoTests
     {
         using var stack = new UndoRedoStack();
         var dag = new Dag();
-        var connItem = dag.AddDagConnectionItem(
+        DagItems connItem = dag.AddDagConnectionItem(
             new Point(0, 0), System.Guid.NewGuid(),
             new Point(100, 0), System.Guid.NewGuid())!;
 
@@ -190,7 +190,7 @@ public class UndoRedoTests
     {
         using var stack = new UndoRedoStack();
         var dag = new Dag();
-        var connItem = dag.AddDagConnectionItem(
+        DagItems connItem = dag.AddDagConnectionItem(
             new Point(0, 0), System.Guid.NewGuid(),
             new Point(100, 0), System.Guid.NewGuid())!;
         stack.Execute(new DelConnectionCommand(dag, connItem));
@@ -271,7 +271,7 @@ public class UndoRedoTests
     {
         using var vm = new DagEditorViewModel();
         vm.ExecuteAddNode(new Point(0, 0));
-        var nodeId = vm.Items[0].NodeItem!.NodeId!.Value;
+        Guid nodeId = vm.Items[0].NodeItem!.NodeId!.Value;
 
         vm.ExecuteDelNode(nodeId);
 

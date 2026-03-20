@@ -8,7 +8,7 @@ public class DagNodeConnectionCollectionTests
     [Fact]
     public void SourceConnections_DoesNotExposePublicSetter()
     {
-        var property = typeof(DagNode).GetProperty(nameof(DagNode.SourceConnections), BindingFlags.Instance | BindingFlags.Public);
+        PropertyInfo? property = typeof(DagNode).GetProperty(nameof(DagNode.SourceConnections), BindingFlags.Instance | BindingFlags.Public);
 
         Assert.NotNull(property);
         Assert.False(property!.CanWrite);
@@ -18,7 +18,7 @@ public class DagNodeConnectionCollectionTests
     [Fact]
     public void TargetConnections_DoesNotExposePublicSetter()
     {
-        var property = typeof(DagNode).GetProperty(nameof(DagNode.TargetConnections), BindingFlags.Instance | BindingFlags.Public);
+        PropertyInfo? property = typeof(DagNode).GetProperty(nameof(DagNode.TargetConnections), BindingFlags.Instance | BindingFlags.Public);
 
         Assert.NotNull(property);
         Assert.False(property!.CanWrite);

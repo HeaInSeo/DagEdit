@@ -241,8 +241,8 @@ namespace DagEdit.Tests
         public void SelectionChange_OldNodeUnpinned_NewNodePinned()
         {
             using var sim = new PinSim();
-            var nodeA = Guid.NewGuid();
-            var nodeB = Guid.NewGuid();
+            Guid nodeA = Guid.NewGuid();
+            Guid nodeB = Guid.NewGuid();
 
             sim.FinalizeSelection(nodeA);          // A 선택
             sim.FinalizeSelection(nodeB);          // B 선택 (A 해제)

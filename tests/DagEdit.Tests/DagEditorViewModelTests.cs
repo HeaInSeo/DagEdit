@@ -101,7 +101,7 @@ public class DagEditorViewModelTests
     {
         using var vm = new DagEditorViewModel();
         vm.AddDagConnectionItem(new Point(0, 0), System.Guid.NewGuid(), new Point(100, 100), System.Guid.NewGuid());
-        var connectionId = vm.Items[0].ConnectionItem!.ConnectionId!.Value;
+        Guid connectionId = vm.Items[0].ConnectionItem!.ConnectionId!.Value;
 
         vm.DelDagConnectionItem(connectionId);
 
