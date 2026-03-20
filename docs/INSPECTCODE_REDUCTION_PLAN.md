@@ -17,32 +17,38 @@
 
 ## 2. Current baseline
 
-현재 기준선은 아래와 같다.
+### Confirmed baseline correction
+
+아래 수치는 CI artifact 기준 확정값이다. 이전 문서의 "Current: 1210 / Previous: 1197 / Regression: +13" 기재는 부정확한 데이터였으며 이 섹션으로 대체한다.
 
 | Item | Value |
 | --- | ---: |
-| Current total warnings | 1210 |
-| Previous baseline | 1197 |
-| Recent regression | +13 |
-| Recent failure cause | `note` +13 증가로 total regression 발생 |
+| **Current total warnings** | **1141** |
+| warning | 491 |
+| note | 650 |
+| Confirmed at commit | `7551168` |
+| Confirmed at | 2026-03-20 |
 
-현재 알려진 CI 결과 기준 top rule 요약:
+**Phase 0 closed with no code changes required.**
+실제 CI 결과 gate 실패가 없었으며, 회복 배치 없이 Phase 1로 진입 가능하다.
 
-- `SuggestVarOrType_SimpleTypes`
-- `SuggestVarOrType_BuiltInTypes`
-- `RedundantUsingDirective`
-- `ArrangeThisQualifier`
-- `ArrangeObjectCreationWhenTypeEvident`
-- `RedundantNameQualifier`
-- `MemberCanBePrivate.Global`
-- `UnusedMember.Global`
-- `InconsistentNaming`
-- `SA1201` 계열 구조/배치 rule
+감소 흐름 (CI 확정값):
 
-해석:
+| Commit | Total | Delta | 비고 |
+| --- | ---: | ---: | --- |
+| `e721c0c` | 1195 | — | 이전 기준선 |
+| `90e5f74` | 1141 | −54 | using 제거 −29, target-typed new −21, 기타 −4 |
+| `7551168` | 1141 | ±0 | Batch A (`.md`/`.yml` only, no .cs change) |
 
-- 현재 gate 관점의 첫 문제는 기존 1197 기준선에서 1210으로 증가한 `+13` delta다.
-- 누적 감축 배치에 들어가기 전, 먼저 baseline regression을 회복해야 한다.
+현재 CI 결과 기준 top rule (DagEdit owned):
+
+- `SuggestVarOrType_SimpleTypes` (262)
+- `SuggestVarOrType_BuiltInTypes` (73)
+- `RedundantNameQualifier` (48)
+- `ArrangeThisQualifier` (34)
+- `RedundantUsingDirective` (1)
+
+`ArrangeObjectCreationWhenTypeEvident` 잔존 7건은 **external/VCA inherited** (§6 참조). DagEdit 직접 수정 불가.
 
 ## 3. Operating principles
 
@@ -90,42 +96,65 @@
 
 ## 5. 10% reduction targets
 
-현재 총량 1210 기준 감축 목표는 아래와 같다.
+### Next phase target
 
-| Phase | Goal |
-| --- | --- |
-| Phase 0 | 1210 -> 1197 이하 회복 |
-| Phase 1 | 1210 -> 1089 이하 |
-| Phase 2 | 1089 -> 980 이하 |
-| Phase 3 | 980 -> 882 이하 |
-| Phase 4 | 882 -> 793 이하 |
-| Phase 5 | 793 -> 713 이하 |
+확정 기준선 1141 기준 감축 목표는 아래와 같다.
+
+| Phase | Baseline | Goal | 비고 |
+| --- | ---: | --- | --- |
+| Phase 0 | 1195 | ≤ 1197 | **CLOSED** — no code changes required |
+| Phase 1 | 1141 | ≤ 1027 | 첫 10% 감축 배치 (현재 단계) |
+| Phase 2 | 1027 | ≤ 924 | |
+| Phase 3 | 924 | ≤ 831 | |
+| Phase 4 | 831 | ≤ 748 | |
+| Phase 5 | 748 | ≤ 673 | |
 
 운영 해석:
 
-- `Phase 0`은 감축 배치가 아니라 gate 회복 배치다.
+- `Phase 0` 완료. 회복 배치 없이 닫힘.
 - `Phase 1`부터 실제 10% 감축 배치로 본다.
 - 각 phase는 이전 phase 완료 수치를 다음 기준선으로 삼는다.
 
 ## 6. Rule prioritization strategy
 
+### Ownership split
+
+InspectCode가 분석하는 파일 중 일부는 DagEdit 소유가 아니다.
+
+**DagEdit owned** — 직접 수정 가능:
+
+| Rule | Count | 비고 |
+| --- | ---: | --- |
+| `SuggestVarOrType_SimpleTypes` | 262 | local variable 선언부 |
+| `SuggestVarOrType_BuiltInTypes` | 73 | int/string 키워드 치환 |
+| `RedundantNameQualifier` | 48 | 네임스페이스 한정자 |
+| `ArrangeThisQualifier` | 34 | this. 제거 |
+| `RedundantUsingDirective` | 1 | |
+
+**external/VCA inherited** — DagEdit에서 직접 수정 불가, VCA 저장소에서만 수정 가능:
+
+| Rule | Count | 파일 |
+| --- | ---: | --- |
+| `ArrangeObjectCreationWhenTypeEvident` | 7 | `external/virtualcanvas-avalonia/src/VirtualCanvas.Core/Geometry/VCRect.cs` (2건), `Spatial/PriorityQuadTree/PriorityQuadTree.cs` (3건), `Spatial/PriorityQuadTree/PriorityQueue.cs` (2건) |
+
+VCA inherited findings는 DagEdit InspectCode total에 포함되지만 DagEdit 배치 대상에서 제외한다. VCA repo에서 별도 처리.
+
 ### First group: low-risk, repetitive note-style cleanup
 
-먼저 다룰 후보:
+먼저 다룰 후보 (DagEdit owned만):
 
-- `SuggestVarOrType_SimpleTypes`
-- `SuggestVarOrType_BuiltInTypes`
-- `RedundantUsingDirective`
-- `ArrangeThisQualifier`
-- `ArrangeObjectCreationWhenTypeEvident`
-- `RedundantNameQualifier`
+- `SuggestVarOrType_SimpleTypes` (262)
+- `SuggestVarOrType_BuiltInTypes` (73)
+- `RedundantNameQualifier` (48)
+- `ArrangeThisQualifier` (34)
+- `RedundantUsingDirective` (1)
 
 이 순서를 먼저 잡는 이유:
 
 - 대체로 기계적이고 반복적인 수정이 가능하다
 - 동작 의미론에 영향을 줄 가능성이 낮다
 - 작은 배치로 잘게 쪼개기 쉽다
-- gate 회복과 초기 감축에 가장 적합하다
+- Phase 1 목표(≤1027) 달성에 가장 적합하다
 
 ### Second group: moderate-risk cleanup with wider surface
 
@@ -214,16 +243,19 @@ InspectCode 관련 배치 보고는 아래 형식을 기본 템플릿으로 사�
 
 ## 10. Immediate next actions
 
-즉시 다음 단계는 아래 순서로 진행한다.
+Phase 0는 닫혔다. 즉시 다음 단계는 아래다.
 
-1. 먼저 `+13` delta를 제거해서 gate를 1197 이하로 회복한다.
-2. 그다음 첫 10% 감축 배치를 시작한다.
-3. 첫 감축 배치는 low-risk `note` 계열 중심으로 잡는다.
+1. Phase 1 첫 배치 시작 (baseline 1141 → target ≤1027, −114 필요)
+2. 첫 배치는 DagEdit owned rule 중 low-risk `note` 계열로 시작한다
+3. 배치당 1~2개 rule만 선택한다
 
-권장 첫 감축 대상:
+권장 첫 감축 대상 (Phase 1 배치 1-A):
 
-- `SuggestVarOrType_SimpleTypes`
-- `SuggestVarOrType_BuiltInTypes`
-- `RedundantUsingDirective`
+- `SuggestVarOrType_SimpleTypes` (262건) — local variable 선언부의 explicit type → `var`
+- 단독으로도 충분한 감축량 확보 가능하며, 동작 의미론에 영향 없음
 
-이 세 rule은 현재 단계에서 가장 작은 diff로 감축을 시작하기 좋다.
+배치 1-A 완료 후 배치 1-B 후보:
+
+- `SuggestVarOrType_BuiltInTypes` (73건) — int/string 등 언어 키워드 치환
+
+> `ArrangeObjectCreationWhenTypeEvident` (7건) 은 external/VCA inherited. DagEdit Phase 1 배치 대상에서 제외.
