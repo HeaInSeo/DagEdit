@@ -34,18 +34,20 @@ InspectCode가 분석하는 파일 중 일부는 DagEdit 소유가 아니다.
 
 **Phase 0 — CLOSED, no code changes required**
 - 실제 regression 없음. CI 확정값: 1141 (commit `7551168`, 2026-03-20).
-- INSPECTCODE_REDUCTION_PLAN.md §2 참조.
 
-**Phase 1 — First 10% reduction (baseline 1141 → target ≤ 1027)**
-- Batch 1-A: `SuggestVarOrType_SimpleTypes` (262건) — local variable 선언부 explicit type → `var`
-- Batch 1-B: `SuggestVarOrType_BuiltInTypes` (73건) — int/string 등 언어 키워드 치환
-- Batch 1-C: `RedundantNameQualifier` (48건) — 불필요한 네임스페이스 한정자 제거
+**Phase 1 — CLOSED (1141 → 1027, −114)**
+- Batch 1-A: `SuggestVarOrType_SimpleTypes` — −64 (CI confirmed, commit `ee8c9ad`)
+- Batch 1-B: `SuggestVarOrType_BuiltInTypes` — −50 (CI confirmed, commit `8e1179c`)
+- warning severity 491: 전체 Phase 1에서 변화 없음. no warning regression.
 
-**Phase 2 — Second 10% reduction (target ≤ 924)**
-- Batch 2-A: `ArrangeThisQualifier` (34건) — `this.` 제거 (SA1101=none, 제거 방향)
-- Batch 2-B: `RedundantUsingDirective` (1건) — 잔존 미사용 using 제거
+**Phase 2 — Current phase (baseline 1027, target ≤ 924, −103 필요)**
+- Batch 2-A: `SuggestVarOrType_SimpleTypes` 잔존 ~198건 — production 파일 (Connection.cs 등). 소규모 배치로 나눌 것.
+- Batch 2-B: `RedundantNameQualifier` (48건) — System.Guid.NewGuid() 등 네임스페이스 한정자 제거.
+- Batch 2-C: `ArrangeThisQualifier` (34건) — `this.` 제거 (SA1101=none).
+- Batch 2-D: `SuggestVarOrType_BuiltInTypes` 잔존 ~23건 — Connection.cs(14) + DagEditor.cs(7).
+- Batch 2-E: `RedundantUsingDirective` (1건).
 
-**Phase 3+ — Deferred until Phases 1–2 complete**
+**Phase 3+ — Deferred until Phase 2 complete**
 - `MemberCanBePrivate.Global`, `UnusedMember.Global`, `InconsistentNaming`
 - These touch public API or naming and require more review per file.
 
@@ -75,6 +77,6 @@ Rules targeted:   <rule names>
 Files changed:    <list>
 Delta after:      <count> (baseline now: <N'>)
 Build result:     0 errors, 0 new warnings
-Test result:      <X>/179 pass
-Next step:        <next batch or "Phase 1 prepared, pending approval">
+Test result:      <X>/223 pass
+Next step:        <next batch or "Phase 2 prepared, pending approval">
 ```

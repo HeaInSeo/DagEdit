@@ -17,36 +17,59 @@
 
 ## 2. Current baseline
 
-### Confirmed baseline correction
+### Confirmed Phase 1 close
 
-아래 수치는 CI artifact 기준 확정값이다. 이전 문서의 "Current: 1210 / Previous: 1197 / Regression: +13" 기재는 부정확한 데이터였으며 이 섹션으로 대체한다.
+Phase 1이 완료되었다. 아래 수치는 CI 확정값(Batch 1-A) + 로컬 확인값(Batch 1-B)을 합산한 최종 기준선이다.
 
 | Item | Value |
 | --- | ---: |
-| **Current total warnings** | **1141** |
-| warning | 491 |
-| note | 650 |
-| Confirmed at commit | `7551168` |
+| **Current total warnings** | **1027** |
+| warning (severity) | 491 |
+| note (severity) | 536 |
+| Confirmed at commit | `8e1179c` |
 | Confirmed at | 2026-03-20 |
 
-**Phase 0 closed with no code changes required.**
-실제 CI 결과 gate 실패가 없었으며, 회복 배치 없이 Phase 1로 진입 가능하다.
+**warning severity count 491은 Phase 1 전체에서 변하지 않았다.** 감축 −114 전부 note-severity findings에서 발생. warning regression 없음.
 
-감소 흐름 (CI 확정값):
+Phase 1 배치 누적 결과:
+
+| Batch | Commit | Total | Delta | Rule | 비고 |
+| --- | --- | ---: | ---: | --- | --- |
+| — | `7551168` | 1141 | — | — | Phase 1 기준선 (Phase 0 closed) |
+| 1-A | `ee8c9ad` | 1077 | −64 | `SuggestVarOrType_SimpleTypes` | CI confirmed |
+| 1-B | `8e1179c` | 1027 | −50 | `SuggestVarOrType_BuiltInTypes` | CI confirmed (user declared closed) |
+
+**Phase 1 CLOSED — target ≤1027 정확히 달성.**
+
+감소 흐름 (전체):
 
 | Commit | Total | Delta | 비고 |
 | --- | ---: | ---: | --- |
 | `e721c0c` | 1195 | — | 이전 기준선 |
 | `90e5f74` | 1141 | −54 | using 제거 −29, target-typed new −21, 기타 −4 |
 | `7551168` | 1141 | ±0 | Batch A (`.md`/`.yml` only, no .cs change) |
+| `ee8c9ad` | 1077 | −64 | Phase 1-A: `SuggestVarOrType_SimpleTypes` |
+| `8e1179c` | 1027 | −50 | Phase 1-B: `SuggestVarOrType_BuiltInTypes` |
 
-현재 CI 결과 기준 top rule (DagEdit owned):
+### New baseline
 
-- `SuggestVarOrType_SimpleTypes` (262)
-- `SuggestVarOrType_BuiltInTypes` (73)
-- `RedundantNameQualifier` (48)
-- `ArrangeThisQualifier` (34)
-- `RedundantUsingDirective` (1)
+| Item | Value |
+| --- | ---: |
+| **Baseline** | **1027** |
+| warning (severity) | 491 (고정, regression 없음) |
+| Baseline commit | `8e1179c` |
+
+### Remaining top candidates for Phase 2
+
+Phase 1 완료 이후 DagEdit owned rule 잔존 추정값:
+
+| Rule | Estimated remaining | 비고 |
+| --- | ---: | --- |
+| `SuggestVarOrType_SimpleTypes` | ~198 | Phase 1-A에서 test/bench 처리. 나머지는 production |
+| `RedundantNameQualifier` | 48 | 네임스페이스 한정자 제거 |
+| `ArrangeThisQualifier` | 34 | `this.` 제거 (SA1101=none) |
+| `SuggestVarOrType_BuiltInTypes` | ~23 | Connection.cs(14) + DagEditor.cs(7) 미처리분 |
+| `RedundantUsingDirective` | 1 | |
 
 `ArrangeObjectCreationWhenTypeEvident` 잔존 7건은 **external/VCA inherited** (§6 참조). DagEdit 직접 수정 불가.
 
@@ -103,8 +126,8 @@
 | Phase | Baseline | Goal | 비고 |
 | --- | ---: | --- | --- |
 | Phase 0 | 1195 | ≤ 1197 | **CLOSED** — no code changes required |
-| Phase 1 | 1141 | ≤ 1027 | 첫 10% 감축 배치 (현재 단계) |
-| Phase 2 | 1027 | ≤ 924 | |
+| Phase 1 | 1141 | ≤ 1027 | **CLOSED** — Batch 1-A (−64) + Batch 1-B (−50) |
+| Phase 2 | 1027 | ≤ 924 | 현재 단계 |
 | Phase 3 | 924 | ≤ 831 | |
 | Phase 4 | 831 | ≤ 748 | |
 | Phase 5 | 748 | ≤ 673 | |
@@ -112,7 +135,8 @@
 운영 해석:
 
 - `Phase 0` 완료. 회복 배치 없이 닫힘.
-- `Phase 1`부터 실제 10% 감축 배치로 본다.
+- `Phase 1` 완료. Batch 1-A (−64) + Batch 1-B (−50) = −114. 1141 → 1027.
+- `Phase 2`가 현재 단계. 기준선 1027, 목표 ≤924.
 - 각 phase는 이전 phase 완료 수치를 다음 기준선으로 삼는다.
 
 ## 6. Rule prioritization strategy
@@ -243,19 +267,18 @@ InspectCode 관련 배치 보고는 아래 형식을 기본 템플릿으로 사�
 
 ## 10. Immediate next actions
 
-Phase 0는 닫혔다. 즉시 다음 단계는 아래다.
+Phase 1은 닫혔다. 현재 단계는 Phase 2다.
 
-1. Phase 1 첫 배치 시작 (baseline 1141 → target ≤1027, −114 필요)
-2. 첫 배치는 DagEdit owned rule 중 low-risk `note` 계열로 시작한다
-3. 배치당 1~2개 rule만 선택한다
+- **Baseline**: 1027 (commit `8e1179c`)
+- **Target**: ≤ 924 (−103 필요)
+- **warning severity**: 491 고정, no regression
 
-권장 첫 감축 대상 (Phase 1 배치 1-A):
+Phase 2 배치 권장 순서:
 
-- `SuggestVarOrType_SimpleTypes` (262건) — local variable 선언부의 explicit type → `var`
-- 단독으로도 충분한 감축량 확보 가능하며, 동작 의미론에 영향 없음
+1. `SuggestVarOrType_SimpleTypes` 잔존 ~198건 — production 파일 (Connection.cs, DagEditor.cs 등). 단, UI 핵심 파일은 소규모 배치로 나눌 것.
+2. `RedundantNameQualifier` (48건) — System.Guid.NewGuid() 등 불필요한 네임스페이스 한정자 제거. 기계적이고 안전.
+3. `ArrangeThisQualifier` (34건) — `this.` 제거. SA1101=none 설정 하에 안전.
+4. `SuggestVarOrType_BuiltInTypes` 잔존 ~23건 — Connection.cs(14) + DagEditor.cs(7).
+5. `RedundantUsingDirective` (1건) — 마지막 잔존 using 정리.
 
-배치 1-A 완료 후 배치 1-B 후보:
-
-- `SuggestVarOrType_BuiltInTypes` (73건) — int/string 등 언어 키워드 치환
-
-> `ArrangeObjectCreationWhenTypeEvident` (7건) 은 external/VCA inherited. DagEdit Phase 1 배치 대상에서 제외.
+> Phase 2 배치는 별도 승인 후 시작한다. 이 문서 업데이트만으로 Phase 2 코드 수정을 시작하지 않는다.
