@@ -181,6 +181,7 @@ namespace DagEdit
         private EventHandler<PendingConnectionEventArgs>? _connectionStartedHandler;
         private EventHandler<PendingConnectionEventArgs>? _connectionDragHandler;
         private EventHandler<PendingConnectionEventArgs>? _connectionCompleteHandler;
+
         // 이건 node 에서 올라오는 event
         private EventHandler<ConnectionChangedEventArgs>? _connectionChangedHandler;
         private EventHandler<NodeMovedEventArgs>? _nodeMovedHandler;
@@ -322,12 +323,16 @@ namespace DagEdit
             AddHandler(Connector.PendingConnectionStartedEvent, _connectionStartedHandler);
             AddHandler(Connector.PendingConnectionDragEvent, _connectionDragHandler);
             AddHandler(Connector.PendingConnectionCompletedEvent, _connectionCompleteHandler);
+
             // Connection Changed
             AddHandler(Node.ConnectionChangedEvent, _connectionChangedHandler);
+
             // Node Moved (Undo/Redo 용)
             AddHandler(Node.NodeMovedEvent, _nodeMovedHandler);
+
             // Node Drag Started (H-3 Pin용)
             AddHandler(Node.NodeDragStartedEvent, _nodeDragStartedHandler);
+
             // Node Drag Ended (drag pin leak 방지)
             AddHandler(Node.NodeDragEndedEvent, _nodeDragEndedHandler);
 
@@ -338,12 +343,16 @@ namespace DagEdit
                 RemoveHandler(Connector.PendingConnectionStartedEvent, _connectionStartedHandler);
                 RemoveHandler(Connector.PendingConnectionDragEvent, _connectionDragHandler);
                 RemoveHandler(Connector.PendingConnectionCompletedEvent, _connectionCompleteHandler);
+
                 // Connection Changed
                 RemoveHandler(Node.ConnectionChangedEvent, _connectionChangedHandler);
+
                 // Node Moved
                 RemoveHandler(Node.NodeMovedEvent, _nodeMovedHandler);
+
                 // Node Drag Started
                 RemoveHandler(Node.NodeDragStartedEvent, _nodeDragStartedHandler);
+
                 // Node Drag Ended
                 RemoveHandler(Node.NodeDragEndedEvent, _nodeDragEndedHandler);
             }));
@@ -356,6 +365,7 @@ namespace DagEdit
             if (point.Properties.IsRightButtonPressed && !DisablePanning)
             {
                 args.Pointer.Capture(this);
+
                 // 클릭 위치를 캔버스 월드 좌표로 변환하여 저장한다.
                 var rawPos = args.GetPosition(this);
                 ContextMenuPoint = ViewportTransform.ScreenToWorld(rawPos, _viewModel.ViewportLocation, _viewModel.ViewportScale);
@@ -388,6 +398,7 @@ namespace DagEdit
             if (_IsRightBtnClicked)
             {
                 _currentPointerPosition = args.GetPosition(this);
+
                 // 패닝 델타는 줌 배율과 무관하게 스크린 픽셀 단위로 ViewportLocation에 적용한다.
                 _viewModel.ViewportLocation -= (_currentPointerPosition - _previousPointerPosition);
                 _previousPointerPosition = _currentPointerPosition;
@@ -489,6 +500,7 @@ namespace DagEdit
             }
 
             Debug.WriteLine("Editor connection end");
+
             // Undo/Redo 스택에 등록 (Feature 2)
             _viewModel.ExecuteAddConnection(args.SourceAnchor, args.SourceNodeId, args.TargetAnchor, args.TargetNodeId);
             IsVisiblePendingConnection = false;

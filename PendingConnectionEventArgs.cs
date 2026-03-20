@@ -10,6 +10,7 @@ namespace DagEdit
             : base(routedEvent)
         {
             ConnectedConnector = connectedConnector;
+
             // Anchor 는 InAnchor 와 같아야 한다.
             SourceAnchor = sourceAnchor;
         }

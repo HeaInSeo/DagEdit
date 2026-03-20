@@ -16,6 +16,7 @@ namespace DagEdit
         public Connector()
         {
             InitializeSubscriptions();
+
             // TODO axaml 에서 생성한 경우 Dispose 할 수 없는데 이렇게 하면 될까?
             this.Unloaded += (_, _) => this.Dispose();
         }
@@ -151,6 +152,7 @@ namespace DagEdit
                 // 관리되는 자원 해제
                 _disposables.Dispose();
             }
+
             // 관리되지 않는 자원 해제 코드가 필요한 경우 여기에 추가
         }
 

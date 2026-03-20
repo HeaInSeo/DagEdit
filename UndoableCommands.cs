@@ -160,6 +160,7 @@ namespace DagEdit
         public void Execute()
         {
             _viewModel.FindNode(_nodeId)?.NodeInstance?.MoveTo(_newLocation);
+
             // H-1 viewer sync: Redo 시 viewer 위치 갱신. Undo/Redo batch 안이면 Flush suppressed.
             _viewModel.NotifyViewerNodeMoved(_nodeId, _newLocation);
         }
@@ -167,6 +168,7 @@ namespace DagEdit
         public void Undo()
         {
             _viewModel.FindNode(_nodeId)?.NodeInstance?.MoveTo(_oldLocation);
+
             // H-1 viewer sync: Undo 시 viewer 위치 복원. Undo batch 안이면 Flush suppressed.
             _viewModel.NotifyViewerNodeMoved(_nodeId, _oldLocation);
         }

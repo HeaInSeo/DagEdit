@@ -36,6 +36,7 @@ namespace DagEdit
         private MenuItem SetupContextMenu(DagEditor editor)
         {
             DagEditor dagEditor = editor;
+
             // '파일(_F)' 메뉴 아이템 생성
             var fileMenuItem = new EditorMenuItem
             {

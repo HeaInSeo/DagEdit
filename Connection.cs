@@ -247,12 +247,14 @@ namespace DagEdit
                     context.LineTo(startPoint);
                     context.LineTo(endPoint - spacing);
                     break;
+
                 // TODO 여기 버그 있음.
                 case LineShape.Circuit:
                     Point p2 = GetControlPoint(startPoint, endPoint - spacing);
                     context.LineTo(startPoint);
                     context.LineTo(p2);
                     context.LineTo(endPoint - spacing);
+
                     // 살펴보기
                     //context.LineTo(target);
                     break;
@@ -323,6 +325,7 @@ namespace DagEdit
             context.BeginFigure(target, true);
             context.LineTo(from);
             context.LineTo(to);
+
             // 주석 지우지 말것!
             // Stroke 색상 가져오기 Avalonia 에서는 필요 없음.
             // var strokeColor = Stroke is SolidColorBrush strokeBrush ? strokeBrush.Color : Colors.Black;
@@ -368,6 +371,7 @@ namespace DagEdit
                 to = new(target.X + (headWidth * cosT + headHeight * sinT),
                     target.Y - (headHeight * cosT - headWidth * sinT));
             }
+
             // Spacing이 1보다 큰 경우, 화살표의 머리 부분을 방향에 따라 계산.
             else
             {
@@ -494,6 +498,7 @@ namespace DagEdit
                     case ArrowHeadEnds.Start:
                     {
                         DrawArrowGeometry(context, source, target, ConnectionDirection.Backward);
+
                         // TODO 일단 사각형을 그렸는데, 없어도 상관없다면 DrawRectGeometry 주석처리 하면 됨.
                         DrawRectGeometry(context, source);
                         break;
@@ -502,6 +507,7 @@ namespace DagEdit
                     case ArrowHeadEnds.End:
                     {
                         DrawArrowGeometry(context, source, target, ConnectionDirection.Forward);
+
                         // TODO 일단 사각형을 그렸는데, 없어도 상관없다면 DrawRectGeometry 주석처리 하면 됨.
                         DrawRectGeometry(context, source);
                         break;

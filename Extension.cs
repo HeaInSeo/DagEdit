@@ -210,6 +210,7 @@ namespace DagEdit
             _ = reference ?? throw new ArgumentNullException(nameof(reference));
             _ = target ?? throw new ArgumentNullException(nameof(target));
             var matrix = reference.TransformToVisual(target);
+
             // 변환 행렬이 존재하는 경우
             if (matrix.HasValue)
             {
@@ -251,6 +252,7 @@ namespace DagEdit
                 string output =
                     DateTime.Now.ToString("hh:mm:ss") + ": " +
                     string.Format(format, args); //+ Environment.NewLine + Environment.StackTrace;
+
                 //Console.WriteLine(output);
                 Debug.WriteLine(output);
             }
