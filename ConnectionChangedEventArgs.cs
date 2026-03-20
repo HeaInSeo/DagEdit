@@ -21,11 +21,17 @@ namespace DagEdit
         }
 
         public Guid? NodeId { get; set; }
+
         public Point? Location { get; set; }
+
         public Point? SourceAnchor { get; set; }
+
         public Point? OldSourceAnchor { get; set; }
+
         public Point? TargetAnchor { get; set; }
+
         public Point? OldTargetAnchor { get; set; }
+
         public DagItemsType? DagItemType { get; set; }
     }
 }

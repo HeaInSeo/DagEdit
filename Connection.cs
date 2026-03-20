@@ -81,6 +81,7 @@ namespace DagEdit
         private const double BaseOffset = 100d;
 
         public Guid ConnectionId { get; set; }
+
         private const double OffsetGrowthRate = 25d;
         private const double Degrees = Math.PI / 180.0d;
         private const double DefaultSpacing = 30d;

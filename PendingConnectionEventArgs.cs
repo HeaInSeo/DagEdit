@@ -44,11 +44,14 @@ namespace DagEdit
         public Vector? Offset { get; set; }
 
         public Point? SourceAnchor { get; set; }
+
         public Point? TargetAnchor { get; set; }
 
         // 일단 이렇게 추가함.
         public Guid? NodeId { get; set; }
+
         public Guid? SourceNodeId { get; set; }
+
         public Guid? TargetNodeId { get; set; }
     }
 }

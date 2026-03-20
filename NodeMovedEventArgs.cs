@@ -42,7 +42,9 @@ namespace DagEdit
     public class NodeMovedEventArgs : RoutedEventArgs
     {
         public Guid NodeId { get; }
+
         public Point OldLocation { get; }
+
         public Point NewLocation { get; }
 
         public NodeMovedEventArgs(RoutedEvent routedEvent, Guid nodeId, Point oldLocation, Point newLocation)
