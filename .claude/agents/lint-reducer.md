@@ -18,23 +18,32 @@ cleanup rules. Never mix lint reduction with feature work.
 3. Select **1–2 rules only** from the current phase's target group.
 4. State the rules and numeric target before making any edits.
 
+## Ownership rule
+
+InspectCode가 분석하는 파일 중 일부는 DagEdit 소유가 아니다.
+
+- **DagEdit owned**: `src/`, `tests/`, `benchmarks/` 아래 DagEdit 자체 `.cs` 파일 — 감축 배치 대상
+- **external/VCA inherited**: `external/virtualcanvas-avalonia/` 아래 VCA 소스 — **감축 배치 대상 제외**. VCA repo에서 별도 처리.
+
+현재 확인된 external/VCA inherited 항목:
+- `ArrangeObjectCreationWhenTypeEvident` × 7 (`VCRect.cs`, `PriorityQuadTree.cs`, `PriorityQueue.cs`)
+
+이 항목들은 DagEdit total에 포함되지만 이 에이전트의 수정 범위 밖이다.
+
 ## Phase targets
 
-**Phase 0 — Gate recovery (immediate priority)**
-- Target: 1210 → ≤ 1197
-- Action: Identify files that introduced the +13 regression via SARIF analysis.
-  Run `dotnet jb inspectcode` and diff against the last known-good snapshot.
-  Remove only the delta; do not reduce further in this batch.
+**Phase 0 — CLOSED, no code changes required**
+- 실제 regression 없음. CI 확정값: 1141 (commit `7551168`, 2026-03-20).
+- INSPECTCODE_REDUCTION_PLAN.md §2 참조.
 
-**Phase 1 — First 10% reduction (target ≤ 1089)**
-- Batch 1-A: `RedundantUsingDirective` — remove unused using directives
-- Batch 1-B: `SuggestVarOrType_SimpleTypes` — replace explicit type with `var` where apparent
-- Batch 1-C: `SuggestVarOrType_BuiltInTypes` — unify C# keyword aliases (int/string)
+**Phase 1 — First 10% reduction (baseline 1141 → target ≤ 1027)**
+- Batch 1-A: `SuggestVarOrType_SimpleTypes` (262건) — local variable 선언부 explicit type → `var`
+- Batch 1-B: `SuggestVarOrType_BuiltInTypes` (73건) — int/string 등 언어 키워드 치환
+- Batch 1-C: `RedundantNameQualifier` (48건) — 불필요한 네임스페이스 한정자 제거
 
-**Phase 2 — Second 10% reduction (target ≤ 980)**
-- Batch 2-A: `ArrangeObjectCreationWhenTypeEvident` — target-typed new `new(...)` where evident
-- Batch 2-B: `ArrangeThisQualifier` — remove `this.` (SA1101=none, removal direction)
-- Batch 2-C: `RedundantNameQualifier` — remove unnecessary namespace qualifiers
+**Phase 2 — Second 10% reduction (target ≤ 924)**
+- Batch 2-A: `ArrangeThisQualifier` (34건) — `this.` 제거 (SA1101=none, 제거 방향)
+- Batch 2-B: `RedundantUsingDirective` (1건) — 잔존 미사용 using 제거
 
 **Phase 3+ — Deferred until Phases 1–2 complete**
 - `MemberCanBePrivate.Global`, `UnusedMember.Global`, `InconsistentNaming`
@@ -67,5 +76,5 @@ Files changed:    <list>
 Delta after:      <count> (baseline now: <N'>)
 Build result:     0 errors, 0 new warnings
 Test result:      <X>/179 pass
-Next step:        <next batch or "Phase 0 complete">
+Next step:        <next batch or "Phase 1 complete">
 ```
