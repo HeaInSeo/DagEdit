@@ -232,7 +232,8 @@
     - `SourceConnector` release 경로 단순화 및 `PendingConnection` 필드 섹션 재배치
     - 클린 빌드 기준선 재검증 및 `BaseNode`/`DagEditorCanvas`/`Connection` 순서 경고 추가 정리
     - `SourceConnector`/`TargetConnector`/`PendingConnection` constructor-order 정리
-  - 현재 로컬 검증: `dotnet clean DagEdit.sln -c Release` 성공 후 `dotnet build DagEdit.sln -c Release --no-restore` 성공, `186 Warning(s)`, `0 Error(s)`
+    - `Extension`/`EditorContextFlyout`/`DagViewerProjectionAdapter` 저위험 스타일 경고 추가 정리
+  - 현재 로컬 검증: `dotnet clean DagEdit.sln -c Release` 성공 후 `dotnet build DagEdit.sln -c Release --no-restore` 성공, `175 Warning(s)`, `0 Error(s)`
 
 ### S2
 

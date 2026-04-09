@@ -40,6 +40,12 @@ namespace DagEdit
     /// </summary>
     internal sealed class DagViewerProjectionAdapter
     {
+        /// <summary>
+        /// Viewer wiring용 기본 world extent.
+        /// </summary>
+        internal static readonly VCRect DefaultProjectionExtent =
+            new(0, 0, 50_000, 50_000);
+
         // NodeId → 현재 viewer projection 스냅샷
         private readonly Dictionary<Guid, NodeViewItem> _snapshots = new();
 
@@ -49,11 +55,31 @@ namespace DagEdit
         // H-1 batch: 0 이면 즉시 flush, > 0 이면 EndBatch까지 suppressed
         private int _batchDepth;
 
+        // ─── Changed signal ───────────────────────────────────────────────────
+
         /// <summary>
-        /// Viewer wiring용 기본 world extent.
+        /// Flush() 호출 시 발생하는 이벤트. VCA.SpatialIndex.RaiseChanged()에 해당한다.
+        ///
+        /// 수신자 예시 (wiring 단계):
+        ///   adapter.ProjectionChanged += (_, _) =>
+        ///   {
+        ///       spatialIndex.Clear();
+        ///       foreach (var item in adapter.Snapshots.Values) spatialIndex.Insert(item);
+        ///       spatialIndex.RaiseChanged();
+        ///   };
         /// </summary>
-        internal static readonly VCRect DefaultProjectionExtent =
-            new(0, 0, 50_000, 50_000);
+        public event EventHandler? ProjectionChanged;
+
+        /// <summary>
+        /// H-2 pool cleanup: 노드가 _snapshots에서 제거될 때 해당 NodeViewItem을 인수로 발생.
+        ///
+        /// 수신자는 이 이벤트를 구독하여 자체 캐시(예: factory._pool)를 정리할 수 있다.
+        /// 어댑터는 factory를 직접 알지 못하며, wiring은 호출 측(MainWindow)이 담당한다.
+        ///
+        /// 발생 시점: OnNodeRemoved() 에서 실제로 제거가 일어날 때.
+        /// 발생하지 않는 경우: nodeId가 _snapshots에 없어 no-op인 경우.
+        /// </summary>
+        public event EventHandler<NodeViewItem>? ItemRemoved;
 
         // ─── 읽기 전용 노출 ───────────────────────────────────────────────────
 
@@ -82,32 +108,6 @@ namespace DagEdit
         /// 예: 10 OnNodeAdded + 1 EndBatch → BatchedFlushCount + 1, ProjectionChangedCount + 1.
         /// </summary>
         public int BatchedFlushCount { get; private set; }
-
-        // ─── Changed signal ───────────────────────────────────────────────────
-
-        /// <summary>
-        /// Flush() 호출 시 발생하는 이벤트. VCA.SpatialIndex.RaiseChanged()에 해당한다.
-        ///
-        /// 수신자 예시 (wiring 단계):
-        ///   adapter.ProjectionChanged += (_, _) =>
-        ///   {
-        ///       spatialIndex.Clear();
-        ///       foreach (var item in adapter.Snapshots.Values) spatialIndex.Insert(item);
-        ///       spatialIndex.RaiseChanged();
-        ///   };
-        /// </summary>
-        public event EventHandler? ProjectionChanged;
-
-        /// <summary>
-        /// H-2 pool cleanup: 노드가 _snapshots에서 제거될 때 해당 NodeViewItem을 인수로 발생.
-        ///
-        /// 수신자는 이 이벤트를 구독하여 자체 캐시(예: factory._pool)를 정리할 수 있다.
-        /// 어댑터는 factory를 직접 알지 못하며, wiring은 호출 측(MainWindow)이 담당한다.
-        ///
-        /// 발생 시점: OnNodeRemoved() 에서 실제로 제거가 일어날 때.
-        /// 발생하지 않는 경우: nodeId가 _snapshots에 없어 no-op인 경우.
-        /// </summary>
-        public event EventHandler<NodeViewItem>? ItemRemoved;
 
         // ─── Mutation methods ─────────────────────────────────────────────────
 

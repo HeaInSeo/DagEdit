@@ -49,7 +49,6 @@ namespace DagEdit
             fileMenuItem.Items.Add(newMenuItem);
             fileMenuItem.Items.Add(new Separator());
             fileMenuItem.Items.Add(openMenuItem);
-
             // '파일(_F)' 메뉴 아이템을 ContextMenu에 추가
             // contextMenu.Items.Add(fileMenuItem);
 

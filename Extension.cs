@@ -248,9 +248,9 @@ namespace DagEdit
 
         // 사용하지 않을 듯 하지만 일단 남겨 놓는다.
         // 로그 파일을 저장할 폴더와 파일 이름 정의
-        private static readonly string logDirectory = Path.Combine(Environment.CurrentDirectory, "Logs");
-        private static readonly string logFilePath = Path.Combine(logDirectory, "PerformanceLog.txt");
-        private static readonly string logErrorsPath = Path.Combine(logDirectory, "ErrorsLog.txt");
+        private static readonly string LogDirectory = Path.Combine(Environment.CurrentDirectory, "Logs");
+        private static readonly string LogFilePath = Path.Combine(LogDirectory, "PerformanceLog.txt");
+        private static readonly string LogErrorsPath = Path.Combine(LogDirectory, "ErrorsLog.txt");
 
         [Conditional("DEBUG")]
         public static void Log(bool condition, string format, params object[] args)
@@ -261,7 +261,7 @@ namespace DagEdit
                     DateTime.Now.ToString("hh:mm:ss") + ": " +
                     string.Format(format, args); // + Environment.NewLine + Environment.StackTrace;
 
-                //Console.WriteLine(output);
+                // Console.WriteLine(output);
                 Debug.WriteLine(output);
             }
         }
@@ -277,9 +277,9 @@ namespace DagEdit
 
         public static void LogPerformance(string message)
         {
-            if (!Directory.Exists(logDirectory))
+            if (!Directory.Exists(LogDirectory))
             {
-                Directory.CreateDirectory(logDirectory);
+                Directory.CreateDirectory(LogDirectory);
             }
 
             Process currentProcess = Process.GetCurrentProcess();
@@ -300,7 +300,7 @@ namespace DagEdit
             try
             {
                 // C# 8.0 이상에서 사용할 수 있는 간소화된 using 구문
-                using var writer = new StreamWriter(logFilePath, true);
+                using var writer = new StreamWriter(LogFilePath, true);
                 writer.WriteLine(message);
             }
             catch (Exception ex)
@@ -319,7 +319,7 @@ namespace DagEdit
             string? errorsPath = null,
             Action<string>? fallback = null)
         {
-            string targetPath = errorsPath ?? logErrorsPath;
+            string targetPath = errorsPath ?? LogErrorsPath;
             fallback ??= WriteDiagnosticFallback;
 
             try

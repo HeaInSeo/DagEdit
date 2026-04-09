@@ -561,6 +561,17 @@
 
 ---
 
+### [Step 41] S1 저위험 스타일 정리 9차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `EditorContextFlyout.cs`, `Extension.cs`, `Connection.cs`, `DagViewerProjectionAdapter.cs` 추가 정리
+  - 대상: comment spacing, static readonly 필드 네이밍, 산술식 precedence 보강, 이벤트/속성 순서 보정
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore` 성공
+  - 경고 수: `186 Warning(s)` → `175 Warning(s)`
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |

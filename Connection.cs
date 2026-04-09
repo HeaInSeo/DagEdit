@@ -371,10 +371,10 @@ namespace DagEdit
                 var cosT = Math.Cos(angle);
 
                 from = new(
-                    target.X + (headWidth * cosT - headHeight * sinT),
-                    target.Y + (headWidth * sinT + headHeight * cosT));
+                    target.X + ((headWidth * cosT) - (headHeight * sinT)),
+                    target.Y + ((headWidth * sinT) + (headHeight * cosT)));
                 to = new(
-                    target.X + (headWidth * cosT + headHeight * sinT),
+                    target.X + ((headWidth * cosT) + (headHeight * sinT)),
                     target.Y - ((headHeight * cosT) - (headWidth * sinT)));
             }
 
