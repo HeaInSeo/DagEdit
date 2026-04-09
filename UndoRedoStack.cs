@@ -4,13 +4,6 @@ using ReactiveUI;
 
 namespace DagEdit
 {
-    public interface IUndoableCommand
-    {
-        void Execute();
-
-        void Undo();
-    }
-
     /// <summary>
     /// Undo/Redo 스택. Execute → Undo → Redo 사이클을 관리한다.
     ///
@@ -18,7 +11,7 @@ namespace DagEdit
     /// - Undo: undoStack에서 pop → 명령 되돌리기 → redoStack에 push
     /// - Redo: redoStack에서 pop → 명령 재수행 → undoStack에 push
     /// </summary>
-    public sealed class UndoRedoStack : ReactiveObject, IDisposable
+    internal sealed class UndoRedoStack : ReactiveObject, IDisposable
     {
         private readonly Stack<IUndoableCommand> _undoStack = new();
         private readonly Stack<IUndoableCommand> _redoStack = new();

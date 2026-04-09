@@ -69,7 +69,7 @@ namespace DagEdit
             _disposables.Dispose();
         }
 
-        //TODO 사이즈에 대한 것은 디버깅해서 살펴보자.
+        // TODO 사이즈에 대한 것은 디버깅해서 살펴보자.
         /// <inheritdoc />
         protected override Size ArrangeOverride(Size finalSize)
         {

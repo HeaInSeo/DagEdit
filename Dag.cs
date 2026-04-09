@@ -76,7 +76,6 @@ namespace DagEdit
         }
 
         // ─── Delete ───────────────────────────────────────────────────────────
-
         public bool DelDagConnectionItem(Guid? connectionId)
         {
             ThrowIfDisposed();
@@ -200,7 +199,6 @@ namespace DagEdit
         }
 
         // ─── Query ────────────────────────────────────────────────────────────
-
         public DagNode? FindNode(Guid nodeId) =>
             _nodeIndex.TryGetValue(nodeId, out var node) ? node : null;
 

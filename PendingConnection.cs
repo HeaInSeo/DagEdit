@@ -38,33 +38,6 @@ namespace DagEdit
     /// </summary>
     public sealed class PendingConnection : ContentControl, IDisposable
     {
-        #region Fields
-
-        // ── Reactive 상태 ──────────────────────────────────────────────────────
-        // _state: SourceAnchor/TargetAnchor의 반응형 미러.
-        //   AvaloniaProperty 변경 → _state 갱신 → WhenAnyValue → PART_Connection 갱신.
-        private readonly PendingConnectionState _state = new();
-
-        // _disposables: 모든 Rx 구독의 수명을 관리한다.
-        //   Dispose() 호출 시 일괄 해제 → 메모리 누수 방지.
-        private readonly CompositeDisposable _disposables = new();
-
-        // _scaleTransform / _translateTransform: DagEditorCanvas와 동일한 TransformGroup을 구성한다.
-        // TransformGroup(Scale(s), Translate(-vl.X, -vl.Y)) 덕분에
-        // 월드 좌표(SourceAnchor/TargetAnchor)로 지정한 선이 줌/패닝 상태에서 노드와 정확히 일치한다.
-        private readonly ScaleTransform _scaleTransform = new(1.0, 1.0);
-        private readonly TranslateTransform _translateTransform = new();
-
-        // _partConnection: OnApplyTemplate에서 채워지는 PART_Connection 참조.
-        //   WhenAnyValue 구독의 대상이다.
-        private Connection? _partConnection;
-
-        // _templateDisposables: OnApplyTemplate마다 리셋되는 구독 관리.
-        //   템플릿이 재적용될 때 이전 구독을 정리해 누적을 방지한다.
-        private CompositeDisposable _templateDisposables = new();
-
-        #endregion
-
         #region Dependency Properties
 
         public static readonly StyledProperty<Point> SourceAnchorProperty =
@@ -103,6 +76,33 @@ namespace DagEdit
 
         public static readonly StyledProperty<double> ViewportScaleProperty =
             AvaloniaProperty.Register<PendingConnection, double>(nameof(ViewportScale), 1.0);
+
+        #endregion
+
+        #region Fields
+
+        // ── Reactive 상태 ──────────────────────────────────────────────────────
+        // _state: SourceAnchor/TargetAnchor의 반응형 미러.
+        //   AvaloniaProperty 변경 → _state 갱신 → WhenAnyValue → PART_Connection 갱신.
+        private readonly PendingConnectionState _state = new();
+
+        // _disposables: 모든 Rx 구독의 수명을 관리한다.
+        //   Dispose() 호출 시 일괄 해제 → 메모리 누수 방지.
+        private readonly CompositeDisposable _disposables = new();
+
+        // _scaleTransform / _translateTransform: DagEditorCanvas와 동일한 TransformGroup을 구성한다.
+        // TransformGroup(Scale(s), Translate(-vl.X, -vl.Y)) 덕분에
+        // 월드 좌표(SourceAnchor/TargetAnchor)로 지정한 선이 줌/패닝 상태에서 노드와 정확히 일치한다.
+        private readonly ScaleTransform _scaleTransform = new(1.0, 1.0);
+        private readonly TranslateTransform _translateTransform = new();
+
+        // _partConnection: OnApplyTemplate에서 채워지는 PART_Connection 참조.
+        //   WhenAnyValue 구독의 대상이다.
+        private Connection? _partConnection;
+
+        // _templateDisposables: OnApplyTemplate마다 리셋되는 구독 관리.
+        //   템플릿이 재적용될 때 이전 구독을 정리해 누적을 방지한다.
+        private CompositeDisposable _templateDisposables = new();
 
         #endregion
 
@@ -257,42 +257,15 @@ namespace DagEdit
             get => GetValue(ViewportScaleProperty);
             set => SetValue(ViewportScaleProperty, value);
         }
+
         #endregion
 
-        #region Template
+        #region IDisposable
 
-        /// <summary>
-        /// C# FuncControlTemplate: AXAML PendingConnection.axaml의 &lt;Template&gt; 완전 대체.
-        ///
-        /// TemplateLayoutCanvas(PART_Canvas)
-        ///   └─ Connection(PART_Connection)
-        ///
-        /// Source/Target/Fill/Stroke는 OnApplyTemplate의 WhenAnyValue 구독이 갱신한다.
-        /// 초기값은 SetFillAndStroke(DodgerBlue), Padding(0,0,5,5)로 설정한다.
-        /// </summary>
-        private static FuncControlTemplate BuildTemplate()
+        public void Dispose()
         {
-            return new FuncControlTemplate<PendingConnection>((pc, ns) =>
-            {
-                var connection = new Connection
-                {
-                    Fill = Brushes.DodgerBlue,
-                    Stroke = Brushes.DodgerBlue,
-                    StrokeThickness = 3.0,
-                };
-
-                ns.Register("PART_Connection", connection);
-
-                var canvas = new TemplateLayoutCanvas
-                {
-                    Background = Brushes.Transparent,
-                };
-
-                canvas.Children.Add(connection);
-                ns.Register("PART_Canvas", canvas);
-
-                return canvas;
-            });
+            _templateDisposables.Dispose();
+            _disposables.Dispose();
         }
 
         #endregion
@@ -356,14 +329,43 @@ namespace DagEdit
 
         #endregion
 
-        #region IDisposable
+        #region Template
 
-        public void Dispose()
+        /// <summary>
+        /// C# FuncControlTemplate: AXAML PendingConnection.axaml의 &lt;Template&gt; 완전 대체.
+        ///
+        /// TemplateLayoutCanvas(PART_Canvas)
+        ///   └─ Connection(PART_Connection)
+        ///
+        /// Source/Target/Fill/Stroke는 OnApplyTemplate의 WhenAnyValue 구독이 갱신한다.
+        /// 초기값은 SetFillAndStroke(DodgerBlue), Padding(0,0,5,5)로 설정한다.
+        /// </summary>
+        private static FuncControlTemplate<PendingConnection> BuildTemplate()
         {
-            _templateDisposables.Dispose();
-            _disposables.Dispose();
+            return new FuncControlTemplate<PendingConnection>((_, ns) =>
+            {
+                var connection = new Connection
+                {
+                    Fill = Brushes.DodgerBlue,
+                    Stroke = Brushes.DodgerBlue,
+                    StrokeThickness = 3.0,
+                };
+
+                ns.Register("PART_Connection", connection);
+
+                var canvas = new TemplateLayoutCanvas
+                {
+                    Background = Brushes.Transparent,
+                };
+
+                canvas.Children.Add(connection);
+                ns.Register("PART_Canvas", canvas);
+
+                return canvas;
+            });
         }
 
         #endregion
+
     }
 }

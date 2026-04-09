@@ -91,30 +91,6 @@ namespace DagEdit
 
         #endregion
 
-        #region Event Handlers
-
-        protected virtual void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
-        {
-        }
-
-        protected virtual void HandlePointerMoved(object? sender, PointerEventArgs args)
-        {
-        }
-
-        protected virtual void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
-        {
-        }
-
-        /*protected virtual void HandleKeyDown(object? sender, KeyEventArgs args)
-        {
-        }*/
-
-        protected virtual void HandleLoaded(object? sender, RoutedEventArgs args)
-        {
-        }
-
-        #endregion
-
         #region Methods
 
         // TODO Dispose 관련해서 테스트 해봐야 함.
@@ -142,6 +118,34 @@ namespace DagEdit
 
             // 관리되지 않는 자원 해제 코드가 필요한 경우 여기에 추가
         }
+
+        #endregion
+
+        #region Event Handlers
+
+        protected virtual void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
+        {
+        }
+
+        protected virtual void HandlePointerMoved(object? sender, PointerEventArgs args)
+        {
+        }
+
+        protected virtual void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
+        {
+        }
+
+        /*protected virtual void HandleKeyDown(object? sender, KeyEventArgs args)
+        {
+        }*/
+
+        protected virtual void HandleLoaded(object? sender, RoutedEventArgs args)
+        {
+        }
+
+        #endregion
+
+        #region Helpers
 
         private void InitializeSubscriptions()
         {

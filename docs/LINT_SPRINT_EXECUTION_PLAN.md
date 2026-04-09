@@ -221,8 +221,8 @@
 
 - 상태: In Progress
 - 실제 결과:
-  - 저위험 정리 8개 배치 수행
-  - 대상 파일: `App.axaml.cs`, `TemplateLayoutCanvas.cs`, `TargetConnector.cs`, `MultiGesture.cs`, `DagItems.cs`, `Connection.cs`, `Extension.cs`, `BaseNode.cs`, `SourceConnector.cs`, `Program.cs`, `MainWindow.axaml.cs`, `BrushResources.cs`, `DagEditor.cs`, `Connector.cs`, `Node.cs`, `EditorContextFlyout.cs`, `PendingConnectionEventArgs.cs`, `PointerGesture.cs`, `ILocatable.cs`, `EditorMenuItem.cs`, `UndoRedoStack.cs`, `ConnectionChangedEventArgs.cs`, `NodeViewItem.cs`
+  - 저위험 정리 22개 배치 수행
+  - 대상 파일: `App.axaml.cs`, `TemplateLayoutCanvas.cs`, `TargetConnector.cs`, `MultiGesture.cs`, `DagItems.cs`, `Connection.cs`, `Extension.cs`, `BaseNode.cs`, `SourceConnector.cs`, `Program.cs`, `MainWindow.axaml.cs`, `BrushResources.cs`, `DagEditor.cs`, `Connector.cs`, `Node.cs`, `EditorContextFlyout.cs`, `PendingConnectionEventArgs.cs`, `PointerGesture.cs`, `ILocatable.cs`, `EditorMenuItem.cs`, `UndoRedoStack.cs`, `ConnectionChangedEventArgs.cs`, `NodeViewItem.cs`, `DagEditorViewModel.cs`, `PendingConnection.cs`
   - 수행 내용:
     - BOM 제거, trailing whitespace 제거, comment spacing 보정
     - single-line block 확장, constructor initializer 줄바꿈, method signature/argument 정렬
@@ -233,7 +233,20 @@
     - 클린 빌드 기준선 재검증 및 `BaseNode`/`DagEditorCanvas`/`Connection` 순서 경고 추가 정리
     - `SourceConnector`/`TargetConnector`/`PendingConnection` constructor-order 정리
     - `Extension`/`EditorContextFlyout`/`DagViewerProjectionAdapter` 저위험 스타일 경고 추가 정리
-  - 현재 로컬 검증: `dotnet clean DagEdit.sln -c Release` 성공 후 `dotnet build DagEdit.sln -c Release --no-restore` 성공, `175 Warning(s)`, `0 Error(s)`
+    - `Connector` 공개 필드 제거 및 파생 클래스 참조 정리
+    - `DagEditorViewModel` 멤버 순서 경고 대량 정리
+    - `Node`/`BaseNode`의 필드, 이벤트, 속성, helper, event handler 순서 재배치
+    - `PendingConnection` template helper 반환 타입 구체화 및 `OnApplyTemplate`/`Dispose` 순서 재배치
+    - `DagEditorViewModel` 생성자, Pin/Unpin 이벤트, `ViewerAdapter` 위치를 추가 정리
+    - `Connector`/`Connection`/`Node`의 생성자, dependency property, helper 순서를 추가 정리
+    - `DagEditor`의 dependency property 등록, CLR property, readonly 필드, public/protected/private 메서드 블록을 대규모 재배치
+    - `Extension` private static field를 상단으로 이동하고 `DagEditor` comment spacing/blank line을 추가 정리
+    - `DagEditor` field 네이밍 보정과 helper 재배치, `Connection`/`Node` static helper 순서 추가 정리
+    - `Dag` section header comment blank line, `EditorContextFlyout` comment block spacing, `DagEditorCanvas` TODO comment spacing 추가 정리
+    - `UndoableCommands`, `NodeMovedEventArgs`, `DagItems`를 단일 타입 파일로 분리해 `SA1402/SA1649` 경고를 대량 감축
+    - `UndoRedoStack`, `MainWindow.axaml.cs`, `DagEditorViewModel`의 보조 타입을 별도 파일로 이동해 남은 구조 경고 추가 감축
+    - 내부 전용 command/helper 타입을 `internal`로 축소해 `CA1515`를 대량 감축하고, 공개 이벤트 시그니처에 걸린 event args는 `public` 유지
+  - 현재 로컬 검증: `dotnet clean DagEdit.sln -c Release` 성공 후 `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공, `69 Warning(s)`, `0 Error(s)`
 
 ### S2
 

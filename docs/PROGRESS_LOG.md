@@ -572,6 +572,186 @@
 
 ---
 
+### [Step 42] S1-S2 경계 구조 정리 6차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Connector.cs`, `SourceConnector.cs`, `TargetConnector.cs` 추가 정리
+  - 대상: protected field를 protected property로 전환, 생성자/이벤트/메서드 순서 재배치, 파생 클래스 참조 정렬
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore` 성공
+  - 경고 수: `175 Warning(s)` → `166 Warning(s)`
+
+---
+
+### [Step 43] S1-S2 경계 구조 정리 7차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `DagEditorViewModel.cs` 추가 정리
+  - 대상: 필드/이벤트/속성/생성자/메서드 순서를 StyleCop 규칙에 맞게 재배치
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore` 성공
+  - 경고 수: `166 Warning(s)` → `158 Warning(s)`
+
+---
+
+### [Step 44] S1-S2 경계 구조 정리 8차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Node.cs` 추가 정리
+  - 대상: 필드/생성자/이벤트/속성/메서드 순서 재배치, 상수/readonly/static 배치 보정, tuple 이름 및 기본값 생성자 정리
+- **검증 지표**:
+  - `dotnet clean DagEdit.sln -c Release` 성공
+  - `dotnet build DagEdit.sln -c Release --no-restore` 성공
+  - 경고 수: `158 Warning(s)` → `149 Warning(s)`
+
+---
+
+### [Step 45] S1-S2 경계 구조 정리 9차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Node.cs`, `BaseNode.cs` 추가 정리
+  - 대상: public/internal/protected/private 순서 보정, helper/event handler 배치 정리, region 정합성 복구
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore` 성공
+  - 경고 수: `149 Warning(s)` → `143 Warning(s)`
+
+---
+
+### [Step 46] S1-S2 경계 구조 정리 10차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Connector.cs`, `DagEditorViewModel.cs` 추가 정리
+  - 대상: `fields/ctors/finalizer/events/properties/methods` 순서 보정, public/internal 멤버 재배치
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore` 성공
+  - 경고 수: `143 Warning(s)` → `138 Warning(s)`
+
+---
+
+### [Step 47] S1-S2 경계 구조 정리 11차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Connection.cs` 추가 정리
+  - 대상: 필드/생성자/속성/공개 메서드/override/helper/static helper 순서 재배치, `StreamGeometryContext` 구체 타입 반영
+- **검증 지표**:
+  - `dotnet clean DagEdit.sln -c Release` 성공
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `138 Warning(s)` → `131 Warning(s)`
+
+---
+
+### [Step 48] S1-S2 경계 구조 정리 12차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `PendingConnection.cs`, `DagEditorViewModel.cs` 추가 정리
+  - 대상: public/protected/private 멤버 순서 보정, `FuncControlTemplate<PendingConnection>` 구체 타입 반영, `ViewerAdapter`/생성자/속성 배치 재정렬
+- **검증 지표**:
+  - `dotnet clean DagEdit.sln -c Release` 성공
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `131 Warning(s)` → `127 Warning(s)`
+
+---
+
+### [Step 49] S1-S2 경계 구조 정리 13차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `PendingConnection.cs`, `DagEditorViewModel.cs` 추가 정리
+  - 대상: `OnApplyTemplate`/template helper 순서 보정, Pin/Unpin 이벤트 위치 조정, `SA1512` comment spacing 보정
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `127 Warning(s)` → `122 Warning(s)`
+
+---
+
+### [Step 50] S1-S2 경계 구조 정리 14차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Connector.cs`, `Connection.cs`, `Node.cs` 추가 정리
+  - 대상: 생성자/속성 순서 보정, dependency property와 상수 배치 재정렬, protected override와 private helper 순서 정리
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `122 Warning(s)` → `120 Warning(s)`
+
+---
+
+### [Step 51] S1-S2 경계 구조 정리 15차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `DagEditor.cs` 대규모 순서 정리
+  - 대상: dependency property 등록과 CLR property 분리, readonly/non-readonly 필드 정렬, public/protected/private 메서드 블록 재배치
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `120 Warning(s)` → `103 Warning(s)`
+
+---
+
+### [Step 52] S1-S2 경계 구조 정리 16차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Extension.cs`, `DagEditor.cs` 추가 정리
+  - 대상: `Extension` private static field를 상단으로 이동해 `SA1201` 제거, `DagEditor`의 comment spacing 및 closing brace blank line 보정
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `103 Warning(s)` → `99 Warning(s)`
+
+---
+
+### [Step 53] S1-S2 경계 구조 정리 17차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `DagEditor.cs`, `Connection.cs`, `Node.cs` 추가 정리
+  - 대상: `DagEditor` field 네이밍 보정, static helper 위치 재조정, `Connection`/`Node` helper 순서 재배치
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `99 Warning(s)` → `97 Warning(s)`
+
+---
+
+### [Step 54] S1-S2 경계 구조 정리 18차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `Dag.cs`, `EditorContextFlyout.cs`, `DagEditorCanvas.cs` 추가 정리
+  - 대상: section header comment 뒤 blank line 제거, single-line comment spacing 보정, 주석 블록 앞뒤 공백 정리
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `97 Warning(s)` → `92 Warning(s)`
+
+---
+
+### [Step 55] S1-S2 경계 구조 정리 19차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `UndoableCommands.cs`, `NodeMovedEventArgs.cs`, `DagItems.cs` 구조 분리
+  - 대상: 다중 타입 파일을 단일 타입 파일로 분리해 `AddNodeCommand`, `DelNodeCommand`, `AddConnectionCommand`, `DelConnectionCommand`, `MoveNodeCommand`, `NodeDragStartedEventArgs`, `NodeDragEndedEventArgs`, `DagNode`, `DagConnection`를 각각 별도 파일로 이동
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `92 Warning(s)` → `84 Warning(s)`
+
+---
+
+### [Step 56] S2 구조 분리 20차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - `UndoRedoStack.cs`, `MainWindow.axaml.cs`, `DagEditorViewModel.cs` 구조 분리
+  - 대상: `IUndoableCommand`, `ProjectionChangedSubscription`, `AlreadyExecutedCommand`를 별도 파일로 이동해 다중 타입 파일 경고 제거
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `84 Warning(s)` → `81 Warning(s)`
+
+---
+
+### [Step 57] S3 API surface 정리 21차 배치
+- **날짜**: 2026-04-09
+- **수행 내용**:
+  - 내부 전용 명령/도우미 타입의 접근성을 `internal`로 축소
+  - 대상: `AddNodeCommand`, `DelNodeCommand`, `AddConnectionCommand`, `DelConnectionCommand`, `MoveNodeCommand`, `AlreadyExecutedCommand`, `IUndoableCommand`, `UndoRedoStack`, `EditorContextFlyout`
+  - 참고: `NodeDragStartedEventArgs`, `NodeDragEndedEventArgs`, `NodeMovedEventArgs`는 `Node`의 공개 이벤트 시그니처에 노출되어 있어 `public` 유지
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `81 Warning(s)` → `69 Warning(s)`
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |

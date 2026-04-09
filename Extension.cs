@@ -12,6 +12,16 @@ namespace DagEdit
 {
     public static class Extension
     {
+        #region Fields
+
+        // 사용하지 않을 듯 하지만 일단 남겨 놓는다.
+        // 로그 파일을 저장할 폴더와 파일 이름 정의
+        private static readonly string LogDirectory = Path.Combine(Environment.CurrentDirectory, "Logs");
+        private static readonly string LogFilePath = Path.Combine(LogDirectory, "PerformanceLog.txt");
+        private static readonly string LogErrorsPath = Path.Combine(LogDirectory, "ErrorsLog.txt");
+
+        #endregion
+
         #region Static Methods
 
         // Subscribe 를 static 에서 사용하기 위해서
@@ -245,12 +255,6 @@ namespace DagEdit
         #endregion
 
         #region 개발중 간단한 테스트
-
-        // 사용하지 않을 듯 하지만 일단 남겨 놓는다.
-        // 로그 파일을 저장할 폴더와 파일 이름 정의
-        private static readonly string LogDirectory = Path.Combine(Environment.CurrentDirectory, "Logs");
-        private static readonly string LogFilePath = Path.Combine(LogDirectory, "PerformanceLog.txt");
-        private static readonly string LogErrorsPath = Path.Combine(LogDirectory, "ErrorsLog.txt");
 
         [Conditional("DEBUG")]
         public static void Log(bool condition, string format, params object[] args)

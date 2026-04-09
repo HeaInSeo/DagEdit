@@ -26,148 +26,67 @@ namespace DagEdit
             AvaloniaProperty.Register<DagEditor, Point>(
                 nameof(ViewportLocation), Constants.ZeroPoint);
 
-        public Point ViewportLocation
-        {
-            get => GetValue(ViewportLocationProperty);
-            set => SetValue(ViewportLocationProperty, value);
-        }
-
         public static readonly StyledProperty<double> ViewportScaleProperty =
             AvaloniaProperty.Register<DagEditor, double>(nameof(ViewportScale), 1.0);
 
-        public double ViewportScale
-        {
-            get => GetValue(ViewportScaleProperty);
-            set => SetValue(ViewportScaleProperty, value);
-        }
-
         public static readonly StyledProperty<bool> DisablePanningProperty =
             AvaloniaProperty.Register<DagEditor, bool>(nameof(DisablePanning));
-
-        public bool DisablePanning
-        {
-            get => GetValue(DisablePanningProperty);
-            set => SetValue(DisablePanningProperty, value);
-        }
 
         public static readonly DirectProperty<DagEditor, bool> IsSelectingProperty =
             AvaloniaProperty.RegisterDirect<DagEditor, bool>(
                 nameof(IsSelecting),
                 o => o.IsSelecting);
 
-        public bool IsSelecting
-        {
-            get => _isSelecting;
-            internal set => SetAndRaise(IsSelectingProperty, ref _isSelecting, value);
-        }
-
         public static readonly StyledProperty<bool> EnableRealtimeSelectionProperty =
             AvaloniaProperty.Register<DagEditor, bool>(
                 nameof(EnableRealtimeSelection));
-
-        public bool EnableRealtimeSelection
-        {
-            get => GetValue(EnableRealtimeSelectionProperty);
-            set => SetValue(EnableRealtimeSelectionProperty, value);
-        }
 
         public static readonly DirectProperty<DagEditor, Rect> SelectedAreaProperty =
             AvaloniaProperty.RegisterDirect<DagEditor, Rect>(
                 nameof(SelectedArea),
                 o => o.SelectedArea);
 
-        public Rect SelectedArea
-        {
-            get => _selectedArea;
-            internal set => SetAndRaise(SelectedAreaProperty, ref _selectedArea, value);
-        }
-
         public static readonly DirectProperty<DagEditor, bool?> IsPreviewingSelectionProperty =
             AvaloniaProperty.RegisterDirect<DagEditor, bool?>(
                 nameof(IsPreviewingSelection),
                 o => o.IsPreviewingSelection);
-
-        public bool? IsPreviewingSelection
-        {
-            get => _isPreviewingSelection;
-            internal set => SetAndRaise(IsPreviewingSelectionProperty, ref _isPreviewingSelection, value);
-        }
 
         public static readonly DirectProperty<DagEditor, bool> IsPanningProperty =
             AvaloniaProperty.RegisterDirect<DagEditor, bool>(
                 nameof(IsPanning),
                 o => o.IsPanning);
 
-        public bool IsPanning
-        {
-            get => _isPanning;
-            protected internal set => SetAndRaise(IsPanningProperty, ref _isPanning, value);
-        }
-
         public static readonly StyledProperty<DataTemplate?> PendingConnectionTemplateProperty =
             AvaloniaProperty.Register<DagEditor, DataTemplate?>(
                 nameof(PendingConnectionTemplate));
-
-        public DataTemplate? PendingConnectionTemplate
-        {
-            get => GetValue(PendingConnectionTemplateProperty);
-            set => SetValue(PendingConnectionTemplateProperty, value);
-        }
 
         public static readonly StyledProperty<object?> PendingConnectionProperty =
             AvaloniaProperty.Register<DagEditor, object?>(
                 nameof(PendingConnection));
 
-        public object? PendingConnection
-        {
-            get => GetValue(PendingConnectionProperty);
-            set => SetValue(PendingConnectionProperty, value);
-        }
-
         public static readonly StyledProperty<Point> SourceAnchorProperty =
             AvaloniaProperty.Register<DagEditor, Point>(nameof(SourceAnchor));
 
-        public Point SourceAnchor
-        {
-            get => GetValue(SourceAnchorProperty);
-            set => SetValue(SourceAnchorProperty, value);
-        }
-
         public static readonly StyledProperty<Point> TargetAnchorProperty =
             AvaloniaProperty.Register<DagEditor, Point>(nameof(TargetAnchor));
-
-        public Point TargetAnchor
-        {
-            get => GetValue(TargetAnchorProperty);
-            set => SetValue(TargetAnchorProperty, value);
-        }
 
         // PendingConnection visible 설정에 사용
         public static readonly StyledProperty<bool> IsVisiblePendingConnectionProperty =
             AvaloniaProperty.Register<DagEditor, bool>(
                 nameof(IsVisiblePendingConnection));
 
-        public bool IsVisiblePendingConnection
-        {
-            get => GetValue(IsVisiblePendingConnectionProperty);
-            set => SetValue(IsVisiblePendingConnectionProperty, value);
-        }
-
         // TODO 필요 없을 듯 향후 코드 정리 시 지운다.
         public static readonly StyledProperty<Point?> ContextMenuPointProperty =
             AvaloniaProperty.Register<DagEditor, Point?>(nameof(ContextMenuPoint));
-
-        public Point? ContextMenuPoint
-        {
-            get => GetValue(ContextMenuPointProperty);
-            set => SetValue(ContextMenuPointProperty, value);
-        }
 
         #endregion
 
         #region Fields
 
         private readonly CompositeDisposable _disposables = new();
+        private readonly HashSet<Guid> _pinnedBySelection = new();
+        private readonly DagEditorViewModel _viewModel = new();
+
         private bool _isSelecting;
         private Rect _selectedArea;
         private bool? _isPreviewingSelection;
@@ -184,11 +103,7 @@ namespace DagEdit
         private EventHandler<NodeDragStartedEventArgs>? _nodeDragStartedHandler;
         private EventHandler<NodeDragEndedEventArgs>? _nodeDragEndedHandler;
 
-        // H-3: 현재 선택으로 인해 pin된 노드 ID 집합
-        private readonly HashSet<Guid> _pinnedBySelection = new();
-
-        private bool _IsRightBtnClicked;
-        private readonly DagEditorViewModel _viewModel = new();
+        private bool _isRightBtnClicked;
 
         // TODO 아래 변수들 코드 정리시 지운다.
         private bool _isLoaded = true;
@@ -208,6 +123,20 @@ namespace DagEdit
 
         // TODO 일단 이렇게 남겨 두는데, Menu 디자인시 수정 해야 함.
         private EditorContextFlyout _contextMenu;
+
+        #endregion
+
+        #region Helpers
+
+        // ─── Selection Rectangle 보조 (Feature 1) ─────────────────────────────
+        private static Rect MakeNormalizedRect(Point a, Point b)
+        {
+            var x = Math.Min(a.X, b.X);
+            var y = Math.Min(a.Y, b.Y);
+            var w = Math.Abs(a.X - b.X);
+            var h = Math.Abs(a.Y - b.Y);
+            return new Rect(x, y, w, h);
+        }
 
         #endregion
 
@@ -278,6 +207,177 @@ namespace DagEdit
                     _syncingViewport = false;
                 })
                 .DisposeWith(_disposables);
+        }
+
+        #endregion
+
+        #region Properties
+
+        public Point ViewportLocation
+        {
+            get => GetValue(ViewportLocationProperty);
+            set => SetValue(ViewportLocationProperty, value);
+        }
+
+        public double ViewportScale
+        {
+            get => GetValue(ViewportScaleProperty);
+            set => SetValue(ViewportScaleProperty, value);
+        }
+
+        public bool DisablePanning
+        {
+            get => GetValue(DisablePanningProperty);
+            set => SetValue(DisablePanningProperty, value);
+        }
+
+        public bool IsSelecting
+        {
+            get => _isSelecting;
+            internal set => SetAndRaise(IsSelectingProperty, ref _isSelecting, value);
+        }
+
+        public bool EnableRealtimeSelection
+        {
+            get => GetValue(EnableRealtimeSelectionProperty);
+            set => SetValue(EnableRealtimeSelectionProperty, value);
+        }
+
+        public Rect SelectedArea
+        {
+            get => _selectedArea;
+            internal set => SetAndRaise(SelectedAreaProperty, ref _selectedArea, value);
+        }
+
+        public bool? IsPreviewingSelection
+        {
+            get => _isPreviewingSelection;
+            internal set => SetAndRaise(IsPreviewingSelectionProperty, ref _isPreviewingSelection, value);
+        }
+
+        public bool IsPanning
+        {
+            get => _isPanning;
+            protected internal set => SetAndRaise(IsPanningProperty, ref _isPanning, value);
+        }
+
+        public DataTemplate? PendingConnectionTemplate
+        {
+            get => GetValue(PendingConnectionTemplateProperty);
+            set => SetValue(PendingConnectionTemplateProperty, value);
+        }
+
+        public object? PendingConnection
+        {
+            get => GetValue(PendingConnectionProperty);
+            set => SetValue(PendingConnectionProperty, value);
+        }
+
+        public Point SourceAnchor
+        {
+            get => GetValue(SourceAnchorProperty);
+            set => SetValue(SourceAnchorProperty, value);
+        }
+
+        public Point TargetAnchor
+        {
+            get => GetValue(TargetAnchorProperty);
+            set => SetValue(TargetAnchorProperty, value);
+        }
+
+        public bool IsVisiblePendingConnection
+        {
+            get => GetValue(IsVisiblePendingConnectionProperty);
+            set => SetValue(IsVisiblePendingConnectionProperty, value);
+        }
+
+        public Point? ContextMenuPoint
+        {
+            get => GetValue(ContextMenuPointProperty);
+            set => SetValue(ContextMenuPointProperty, value);
+        }
+
+        #endregion
+
+        #region Methods
+
+        // TODO Unload 와 관련 및 GC 관련 해서 생각해보자.
+        public void Dispose()
+        {
+            _disposables.Dispose();
+            _viewModel.Dispose();
+        }
+
+        // 외부에 바인딩해야 해야 함. 입력 파라미터는 없어야 함.
+        public void AddNode()
+        {
+            if (ContextMenuPoint is null)
+            {
+                return;
+            }
+
+            _viewModel.ExecuteAddNode(ContextMenuPoint); // Undo/Redo 스택에 등록
+        }
+
+        /// <inheritdoc />
+        protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+        {
+            base.OnApplyTemplate(e);
+
+            topLayer = e.NameScope.Find<Canvas>("PART_TopLayer");
+            if (topLayer == null)
+            {
+                throw new InvalidOperationException("PART_TopLayer cannot be found in the template.");
+            }
+
+            // Selection Rectangle을 PART_TopLayer에 프로그래매틱하게 추가 (Feature 1)
+            _selectionRect = new Rectangle
+            {
+                Stroke = new SolidColorBrush(Color.FromRgb(70, 130, 220)),
+                StrokeThickness = 1.5,
+                Fill = new SolidColorBrush(Color.FromArgb(40, 70, 130, 220)),
+                IsHitTestVisible = false,
+                IsVisible = false,
+            };
+            topLayer.Children.Add(_selectionRect);
+        }
+
+        /// <inheritdoc />
+        protected override Control CreateContainerForItemOverride(object? item, int index, object? recycleKey)
+        {
+            // TODO switch case 문이 좋을지 고민
+            if (item is DagItems dagItems)
+            {
+                if (dagItems.NodeItem != null)
+                {
+                    if (dagItems.NodeItem.Location.HasValue)
+                    {
+                        var node = new Node(dagItems.NodeItem.Location.Value);
+                        dagItems.NodeItem.SourceAnchor = node.SourceAnchor;
+                        dagItems.NodeItem.TargetAnchor = node.TargetAnchor;
+                        dagItems.NodeItem.NodeInstance = node;
+                        node.Id = dagItems.NodeItem.NodeId!.Value;
+                        return node;
+                    }
+                }
+
+                if (dagItems.ConnectionItem != null)
+                {
+                    if (dagItems.ConnectionItem.SourceAnchor.HasValue && dagItems.ConnectionItem.TargetAnchor.HasValue)
+                    {
+                        var connection = new Connection(
+                            dagItems.ConnectionItem.SourceAnchor.Value,
+                            dagItems.ConnectionItem.TargetAnchor.Value);
+
+                        connection.ConnectionId = dagItems.ConnectionItem.ConnectionId!.Value;
+                        dagItems.ConnectionItem.ConnectionInstance = connection;
+
+                        return connection;
+                    }
+                }
+            }
+
+            return new ContentControl { IsVisible = false };
         }
 
         #endregion
@@ -382,7 +482,7 @@ namespace DagEdit
                 var rawPos = args.GetPosition(this);
                 ContextMenuPoint = ViewportTransform.ScreenToWorld(rawPos, _viewModel.ViewportLocation, _viewModel.ViewportScale);
                 _previousPointerPosition = rawPos;
-                _IsRightBtnClicked = true;
+                _isRightBtnClicked = true;
                 args.Handled = true;
             }
             else if (point.Properties.IsLeftButtonPressed && !args.Handled && topLayer != null)
@@ -407,7 +507,7 @@ namespace DagEdit
 
         private void HandlePointerMoved(object? sender, PointerEventArgs args)
         {
-            if (_IsRightBtnClicked)
+            if (_isRightBtnClicked)
             {
                 _currentPointerPosition = args.GetPosition(this);
 
@@ -429,7 +529,7 @@ namespace DagEdit
 
         private void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
         {
-            if (_IsRightBtnClicked)
+            if (_isRightBtnClicked)
             {
                 args.Handled = true;
                 if (IsPanning)
@@ -440,12 +540,12 @@ namespace DagEdit
                         args.Pointer.Capture(null);
                     }
 
-                    _IsRightBtnClicked = false;
+                    _isRightBtnClicked = false;
                     return;
                 }
 
                 _contextMenu.ShowAt(this, true);
-                _IsRightBtnClicked = false;
+                _isRightBtnClicked = false;
             }
             else if (IsSelecting)
             {
@@ -455,6 +555,7 @@ namespace DagEdit
                 {
                     _selectionRect.IsVisible = false;
                 }
+
                 args.Pointer.Capture(null);
 
                 if (SelectedArea.Width > 2 || SelectedArea.Height > 2)
@@ -652,6 +753,7 @@ namespace DagEdit
                 {
                     _viewModel.RequestUnpinNode(node.Id);
                 }
+
                 _viewModel.ExecuteDelNode(node.Id); // Undo/Redo 스택에 등록
                 args.Handled = true;
             }
@@ -664,36 +766,7 @@ namespace DagEdit
 
         #endregion
 
-        #region Methods
-
-        // TODO Unload 와 관련 및 GC 관련 해서 생각해보자.
-        public void Dispose()
-        {
-            _disposables.Dispose();
-            _viewModel.Dispose();
-        }
-
-        // 외부에 바인딩해야 해야 함. 입력 파라미터는 없어야 함.
-        public void AddNode()
-        {
-            if (ContextMenuPoint is null)
-            {
-                return;
-            }
-
-            _viewModel.ExecuteAddNode(ContextMenuPoint); // Undo/Redo 스택에 등록
-        }
-
-        // ─── Selection Rectangle 보조 (Feature 1) ─────────────────────────────
-
-        private static Rect MakeNormalizedRect(Point a, Point b)
-        {
-            var x = Math.Min(a.X, b.X);
-            var y = Math.Min(a.Y, b.Y);
-            var w = Math.Abs(a.X - b.X);
-            var h = Math.Abs(a.Y - b.Y);
-            return new Rect(x, y, w, h);
-        }
+        #region Helpers
 
         private void UpdateSelectionRect(Rect area)
         {
@@ -748,67 +821,5 @@ namespace DagEdit
         }
 
         #endregion
-
-        /// <inheritdoc />
-        protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-        {
-            base.OnApplyTemplate(e);
-
-            topLayer = e.NameScope.Find<Canvas>("PART_TopLayer");
-            if (topLayer == null)
-            {
-                throw new InvalidOperationException("PART_TopLayer cannot be found in the template.");
-            }
-
-            // Selection Rectangle을 PART_TopLayer에 프로그래매틱하게 추가 (Feature 1)
-            _selectionRect = new Rectangle
-            {
-                Stroke = new SolidColorBrush(Color.FromRgb(70, 130, 220)),
-                StrokeThickness = 1.5,
-                Fill = new SolidColorBrush(Color.FromArgb(40, 70, 130, 220)),
-                IsHitTestVisible = false,
-                IsVisible = false,
-            };
-            topLayer.Children.Add(_selectionRect);
-        }
-
-        /// <inheritdoc />
-        protected override Control CreateContainerForItemOverride(object? item, int index, object? recycleKey)
-        {
-            // TODO switch case 문이 좋을지 고민
-            if (item is DagItems dagItems)
-            {
-                if (dagItems.NodeItem != null)
-                {
-                    if (dagItems.NodeItem.Location.HasValue)
-                    {
-                        var node = new Node(dagItems.NodeItem.Location.Value);
-                        dagItems.NodeItem.SourceAnchor = node.SourceAnchor;
-                        dagItems.NodeItem.TargetAnchor = node.TargetAnchor;
-                        dagItems.NodeItem.NodeInstance = node;
-                        node.Id = dagItems.NodeItem.NodeId!.Value;
-                        return node;
-                    }
-                }
-
-                if (dagItems.ConnectionItem != null)
-                {
-                    if (dagItems.ConnectionItem.SourceAnchor.HasValue && dagItems.ConnectionItem.TargetAnchor.HasValue)
-                    {
-                        var connection = new Connection(
-                            dagItems.ConnectionItem.SourceAnchor.Value,
-                            dagItems.ConnectionItem.TargetAnchor.Value);
-
-                        connection.ConnectionId = dagItems.ConnectionItem.ConnectionId!.Value;
-                        dagItems.ConnectionItem.ConnectionInstance = connection;
-
-                        return connection;
-                    }
-                }
-            }
-
-            var emptyControl = new ContentControl { IsVisible = false };
-            return emptyControl;
-        }
     }
 }

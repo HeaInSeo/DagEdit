@@ -77,42 +77,20 @@ namespace DagEdit
         public static readonly StyledProperty<Control?> ParentControlProperty =
             AvaloniaProperty.Register<Node, Control?>(nameof(ParentControl));
 
-        public Control? ParentControl
-        {
-            get => GetValue(ParentControlProperty);
-            set => SetValue(ParentControlProperty, value);
-        }
-
         public static readonly DirectProperty<Node, Guid> IdProperty =
             AvaloniaProperty.RegisterDirect<Node, Guid>(
                 nameof(Id),
                 o => o.Id,
                 (o, v) => o.Id = v);
 
-        // TODO 중요. 아래 내용 잊지말자. 기존 Node(GUID) 와 StartNode(int type), EndNode(int type) 는 다른 ID 쳬계를 가져갈려고 한다.
-        // Id 추가 BaseNode 에 않넣는 이유는 StartNode, EndNode 는 다른 ID 체계로 사용할려고 한다.
-        private Guid _id;
-
-        public Guid Id
-        {
-            get => _id;
-            set => SetAndRaise(IdProperty, ref _id, value);
-        }
-
         #endregion
 
-        #region Routed Events
+        #region Routed Event Fields
 
         public static readonly RoutedEvent<ConnectionChangedEventArgs> ConnectionChangedEvent =
             RoutedEvent.Register<Node, ConnectionChangedEventArgs>(
                 nameof(ConnectionChanged),
                 RoutingStrategies.Bubble);
-
-        public event EventHandler<ConnectionChangedEventArgs> ConnectionChanged
-        {
-            add => AddHandler(ConnectionChangedEvent, value);
-            remove => RemoveHandler(ConnectionChangedEvent, value);
-        }
 
         /// <summary>
         /// 노드 드래그 완료 시 발행. DagEditor가 수신하여 MoveNodeCommand를 undo 스택에 push한다.
@@ -122,12 +100,6 @@ namespace DagEdit
                 nameof(NodeMoved),
                 RoutingStrategies.Bubble);
 
-        public event EventHandler<NodeMovedEventArgs> NodeMoved
-        {
-            add => AddHandler(NodeMovedEvent, value);
-            remove => RemoveHandler(NodeMovedEvent, value);
-        }
-
         /// <summary>
         /// 노드 드래그 시작 시 발행. DagEditor가 수신하여 VCA Pin을 요청한다.
         /// </summary>
@@ -135,12 +107,6 @@ namespace DagEdit
             RoutedEvent.Register<Node, NodeDragStartedEventArgs>(
                 nameof(NodeDragStarted),
                 RoutingStrategies.Bubble);
-
-        public event EventHandler<NodeDragStartedEventArgs> NodeDragStarted
-        {
-            add => AddHandler(NodeDragStartedEvent, value);
-            remove => RemoveHandler(NodeDragStartedEvent, value);
-        }
 
         /// <summary>
         /// 노드 드래그 종료 시 항상 발행 (위치 변화 없는 경우 포함).
@@ -151,29 +117,27 @@ namespace DagEdit
                 nameof(NodeDragEnded),
                 RoutingStrategies.Bubble);
 
-        public event EventHandler<NodeDragEndedEventArgs> NodeDragEnded
-        {
-            add => AddHandler(NodeDragEndedEvent, value);
-            remove => RemoveHandler(NodeDragEndedEvent, value);
-        }
-
         #endregion
 
-        #region fields
+        #region Fields
+
+        private const int GridCellSize = 15;
 
         // ── 드래그 상태 ──────────────────────────────────────────────────────
         private readonly NodeDragState _dragState = new();
         private readonly CompositeDisposable _disposables = new();
 
+        // TODO 중요. 아래 내용 잊지말자. 기존 Node(GUID) 와 StartNode(int type), EndNode(int type) 는 다른 ID 쳬계를 가져갈려고 한다.
+        // Id 추가 BaseNode 에 않넣는 이유는 StartNode, EndNode 는 다른 ID 체계로 사용할려고 한다.
+        private Guid _id;
+
         private Point _initialPointerPosition;  // 드래그 중 포인터 위치 (이전 프레임)
         private Vector _dragAccumulator;         // 그리드 스냅을 위한 누적 이동량
         private Point _dragStartLocation;        // 드래그 시작 시 노드 위치 (Undo용)
 
-        private const int GridCellSize = 15;
-
         #endregion
 
-        #region Constructor
+        #region Constructors
 
         public Node()
         {
@@ -200,7 +164,119 @@ namespace DagEdit
 
         #endregion
 
-        #region Event Handlers
+        #region Events
+
+        public event EventHandler<ConnectionChangedEventArgs> ConnectionChanged
+        {
+            add => AddHandler(ConnectionChangedEvent, value);
+            remove => RemoveHandler(ConnectionChangedEvent, value);
+        }
+
+        public event EventHandler<NodeMovedEventArgs> NodeMoved
+        {
+            add => AddHandler(NodeMovedEvent, value);
+            remove => RemoveHandler(NodeMovedEvent, value);
+        }
+
+        public event EventHandler<NodeDragStartedEventArgs> NodeDragStarted
+        {
+            add => AddHandler(NodeDragStartedEvent, value);
+            remove => RemoveHandler(NodeDragStartedEvent, value);
+        }
+
+        public event EventHandler<NodeDragEndedEventArgs> NodeDragEnded
+        {
+            add => AddHandler(NodeDragEndedEvent, value);
+            remove => RemoveHandler(NodeDragEndedEvent, value);
+        }
+
+        #endregion
+
+        #region Properties
+
+        public Control? ParentControl
+        {
+            get => GetValue(ParentControlProperty);
+            set => SetValue(ParentControlProperty, value);
+        }
+
+        public Guid Id
+        {
+            get => _id;
+            set => SetAndRaise(IdProperty, ref _id, value);
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// 프로그래매틱하게 노드를 이동한다. Undo/Redo의 MoveNodeCommand에서 사용된다.
+        /// Location 갱신 + 앵커 재계산 + ConnectionChangedEvent 발행을 수행한다.
+        /// </summary>
+        public void MoveTo(Point newLocation)
+        {
+            Location = newLocation;
+            UpdateFromDragPosition(newLocation);
+        }
+
+        public bool CanNodeMove()
+        {
+            var parentControl = this.GetParentVisualOfType<Canvas>();
+            if (parentControl != null)
+            {
+                ParentControl = parentControl;
+                return true;
+            }
+            else
+            {
+                ParentControl = null;
+                return false;
+            }
+        }
+
+        public void SetLocation(Point location)
+        {
+            Location = location;
+        }
+
+        /// <summary>
+        /// WhenAnyValue 구독자: 새 드래그 위치가 확정될 때 호출된다.
+        /// 앵커 재계산과 ConnectionChangedEvent 발행을 담당한다.
+        /// </summary>
+        internal void UpdateFromDragPosition(Point newPosition)
+        {
+            Point? oldSourceAnchor = SourceAnchor;
+            Point? oldTargetAnchor = TargetAnchor;
+            (SourceAnchor, TargetAnchor) = FindAnchors(newPosition);
+
+            RaiseConnectionChangedEvent(
+                _id,
+                Location,
+                SourceAnchor,
+                oldSourceAnchor,
+                TargetAnchor,
+                oldTargetAnchor,
+                DagItemsType.RunnerNode);
+        }
+
+        /// <inheritdoc />
+        protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+        {
+            base.OnApplyTemplate(e);
+            ParentControl = this.GetParentVisualOfType<Canvas>();
+        }
+
+        /// <inheritdoc />
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _disposables.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
 
         protected override void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
@@ -215,7 +291,7 @@ namespace DagEdit
                 args.Pointer.Capture(this);
                 Debug.Print("Dragging Start");
                 _initialPointerPosition = args.GetPosition(ParentControl);
-                _dragAccumulator = new();
+                _dragAccumulator = default;
                 _dragStartLocation = Location; // Undo용 시작 위치 기록
                 IsDragging = true;
                 RaiseEvent(new NodeDragStartedEventArgs(NodeDragStartedEvent, _id));
@@ -306,36 +382,13 @@ namespace DagEdit
 
         #endregion
 
-        #region Methods
+        #region Helpers
 
-        /// <summary>
-        /// WhenAnyValue 구독자: 새 드래그 위치가 확정될 때 호출된다.
-        /// 앵커 재계산과 ConnectionChangedEvent 발행을 담당한다.
-        /// </summary>
-        internal void UpdateFromDragPosition(Point newPosition)
+        private static (Point SourceAnchor, Point TargetAnchor) FindAnchors(Point location)
         {
-            Point? oldSourceAnchor = SourceAnchor;
-            Point? oldTargetAnchor = TargetAnchor;
-            (SourceAnchor, TargetAnchor) = FindAnchors(newPosition);
-
-            RaiseConnectionChangedEvent(
-                _id,
-                Location,
-                SourceAnchor,
-                oldSourceAnchor,
-                TargetAnchor,
-                oldTargetAnchor,
-                DagItemsType.RunnerNode);
-        }
-
-        /// <summary>
-        /// 프로그래매틱하게 노드를 이동한다. Undo/Redo의 MoveNodeCommand에서 사용된다.
-        /// Location 갱신 + 앵커 재계산 + ConnectionChangedEvent 발행을 수행한다.
-        /// </summary>
-        public void MoveTo(Point newLocation)
-        {
-            Location = newLocation;
-            UpdateFromDragPosition(newLocation);
+            var sourceAnchor = new Point(location.X + Constants.NodeWidth, location.Y + (Constants.NodeHeight / 2));
+            var targetAnchor = new Point(location.X, location.Y + (Constants.NodeHeight / 2));
+            return (sourceAnchor, targetAnchor);
         }
 
         private void RaiseConnectionChangedEvent(
@@ -371,50 +424,5 @@ namespace DagEdit
         }
 
         #endregion
-
-        /// <inheritdoc />
-        protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-        {
-            base.OnApplyTemplate(e);
-            ParentControl = this.GetParentVisualOfType<Canvas>();
-        }
-
-        public bool CanNodeMove()
-        {
-            var parentControl = this.GetParentVisualOfType<Canvas>();
-            if (parentControl != null)
-            {
-                ParentControl = parentControl;
-                return true;
-            }
-            else
-            {
-                ParentControl = null;
-                return false;
-            }
-        }
-
-        public void SetLocation(Point location)
-        {
-            Location = location;
-        }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _disposables.Dispose();
-            }
-
-            base.Dispose(disposing);
-        }
-
-        private (Point sourceAnchor, Point targetAnchor) FindAnchors(Point location)
-        {
-            var sourceAnchor = new Point(location.X + Constants.NodeWidth, location.Y + (Constants.NodeHeight / 2));
-            var targetAnchor = new Point(location.X, location.Y + (Constants.NodeHeight / 2));
-            return (sourceAnchor, targetAnchor);
-        }
     }
 }
