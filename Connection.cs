@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
@@ -45,7 +45,7 @@ namespace DagEdit
     public enum ConnectionDirection
     {
         Forward, // 앞쪽 방향
-        Backward // 뒤쪽 방향
+        Backward, // 뒤쪽 방향
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ namespace DagEdit
         /// <summary>
         /// 화살표 머리 없음.
         /// </summary>
-        None
+        None,
     }
 
     public class Connection : Shape
@@ -213,8 +213,7 @@ namespace DagEdit
                 SpacingProperty,
                 ArrowSizeProperty,
                 AngleProperty,
-                LineShapeModeProperty
-            );
+                LineShapeModeProperty);
         }
 
         public Connection()
@@ -257,7 +256,7 @@ namespace DagEdit
                     context.LineTo(endPoint - spacing);
 
                     // 살펴보기
-                    //context.LineTo(target);
+                    // context.LineTo(target);
                     break;
 
                 case LineShape.Quadratic:
@@ -318,7 +317,10 @@ namespace DagEdit
             return new Point(target.X, source.Y - slopeHeight);
         }
 
-        private void DrawArrowGeometry(IGeometryContext context, Point source, Point target,
+        private void DrawArrowGeometry(
+            IGeometryContext context,
+            Point source,
+            Point target,
             ConnectionDirection arrowDirection = ConnectionDirection.Forward)
         {
             var (from, to) = GetArrowHeadPoints(source, target, arrowDirection);
@@ -331,8 +333,7 @@ namespace DagEdit
             // Stroke 색상 가져오기 Avalonia 에서는 필요 없음.
             // var strokeColor = Stroke is SolidColorBrush strokeBrush ? strokeBrush.Color : Colors.Black;
             // Fill 속성에 Stroke 색상 적용
-            //context.Fill(new SolidColorBrush(strokeColor));
-
+            // context.Fill(new SolidColorBrush(strokeColor));
             context.EndFigure(true);
         }
 
@@ -340,7 +341,7 @@ namespace DagEdit
         {
             // TODO 사각형의 크기를 정의 (예: 10x10 픽셀)
             double size = 10;
-            Rect rect = new(source.X - size / 2, source.Y - size / 2, size, size);
+            Rect rect = new(source.X - (size / 2), source.Y - (size / 2), size, size);
 
             // 사각형 그리기
             context.BeginFigure(rect.TopLeft, isFilled: true);
@@ -351,7 +352,9 @@ namespace DagEdit
             context.EndFigure(true);
         }
 
-        private (Point From, Point To) GetArrowHeadPoints(Point source, Point target,
+        private (Point From, Point To) GetArrowHeadPoints(
+            Point source,
+            Point target,
             ConnectionDirection arrowDirection)
         {
             var headWidth = ArrowSize.Width;
@@ -367,18 +370,20 @@ namespace DagEdit
                 var sinT = Math.Sin(angle);
                 var cosT = Math.Cos(angle);
 
-                from = new(target.X + (headWidth * cosT - headHeight * sinT),
+                from = new(
+                    target.X + (headWidth * cosT - headHeight * sinT),
                     target.Y + (headWidth * sinT + headHeight * cosT));
-                to = new(target.X + (headWidth * cosT + headHeight * sinT),
-                    target.Y - (headHeight * cosT - headWidth * sinT));
+                to = new(
+                    target.X + (headWidth * cosT + headHeight * sinT),
+                    target.Y - ((headHeight * cosT) - (headWidth * sinT)));
             }
 
             // Spacing이 1보다 큰 경우, 화살표의 머리 부분을 방향에 따라 계산.
             else
             {
                 var direction = arrowDirection == ConnectionDirection.Forward ? 1d : -1d;
-                from = new(target.X - headWidth * direction, target.Y + headHeight);
-                to = new(target.X - headWidth * direction, target.Y - headHeight);
+                from = new(target.X - (headWidth * direction), target.Y + headHeight);
+                to = new(target.X - (headWidth * direction), target.Y - headHeight);
             }
 
             return (from, to);
@@ -391,14 +396,17 @@ namespace DagEdit
 
             return OffsetMode switch
             {
-                ConnectionOffsetMode.Rectangle => (GetRectangleModeOffset(delta, SourceOffset),
+                ConnectionOffsetMode.Rectangle => (
+                    GetRectangleModeOffset(delta, SourceOffset),
                     GetRectangleModeOffset(delta2, TargetOffset)),
-                ConnectionOffsetMode.Circle => (GetCircleModeOffset(delta, SourceOffset),
+                ConnectionOffsetMode.Circle => (
+                    GetCircleModeOffset(delta, SourceOffset),
                     GetCircleModeOffset(delta2, TargetOffset)),
-                ConnectionOffsetMode.Edge => (GetEdgeModeOffset(delta, SourceOffset),
+                ConnectionOffsetMode.Edge => (
+                    GetEdgeModeOffset(delta, SourceOffset),
                     GetEdgeModeOffset(delta2, TargetOffset)),
                 ConnectionOffsetMode.None => (Constants.ZeroVector, Constants.ZeroVector),
-                _ => throw new ArgumentOutOfRangeException()
+                _ => throw new ArgumentOutOfRangeException(),
             };
         }
 

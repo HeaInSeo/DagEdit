@@ -1,9 +1,9 @@
-﻿using Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Reactive;
 using Avalonia.VisualTree;
@@ -20,7 +20,8 @@ namespace DagEdit
             return observable.Subscribe(new AnonymousObserver<T>(action));
         }
 
-        public static T? GetParentControlOfType<T>(this Control child) where T : Control
+        public static T? GetParentControlOfType<T>(this Control child)
+            where T : Control
         {
             _ = child ?? throw new ArgumentNullException(nameof(child));
             var current = child;
@@ -37,7 +38,8 @@ namespace DagEdit
             return default;
         }
 
-        public static T? GetParentVisualOfType<T>(this Visual child) where T : Visual
+        public static T? GetParentVisualOfType<T>(this Visual child)
+            where T : Visual
         {
             _ = child ?? throw new ArgumentNullException(nameof(child));
             var current = child;
@@ -54,7 +56,8 @@ namespace DagEdit
             return default;
         }
 
-        public static T? GetParentVisualByName<T>(this Visual child, string name) where T : Visual
+        public static T? GetParentVisualByName<T>(this Visual child, string name)
+            where T : Visual
         {
             _ = child ?? throw new ArgumentNullException(nameof(child));
             _ = name ?? throw new ArgumentNullException(nameof(name));
@@ -73,7 +76,8 @@ namespace DagEdit
         }
 
         // 일단 대략적으로 만든 이걸로 테스트 해보자.
-        public static T? GetChildControlByName<T>(this Visual container, string name) where T : Visual
+        public static T? GetChildControlByName<T>(this Visual container, string name)
+            where T : Visual
         {
             _ = container ?? throw new ArgumentNullException(nameof(container));
             _ = name ?? throw new ArgumentNullException(nameof(name));
@@ -91,7 +95,8 @@ namespace DagEdit
         // TranslatePoint 사용 대신 TransformToVisual 와 Transform 를 썼다.
         // TranslatePoint 를 사용해서 코드를 줄일 수 있는데 일단 원리를 알고자 풀어썻다.
         // TranslatePoint 에서 내부적으로 TransformToVisual 와 Transform 를 사용한다.
-        public static T? GetVisualUnderPointer<T>(this Visual container, Point pointerPosition) where T : Visual
+        public static T? GetVisualUnderPointer<T>(this Visual container, Point pointerPosition)
+            where T : Visual
         {
             _ = container ?? throw new ArgumentNullException(nameof(container));
             foreach (var visual in container.GetVisualDescendants())
@@ -117,7 +122,8 @@ namespace DagEdit
             return null;
         }
 
-        public static T? GetControlUnderPointer<T>(this Control container, Point pointerPosition) where T : Control
+        public static T? GetControlUnderPointer<T>(this Control container, Point pointerPosition)
+            where T : Control
         {
             _ = container ?? throw new ArgumentNullException(nameof(container));
             foreach (var control in container.GetVisualDescendants().OfType<Control>())
@@ -141,7 +147,8 @@ namespace DagEdit
 
         // snap 후보가 여러 개일 때 pointer와의 거리(bounds center 기준)가 가장 가까운 컨트롤 반환.
         // 단일 후보이면 GetControlUnderPointer와 동일한 결과. 동점은 tree 순서(first)가 우선.
-        public static T? GetClosestControlUnderPointer<T>(this Control container, Point pointerPosition) where T : Control
+        public static T? GetClosestControlUnderPointer<T>(this Control container, Point pointerPosition)
+            where T : Control
         {
             _ = container ?? throw new ArgumentNullException(nameof(container));
 
@@ -180,7 +187,8 @@ namespace DagEdit
 
         // snap 후보 선택 pure function. IReadOnlyList<(Item, DistanceSq)>에서 DistanceSq가
         // 최소인 항목 반환. 동점은 리스트 순서(tree order) 우선. GUI 의존 없이 단위 테스트 가능.
-        public static T? PickClosestCandidate<T>(IReadOnlyList<(T Item, double DistanceSq)> candidates) where T : class
+        public static T? PickClosestCandidate<T>(IReadOnlyList<(T Item, double DistanceSq)> candidates)
+            where T : class
         {
             _ = candidates ?? throw new ArgumentNullException(nameof(candidates));
 
@@ -251,7 +259,7 @@ namespace DagEdit
             {
                 string output =
                     DateTime.Now.ToString("hh:mm:ss") + ": " +
-                    string.Format(format, args); //+ Environment.NewLine + Environment.StackTrace;
+                    string.Format(format, args); // + Environment.NewLine + Environment.StackTrace;
 
                 //Console.WriteLine(output);
                 Debug.WriteLine(output);
@@ -279,7 +287,11 @@ namespace DagEdit
             TimeSpan cpuTime = currentProcess.TotalProcessorTime; // CPU 사용 시간
 
             // 성능 정보 로깅
-            LogWriteToFile(true, "{0} - Memory Usage: {1} bytes, CPU Time: {2} ms", message, memoryUsage,
+            LogWriteToFile(
+                true,
+                "{0} - Memory Usage: {1} bytes, CPU Time: {2} ms",
+                message,
+                memoryUsage,
                 cpuTime.TotalMilliseconds);
         }
 
@@ -302,7 +314,10 @@ namespace DagEdit
             _ = TryWriteErrorsToFile(message);
         }
 
-        internal static bool TryWriteErrorsToFile(string message, string? errorsPath = null, Action<string>? fallback = null)
+        internal static bool TryWriteErrorsToFile(
+            string message,
+            string? errorsPath = null,
+            Action<string>? fallback = null)
         {
             string targetPath = errorsPath ?? logErrorsPath;
             fallback ??= WriteDiagnosticFallback;

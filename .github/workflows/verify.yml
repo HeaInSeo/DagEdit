@@ -16,6 +16,7 @@ concurrency:
 permissions:
   contents: read
   security-events: write  # CodeQL SARIF 업로드 용
+  actions: read           # gh run download (이전 artifact 취득)용
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -64,19 +65,188 @@ jobs:
 
           BUILD_EXIT=${PIPESTATUS[0]}
 
-          # grep -c exits 1 when no matches → "0\n0" 개행 버그 방지용 wc -l 사용
-          SA_WARN=$(grep ": warning SA" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
-          CS_WARN=$(grep ": warning CS" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
-          IDE_WARN=$(grep ": warning IDE" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
-          TOTAL_WARN=$((SA_WARN + CS_WARN + IDE_WARN))
+          # grep -c exits 1 when no matches → "0\n0" 방지용 wc -l 사용
+          # TOTAL_WARN는 prefix 일부만 더하지 않고 실제 build warning line 기준으로 집계한다.
+          SA_WARN=$(grep -E ": warning SA[0-9]+" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
+          CA_WARN=$(grep -E ": warning CA[0-9]+" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
+          CS_WARN=$(grep -E ": warning CS[0-9]+" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
+          IDE_WARN=$(grep -E ": warning IDE[0-9]+" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
+          TOTAL_WARN=$(grep -E ": warning [A-Z]{2,}[0-9]+" /tmp/build_output.txt 2>/dev/null | wc -l | tr -d ' ')
 
           echo "sa_warning_count=$SA_WARN"       >> "$GITHUB_OUTPUT"
+          echo "ca_warning_count=$CA_WARN"       >> "$GITHUB_OUTPUT"
           echo "cs_warning_count=$CS_WARN"       >> "$GITHUB_OUTPUT"
           echo "ide_warning_count=$IDE_WARN"     >> "$GITHUB_OUTPUT"
           echo "total_warning_count=$TOTAL_WARN" >> "$GITHUB_OUTPUT"
           echo "build_exit=$BUILD_EXIT"          >> "$GITHUB_OUTPUT"
 
           exit $BUILD_EXIT
+
+      - name: Fetch previous build warning artifact
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASELINE_BRANCH="${GITHUB_BASE_REF:-$GITHUB_REF_NAME}"
+          echo "Using verify baseline branch: $BASELINE_BRANCH"
+
+          PREV_RUN_ID=$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow "verify.yml" \
+            --branch "$BASELINE_BRANCH" \
+            --status success \
+            --limit 10 \
+            --json databaseId \
+            --jq ".[] | select(.databaseId | tostring != \"$GITHUB_RUN_ID\") | .databaseId" \
+            2>/dev/null | head -1 || true)
+
+          if [ -z "$PREV_RUN_ID" ]; then
+            echo "No previous successful verify run found — comparison will be skipped"
+            exit 0
+          fi
+
+          echo "Previous verify run ID: $PREV_RUN_ID"
+
+          gh run download "$PREV_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "build-warning-count" \
+            --dir "_prev_verify_artifact" 2>/dev/null || {
+            echo "::warning::Could not download previous build-warning-count artifact"
+            exit 0
+          }
+
+          FOUND=$(find _prev_verify_artifact -name "build-warning-count.json" -type f | head -1)
+          if [ -n "$FOUND" ]; then
+            cp "$FOUND" prev-build-warning-count.json
+            echo "Loaded previous build warning artifact from run $PREV_RUN_ID: $FOUND"
+          else
+            echo "::warning::build-warning-count.json not found in downloaded artifact"
+          fi
+
+      - name: Write build warning count artifact
+        if: always()
+        env:
+          SA_WARN:        ${{ steps.build.outputs.sa_warning_count }}
+          CA_WARN:        ${{ steps.build.outputs.ca_warning_count }}
+          CS_WARN:        ${{ steps.build.outputs.cs_warning_count }}
+          IDE_WARN:       ${{ steps.build.outputs.ide_warning_count }}
+          TOTAL_WARN:     ${{ steps.build.outputs.total_warning_count }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          payload = {
+              "total": int(os.environ.get("TOTAL_WARN", "0") or 0),
+              "byPrefix": {
+                  "SA": int(os.environ.get("SA_WARN", "0") or 0),
+                  "CA": int(os.environ.get("CA_WARN", "0") or 0),
+                  "CS": int(os.environ.get("CS_WARN", "0") or 0),
+                  "IDE": int(os.environ.get("IDE_WARN", "0") or 0),
+              },
+              "commit": os.environ.get("GITHUB_SHA", "unknown"),
+              "branch": os.environ.get("GITHUB_REF_NAME", "unknown"),
+              "baselineBranch": os.environ.get("GITHUB_BASE_REF") or os.environ.get("GITHUB_REF_NAME", "unknown"),
+              "workflowRunId": os.environ.get("GITHUB_RUN_ID", "unknown"),
+              "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+          }
+
+          with open("build-warning-count.json", "w", encoding="utf-8") as f:
+              json.dump(payload, f, indent=2)
+          PYEOF
+
+      - name: Check build warning regression
+        if: always()
+        env:
+          BUILD_EXIT:     ${{ steps.build.outputs.build_exit }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          import sys
+
+          cur_path = "build-warning-count.json"
+          prev_path = "prev-build-warning-count.json"
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
+          build_exit = os.environ.get("BUILD_EXIT", "")
+
+          def append_summary(text: str) -> None:
+              with open(summary_path, "a", encoding="utf-8") as f:
+                  f.write(text)
+
+          if build_exit != "0":
+              append_summary(
+                  "\n### Build warning regression\n\n"
+                  "> [INFO] Build failed before warning regression comparison. Build failure remains the source of truth.\n\n"
+              )
+              print("[INFO] Build failed before regression comparison; skipping build warning regression gate")
+              sys.exit(0)
+
+          if not os.path.exists(cur_path):
+              print("::warning::build-warning-count.json not found — regression check skipped")
+              sys.exit(0)
+
+          if not os.path.exists(prev_path):
+              append_summary(
+                  "\n### Build warning regression\n\n"
+                  "> [INFO] **baseline 없음** — 첫 실행이거나 이전 artifact 없음. 이번 실행이 새 baseline이 된다.\n\n"
+              )
+              print("[INFO] No previous build warning baseline — regression check skipped")
+              sys.exit(0)
+
+          with open(cur_path, encoding="utf-8") as f:
+              cur = json.load(f)
+          with open(prev_path, encoding="utf-8") as f:
+              prev = json.load(f)
+
+          cur_total = int(cur.get("total", 0))
+          prev_total = int(prev.get("total", 0))
+          prefixes = ("SA", "CA", "CS", "IDE")
+          deltas = []
+          failed = False
+
+          for prefix in prefixes:
+              cur_value = int(cur.get("byPrefix", {}).get(prefix, 0))
+              prev_value = int(prev.get("byPrefix", {}).get(prefix, 0))
+              if cur_value > prev_value:
+                  failed = True
+                  deltas.append(f"{prefix} {prev_value} → {cur_value} (+{cur_value - prev_value})")
+
+          if cur_total > prev_total:
+              failed = True
+              deltas.insert(0, f"total {prev_total} → {cur_total} (+{cur_total - prev_total})")
+
+          def sign(value: int) -> str:
+              return f"+{value}" if value > 0 else str(value)
+
+          rows = [
+              "| 항목 | 이전 | 현재 | 증감 |",
+              "|---|---|---|---|",
+              f"| total | {prev_total} | {cur_total} | {sign(cur_total - prev_total)} |",
+          ]
+          for prefix in prefixes:
+              prev_value = int(prev.get("byPrefix", {}).get(prefix, 0))
+              cur_value = int(cur.get("byPrefix", {}).get(prefix, 0))
+              rows.append(f"| {prefix} | {prev_value} | {cur_value} | {sign(cur_value - prev_value)} |")
+
+          if failed:
+              append_summary(
+                  "\n### Build warning regression: [FAIL]\n\n"
+                  + "\n".join(rows)
+                  + f"\n\n> Regression detected: {'; '.join(deltas)}\n\n"
+              )
+              print(f"::error::Build warning regression detected: {'; '.join(deltas)}")
+              sys.exit(1)
+
+          append_summary(
+              "\n### Build warning regression: [PASS]\n\n"
+              + "\n".join(rows)
+              + "\n\n> No build warning regression.\n\n"
+          )
+          print("[PASS] No build warning regression")
+          sys.exit(0)
+          PYEOF
 
       # ── 6. 테스트 + 커버리지 ──────────────────────────────
       - name: Run tests with Cobertura coverage
@@ -133,6 +303,15 @@ jobs:
           name: coverage-cobertura
           path: ./test-results/**/coverage.cobertura.xml
           retention-days: 30
+
+      - name: Upload build warning count artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-warning-count
+          path: build-warning-count.json
+          if-no-files-found: warn
+          retention-days: 90
 
       # ── 9. 벤치마크 기준선 캐시 복원 ──────────────────────
       - name: Restore benchmark baseline cache
@@ -272,6 +451,7 @@ jobs:
         env:
           BUILD_EXIT:     ${{ steps.build.outputs.build_exit }}
           SA_WARN:        ${{ steps.build.outputs.sa_warning_count }}
+          CA_WARN:        ${{ steps.build.outputs.ca_warning_count }}
           CS_WARN:        ${{ steps.build.outputs.cs_warning_count }}
           IDE_WARN:       ${{ steps.build.outputs.ide_warning_count }}
           TOTAL_WARN:     ${{ steps.build.outputs.total_warning_count }}
@@ -298,6 +478,7 @@ jobs:
             echo "| --- | --- |"
             echo "| 빌드 상태 | $BUILD_STATUS |"
             echo "| StyleCop 경고 (SA\*) | $SA_WARN 건 |"
+            echo "| Code Analysis 경고 (CA\*) | $CA_WARN 건 |"
             echo "| Roslyn 경고 (CS\*) | $CS_WARN 건 |"
             echo "| IDE 코드스타일 경고 (IDE\*) | $IDE_WARN 건 |"
             echo "| **총 경고** | **$TOTAL_WARN 건** |"

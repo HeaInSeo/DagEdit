@@ -1,8 +1,8 @@
 using System;
+using System.Reactive.Disposables;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using ReactiveUI;
-using System.Reactive.Disposables;
 
 namespace DagEdit
 {
@@ -125,8 +125,15 @@ namespace DagEdit
             // H-3: Pin/Unpin 명시적 unsubscribe
             if (_viewModelRef != null)
             {
-                if (_onPinRequested != null) { _viewModelRef.PinRequested -= _onPinRequested; }
-                if (_onUnpinRequested != null) { _viewModelRef.UnpinRequested -= _onUnpinRequested; }
+                if (_onPinRequested != null)
+                {
+                    _viewModelRef.PinRequested -= _onPinRequested;
+                }
+
+                if (_onUnpinRequested != null)
+                {
+                    _viewModelRef.UnpinRequested -= _onUnpinRequested;
+                }
             }
 
             _projectionChangedSubscription.Detach();

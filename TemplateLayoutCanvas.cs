@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.Controls;
 
@@ -6,12 +6,12 @@ namespace DagEdit
 {
     /*
      * TemplateLayoutCanvas 이 녀석은 ControlTemplate 안에서만 사용해야 한다.
-     * 다른 곳에서 사용할 경우 오작동을? 일으킬 수 있다. 
+     * 다른 곳에서 사용할 경우 오작동을? 일으킬 수 있다.
      */
     public class TemplateLayoutCanvas : Canvas
     {
         /// <inheritdoc />
-        protected override Size MeasureOverride(Size constraint)
+        protected override Size MeasureOverride(Size availableSize)
         {
             double maxWidth = 0.0;
             double maxHeight = 0.0;
@@ -21,7 +21,7 @@ namespace DagEdit
             // 고정적으로 코드에 넣어두면 안될 것 같은데....
             foreach (var child in Children)
             {
-                child.Measure(constraint);
+                child.Measure(availableSize);
 
                 // 자식 컨트롤이 ILocatable 인터페이스를 구현하는 경우, Location 속성을 사용
                 Point location = child is ILocatable locatableChild ? locatableChild.Location : Constants.ZeroPoint;
@@ -46,7 +46,7 @@ namespace DagEdit
                 {
                     Point location = locatableChild.Location;
 
-                    //child.Arrange(new Rect(location.X, location.Y, child.DesiredSize.Width+20, child.DesiredSize.Height+20));
+                    // child.Arrange(new Rect(location.X, location.Y, child.DesiredSize.Width + 20, child.DesiredSize.Height + 20));
                     child.Arrange(new Rect(location, child.DesiredSize));
                 }
                 else

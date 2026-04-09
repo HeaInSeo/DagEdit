@@ -24,14 +24,13 @@ namespace DagEdit
         private readonly Stack<IUndoableCommand> _redoStack = new();
 
         private bool _canUndo;
+        private bool _canRedo;
 
         public bool CanUndo
         {
             get => _canUndo;
             private set => this.RaiseAndSetIfChanged(ref _canUndo, value);
         }
-
-        private bool _canRedo;
 
         public bool CanRedo
         {
@@ -78,12 +77,12 @@ namespace DagEdit
             UpdateCanState();
         }
 
+        public void Dispose() => Clear();
+
         private void UpdateCanState()
         {
             CanUndo = _undoStack.Count > 0;
             CanRedo = _redoStack.Count > 0;
         }
-
-        public void Dispose() => Clear();
     }
 }

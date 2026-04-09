@@ -191,7 +191,8 @@ namespace DagEdit
                 .DisposeWith(_disposables);
         }
 
-        public Node(Point location) : this()
+        public Node(Point location)
+            : this()
         {
             Location = location;
             (SourceAnchor, TargetAnchor) = FindAnchors(location);
@@ -204,8 +205,10 @@ namespace DagEdit
         protected override void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
             if (ParentControl == null)
+            {
                 throw new InvalidOperationException(
                     "Node cannot move because a Canvas parent is not found.");
+            }
 
             if (args.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
@@ -223,8 +226,10 @@ namespace DagEdit
         protected override void HandlePointerMoved(object? sender, PointerEventArgs args)
         {
             if (ParentControl == null)
+            {
                 throw new InvalidOperationException(
                     "Node cannot move because a Canvas parent is not found.");
+            }
 
             if (!IsDragging || !Equals(args.Pointer.Captured))
             {
@@ -261,8 +266,10 @@ namespace DagEdit
         protected override void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
         {
             if (ParentControl == null)
+            {
                 throw new InvalidOperationException(
                     "Node cannot move because a Canvas parent is not found.");
+            }
 
             if (sender != null && Equals(args.Pointer.Captured) && IsDragging)
             {
@@ -312,9 +319,12 @@ namespace DagEdit
             (SourceAnchor, TargetAnchor) = FindAnchors(newPosition);
 
             RaiseConnectionChangedEvent(
-                _id, Location,
-                SourceAnchor, oldSourceAnchor,
-                TargetAnchor, oldTargetAnchor,
+                _id,
+                Location,
+                SourceAnchor,
+                oldSourceAnchor,
+                TargetAnchor,
+                oldTargetAnchor,
                 DagItemsType.RunnerNode);
         }
 
@@ -328,11 +338,24 @@ namespace DagEdit
             UpdateFromDragPosition(newLocation);
         }
 
-        private void RaiseConnectionChangedEvent(Guid? nodeId, Point? location, Point? sourceAnchor,
-            Point? oldSourceAnchor, Point? targetAnchor, Point? oldTargetAnchor, DagItemsType dagItemsType)
+        private void RaiseConnectionChangedEvent(
+            Guid? nodeId,
+            Point? location,
+            Point? sourceAnchor,
+            Point? oldSourceAnchor,
+            Point? targetAnchor,
+            Point? oldTargetAnchor,
+            DagItemsType dagItemsType)
         {
-            var args = new ConnectionChangedEventArgs(ConnectionChangedEvent, nodeId, location, sourceAnchor,
-                oldSourceAnchor, targetAnchor, oldTargetAnchor, dagItemsType);
+            var args = new ConnectionChangedEventArgs(
+                ConnectionChangedEvent,
+                nodeId,
+                location,
+                sourceAnchor,
+                oldSourceAnchor,
+                targetAnchor,
+                oldTargetAnchor,
+                dagItemsType);
             RaiseEvent(args);
         }
 
@@ -377,7 +400,7 @@ namespace DagEdit
         }
 
         /// <inheritdoc />
-        public override void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (disposing)
             {

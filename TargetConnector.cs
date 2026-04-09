@@ -1,13 +1,11 @@
-﻿using Avalonia;
-using Avalonia.Input;
 using System;
+using Avalonia;
+using Avalonia.Input;
 
 namespace DagEdit
 {
     public sealed class TargetConnector : Connector
     {
-        protected override Type StyleKeyOverride => typeof(Connector);
-
         #region Dependency Properties
 
         // connector 에 넣을까 하다가 그냥 여기다 넣음.
@@ -16,22 +14,24 @@ namespace DagEdit
         public static readonly StyledProperty<Guid> NodeIdProperty =
             AvaloniaProperty.Register<TargetConnector, Guid>(nameof(NodeId));
 
-        public Guid NodeId
-        {
-            get => GetValue(NodeIdProperty);
-            set => SetValue(NodeIdProperty, value);
-        }
-
         #endregion
 
         static TargetConnector()
         {
             // TODO 향후 이거 주석처리한다.
             // UI 바꿀때, Background 속성 변경.
-            //BackgroundProperty.OverrideDefaultValue<InConnector>(new SolidColorBrush(Color.Parse("#4d4d4d")));
-            //FocusableProperty.OverrideDefaultValue<InConnector>(true);
+            // BackgroundProperty.OverrideDefaultValue<InConnector>(new SolidColorBrush(Color.Parse("#4d4d4d")));
+            // FocusableProperty.OverrideDefaultValue<InConnector>(true);
             FillProperty.OverrideDefaultValue<TargetConnector>(BrushResources.EndConnectorDefaultFill);
         }
+
+        public Guid NodeId
+        {
+            get => GetValue(NodeIdProperty);
+            set => SetValue(NodeIdProperty, value);
+        }
+
+        protected override Type StyleKeyOverride => typeof(Connector);
 
         protected override void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {

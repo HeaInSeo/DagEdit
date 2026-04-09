@@ -8,30 +8,14 @@ namespace DagEdit
 {
     public sealed class DagEditorCanvas : Canvas, IDisposable
     {
-        #region Dependency Properties
-
-        public static readonly StyledProperty<Point> ViewportLocationProperty =
-            AvaloniaProperty.Register<DagEditorCanvas, Point>(
-                nameof(ViewportLocation), Constants.ZeroPoint);
-
-        public Point ViewportLocation
-        {
-            get => GetValue(ViewportLocationProperty);
-            set => SetValue(ViewportLocationProperty, value);
-        }
+        #region Fields
 
         public static readonly StyledProperty<double> ScaleProperty =
             AvaloniaProperty.Register<DagEditorCanvas, double>(nameof(Scale), 1.0);
 
-        public double Scale
-        {
-            get => GetValue(ScaleProperty);
-            set => SetValue(ScaleProperty, value);
-        }
-
-        #endregion
-
-        #region Fields
+        public static readonly StyledProperty<Point> ViewportLocationProperty =
+            AvaloniaProperty.Register<DagEditorCanvas, Point>(
+                nameof(ViewportLocation), Constants.ZeroPoint);
 
         private readonly ScaleTransform _scaleTransform = new(1.0, 1.0);
         private readonly TranslateTransform _translateTransform = new();
@@ -39,7 +23,7 @@ namespace DagEdit
 
         #endregion
 
-        #region Constructor
+        #region Constructors
 
         public DagEditorCanvas()
         {
@@ -61,6 +45,29 @@ namespace DagEdit
         }
 
         #endregion
+
+        #region Properties
+
+        public double Scale
+        {
+            get => GetValue(ScaleProperty);
+            set => SetValue(ScaleProperty, value);
+        }
+
+        public Point ViewportLocation
+        {
+            get => GetValue(ViewportLocationProperty);
+            set => SetValue(ViewportLocationProperty, value);
+        }
+
+        #endregion
+
+        #region Methods
+
+        public void Dispose()
+        {
+            _disposables.Dispose();
+        }
 
         //TODO 사이즈에 대한 것은 디버깅해서 살펴보자.
         /// <inheritdoc />
@@ -87,7 +94,7 @@ namespace DagEdit
         }
 
         /// <inheritdoc />
-        protected override Size MeasureOverride(Size constraint)
+        protected override Size MeasureOverride(Size availableSize)
         {
             foreach (var child in Children)
             {
@@ -96,8 +103,6 @@ namespace DagEdit
 
             return default;
         }
-
-        #region Methods
 
         private void OnViewportLocationChanged(AvaloniaPropertyChangedEventArgs e)
         {
@@ -115,11 +120,6 @@ namespace DagEdit
                 _scaleTransform.ScaleX = scale;
                 _scaleTransform.ScaleY = scale;
             }
-        }
-
-        public void Dispose()
-        {
-            _disposables.Dispose();
         }
 
         #endregion

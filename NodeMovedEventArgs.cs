@@ -10,13 +10,13 @@ namespace DagEdit
     /// </summary>
     public class NodeDragStartedEventArgs : RoutedEventArgs
     {
-        public Guid NodeId { get; }
-
         public NodeDragStartedEventArgs(RoutedEvent routedEvent, Guid nodeId)
             : base(routedEvent)
         {
             NodeId = nodeId;
         }
+
+        public Guid NodeId { get; }
     }
 
     /// <summary>
@@ -26,13 +26,13 @@ namespace DagEdit
     /// </summary>
     public class NodeDragEndedEventArgs : RoutedEventArgs
     {
-        public Guid NodeId { get; }
-
         public NodeDragEndedEventArgs(RoutedEvent routedEvent, Guid nodeId)
             : base(routedEvent)
         {
             NodeId = nodeId;
         }
+
+        public Guid NodeId { get; }
     }
 
     /// <summary>
@@ -41,12 +41,6 @@ namespace DagEdit
     /// </summary>
     public class NodeMovedEventArgs : RoutedEventArgs
     {
-        public Guid NodeId { get; }
-
-        public Point OldLocation { get; }
-
-        public Point NewLocation { get; }
-
         public NodeMovedEventArgs(RoutedEvent routedEvent, Guid nodeId, Point oldLocation, Point newLocation)
             : base(routedEvent)
         {
@@ -54,5 +48,11 @@ namespace DagEdit
             OldLocation = oldLocation;
             NewLocation = newLocation;
         }
+
+        public Guid NodeId { get; }
+
+        public Point OldLocation { get; }
+
+        public Point NewLocation { get; }
     }
 }

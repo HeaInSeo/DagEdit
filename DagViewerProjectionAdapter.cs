@@ -49,6 +49,12 @@ namespace DagEdit
         // H-1 batch: 0 이면 즉시 flush, > 0 이면 EndBatch까지 suppressed
         private int _batchDepth;
 
+        /// <summary>
+        /// Viewer wiring용 기본 world extent.
+        /// </summary>
+        internal static readonly VCRect DefaultProjectionExtent =
+            new(0, 0, 50_000, 50_000);
+
         // ─── 읽기 전용 노출 ───────────────────────────────────────────────────
 
         /// <summary>
@@ -254,33 +260,6 @@ namespace DagEdit
         }
 
         // ─── Snapshot builder (F-0 wiring) ───────────────────────────────────
-
-        /// <summary>
-        /// Viewer wiring용 기본 world extent.
-        ///
-        /// ─── Extent 정책 (H-0 hardening 기준) ────────────────────────────────
-        /// 현재 값: VCRect(0, 0, 50_000, 50_000) — 임시 고정값.
-        ///
-        /// 이 값의 근거:
-        ///   - DagEdit 노드는 기본적으로 양의 좌표(x≥0, y≥0)에 배치된다.
-        ///   - Grid snap = 15px, NodeWidth = 200 기준으로 50,000 × 50,000 영역은
-        ///     노드 ~250 × 400개 배치를 커버한다 (현실적 scene에 충분).
-        ///   - 음의 좌표로의 pan은 현재 DagEditorCanvas에서 제한되지 않지만
-        ///     대부분의 노드는 컨텍스트 메뉴 → 뷰포트 중심 근처에 배치된다.
-        ///
-        /// 임시 값인 이유:
-        ///   SpatialIndex.Extent는 QuadTree 빌드 시점에 고정된다.
-        ///   이 범위 밖 좌표의 Insert는 silently 무시될 수 있다.
-        ///   동적 extent(scene bounding box + margin)가 더 안전하지만
-        ///   BuildSnapshot()마다 2-pass(bounds union + insert) 비용이 발생한다.
-        ///
-        /// 다음 단계에서 바뀔 조건 (Hybrid 진입 전 검토):
-        ///   - scene이 음의 좌표로 확장되는 경우
-        ///   - 노드 배치 범위가 50,000을 실제로 넘는 경우
-        ///   - VCA.ActualViewbox 기반 frustum-culled extent로 전환할 경우
-        /// </summary>
-        internal static readonly VCRect DefaultProjectionExtent =
-            new(0, 0, 50_000, 50_000);
 
         /// <summary>
         /// 현재 stable projection refs로 새 SpatialIndex snapshot을 생성한다.

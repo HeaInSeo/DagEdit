@@ -1,17 +1,11 @@
-﻿using Avalonia.Input;
-using Avalonia.Interactivity;
 using System;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 
 namespace DagEdit
 {
     public class MultiGesture
     {
-        public enum Match
-        {
-            Any,
-            All
-        }
-
         private readonly object[] _gestures;
         private readonly Match _match;
 
@@ -19,6 +13,12 @@ namespace DagEdit
         {
             _gestures = gestures ?? throw new ArgumentNullException(nameof(gestures));
             _match = match;
+        }
+
+        public enum Match
+        {
+            Any,
+            All,
         }
 
         public bool Matches(object targetElement, RoutedEventArgs eventArgs)
@@ -40,12 +40,13 @@ namespace DagEdit
 
                 return false;
             }
-            else // Match.All
+            else
             {
                 foreach (object gesture in _gestures)
                 {
                     if ((gesture is PointerGesture pointerGesture && (pointerEventArgs == null ||
-                                                                      !pointerGesture.Matches(targetElement,
+                                                                      !pointerGesture.Matches(
+                                                                          targetElement,
                                                                           pointerEventArgs))) ||
                         (gesture is KeyGesture keyGesture &&
                          (keyEventArgs == null || !keyGesture.Matches(keyEventArgs))))

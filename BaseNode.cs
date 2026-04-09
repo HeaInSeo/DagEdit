@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
@@ -12,6 +12,21 @@ namespace DagEdit
 {
     public class BaseNode : ContentControl, IDisposable, ILocatable
     {
+        #region Fields
+
+        public static readonly StyledProperty<Point> LocationProperty =
+            AvaloniaProperty.Register<BaseNode, Point>(nameof(Location), Constants.ZeroPoint);
+
+        public static readonly StyledProperty<Point?> SourceAnchorProperty =
+            AvaloniaProperty.Register<BaseNode, Point?>(nameof(SourceAnchor));
+
+        public static readonly StyledProperty<Point?> TargetAnchorProperty =
+            AvaloniaProperty.Register<BaseNode, Point?>(nameof(TargetAnchor));
+
+        private readonly CompositeDisposable _disposables = new();
+
+        #endregion
+
         #region Static Constructor
 
         static BaseNode()
@@ -22,53 +37,6 @@ namespace DagEdit
             LocationProperty.Changed.AddClassHandler<BaseNode>((node, _) =>
                 (node.GetVisualParent() as Layoutable)?.InvalidateArrange());
         }
-
-        #endregion
-
-        #region Dependency Properties
-
-        public static readonly StyledProperty<Point> LocationProperty =
-            AvaloniaProperty.Register<BaseNode, Point>(nameof(Location), Constants.ZeroPoint);
-
-        public Point Location
-        {
-            get => GetValue(LocationProperty);
-            set => SetValue(LocationProperty, value);
-        }
-
-        public static readonly StyledProperty<Point?> SourceAnchorProperty =
-            AvaloniaProperty.Register<BaseNode, Point?>(nameof(SourceAnchor));
-
-        /// <summary>
-        /// StartNode는 OutAnchor 가 있고 EndNode 는 InAnchor 가 있다.
-        /// 일반 Node 는 OutAnchor 와 InAnchor 가 있다. 
-        /// </summary>
-        public Point? SourceAnchor
-        {
-            get => GetValue(SourceAnchorProperty);
-            set => SetValue(SourceAnchorProperty, value);
-        }
-
-        public static readonly StyledProperty<Point?> TargetAnchorProperty =
-            AvaloniaProperty.Register<BaseNode, Point?>(nameof(TargetAnchor));
-
-        public Point? TargetAnchor
-        {
-            get => GetValue(TargetAnchorProperty);
-            set => SetValue(TargetAnchorProperty, value);
-        }
-
-        #endregion
-
-        #region Fields
-
-        private readonly CompositeDisposable _disposables = new();
-        protected bool IsDragging = false;
-
-        // Pointer location
-        protected Point InitialPointerPosition;
-        protected Point PreviousPointerPosition;
-        protected Point CurrentPointerPosition;
 
         #endregion
 
@@ -85,34 +53,45 @@ namespace DagEdit
 
         #endregion
 
-        #region event handers
+        #region Finalizers
 
-        private void InitializeSubscriptions()
+        // 종료자
+        ~BaseNode()
         {
-            Observable.FromEventPattern<PointerPressedEventArgs>(
-                    h => this.PointerPressed += h,
-                    h => this.PointerPressed -= h)
-                .Subscribe(args => HandlePointerPressed(args.Sender, args.EventArgs))
-                .DisposeWith(_disposables);
-
-            Observable.FromEventPattern<PointerEventArgs>(
-                    h => this.PointerMoved += h,
-                    h => this.PointerMoved -= h)
-                .Subscribe(args => HandlePointerMoved(args.Sender, args.EventArgs))
-                .DisposeWith(_disposables);
-
-            Observable.FromEventPattern<PointerReleasedEventArgs>(
-                    h => this.PointerReleased += h,
-                    h => this.PointerReleased -= h)
-                .Subscribe(args => HandlePointerReleased(args.Sender, args.EventArgs))
-                .DisposeWith(_disposables);
-
-            /*Observable.FromEventPattern<KeyEventArgs>(
-                    h => this.KeyDown += h, 
-                    h => this.KeyDown -= h) 
-                .Subscribe(args => HandleKeyDown(args.Sender, args.EventArgs))
-                .DisposeWith(_disposables); */
+            Dispose(false);
         }
+
+        #endregion
+
+        #region Properties
+
+        public Point Location
+        {
+            get => GetValue(LocationProperty);
+            set => SetValue(LocationProperty, value);
+        }
+
+        /// <summary>
+        /// StartNode는 OutAnchor 가 있고 EndNode 는 InAnchor 가 있다.
+        /// 일반 Node 는 OutAnchor 와 InAnchor 가 있다.
+        /// </summary>
+        public Point? SourceAnchor
+        {
+            get => GetValue(SourceAnchorProperty);
+            set => SetValue(SourceAnchorProperty, value);
+        }
+
+        public Point? TargetAnchor
+        {
+            get => GetValue(TargetAnchorProperty);
+            set => SetValue(TargetAnchorProperty, value);
+        }
+
+        protected bool IsDragging { get; set; }
+
+        #endregion
+
+        #region Event Handlers
 
         protected virtual void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
@@ -136,24 +115,13 @@ namespace DagEdit
 
         #endregion
 
-        #region methods
+        #region Methods
 
-        //TODO Dispose 관련해서 테스트 해봐야 함.
+        // TODO Dispose 관련해서 테스트 해봐야 함.
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this); // 종료자 호출 억제
-        }
-
-        public virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                // 관리되는 자원 해제
-                _disposables.Dispose();
-            }
-
-            // 관리되지 않는 자원 해제 코드가 필요한 경우 여기에 추가
         }
 
         public void Hide()
@@ -164,10 +132,42 @@ namespace DagEdit
             }
         }
 
-        // 종료자
-        ~BaseNode()
+        protected virtual void Dispose(bool disposing)
         {
-            Dispose(false);
+            if (disposing)
+            {
+                // 관리되는 자원 해제
+                _disposables.Dispose();
+            }
+
+            // 관리되지 않는 자원 해제 코드가 필요한 경우 여기에 추가
+        }
+
+        private void InitializeSubscriptions()
+        {
+            Observable.FromEventPattern<PointerPressedEventArgs>(
+                    h => this.PointerPressed += h,
+                    h => this.PointerPressed -= h)
+                .Subscribe(args => HandlePointerPressed(args.Sender, args.EventArgs))
+                .DisposeWith(_disposables);
+
+            Observable.FromEventPattern<PointerEventArgs>(
+                    h => this.PointerMoved += h,
+                    h => this.PointerMoved -= h)
+                .Subscribe(args => HandlePointerMoved(args.Sender, args.EventArgs))
+                .DisposeWith(_disposables);
+
+            Observable.FromEventPattern<PointerReleasedEventArgs>(
+                    h => this.PointerReleased += h,
+                    h => this.PointerReleased -= h)
+                .Subscribe(args => HandlePointerReleased(args.Sender, args.EventArgs))
+                .DisposeWith(_disposables);
+
+            /*Observable.FromEventPattern<KeyEventArgs>(
+                    h => this.KeyDown += h,
+                    h => this.KeyDown -= h)
+                .Subscribe(args => HandleKeyDown(args.Sender, args.EventArgs))
+                .DisposeWith(_disposables); */
         }
 
         #endregion

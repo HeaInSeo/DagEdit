@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
@@ -130,8 +130,12 @@ namespace DagEdit
         {
         }
 
-        protected virtual void RaiseConnectionCompletedEvent(Connector? connector, Point? inAnchor, Guid? inNodeId,
-            Point? outAnchor, Guid? outNodeId)
+        protected virtual void RaiseConnectionCompletedEvent(
+            Connector? connector,
+            Point? inAnchor,
+            Guid? inNodeId,
+            Point? outAnchor,
+            Guid? outNodeId)
         {
         }
 

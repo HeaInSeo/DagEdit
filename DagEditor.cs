@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml.Templates;
 using Avalonia.Media;
-using Avalonia.Controls.Shapes;
 using ReactiveUI;
 
 namespace DagEdit
@@ -55,8 +55,6 @@ namespace DagEdit
                 nameof(IsSelecting),
                 o => o.IsSelecting);
 
-        private bool _isSelecting;
-
         public bool IsSelecting
         {
             get => _isSelecting;
@@ -78,8 +76,6 @@ namespace DagEdit
                 nameof(SelectedArea),
                 o => o.SelectedArea);
 
-        private Rect _selectedArea;
-
         public Rect SelectedArea
         {
             get => _selectedArea;
@@ -91,8 +87,6 @@ namespace DagEdit
                 nameof(IsPreviewingSelection),
                 o => o.IsPreviewingSelection);
 
-        private bool? _isPreviewingSelection;
-
         public bool? IsPreviewingSelection
         {
             get => _isPreviewingSelection;
@@ -103,8 +97,6 @@ namespace DagEdit
             AvaloniaProperty.RegisterDirect<DagEditor, bool>(
                 nameof(IsPanning),
                 o => o.IsPanning);
-
-        private bool _isPanning;
 
         public bool IsPanning
         {
@@ -176,6 +168,10 @@ namespace DagEdit
         #region Fields
 
         private readonly CompositeDisposable _disposables = new();
+        private bool _isSelecting;
+        private Rect _selectedArea;
+        private bool? _isPreviewingSelection;
+        private bool _isPanning;
 
         // 이건 connector 에서 올라오는 event
         private EventHandler<PendingConnectionEventArgs>? _connectionStartedHandler;
@@ -233,7 +229,11 @@ namespace DagEdit
             _viewModel.WhenAnyValue(x => x.ViewportLocation)
                 .Subscribe(v =>
                 {
-                    if (_syncingViewport) { return; }
+                    if (_syncingViewport)
+                    {
+                        return;
+                    }
+
                     _syncingViewport = true;
                     ViewportLocation = v;
                     _syncingViewport = false;
@@ -242,7 +242,11 @@ namespace DagEdit
             _viewModel.WhenAnyValue(x => x.ViewportScale)
                 .Subscribe(v =>
                 {
-                    if (_syncingViewport) { return; }
+                    if (_syncingViewport)
+                    {
+                        return;
+                    }
+
                     _syncingViewport = true;
                     ViewportScale = v;
                     _syncingViewport = false;
@@ -251,7 +255,11 @@ namespace DagEdit
             this.GetObservable(ViewportLocationProperty)
                 .Subscribe(v =>
                 {
-                    if (_syncingViewport) { return; }
+                    if (_syncingViewport)
+                    {
+                        return;
+                    }
+
                     _syncingViewport = true;
                     _viewModel.ViewportLocation = v;
                     _syncingViewport = false;
@@ -260,7 +268,11 @@ namespace DagEdit
             this.GetObservable(ViewportScaleProperty)
                 .Subscribe(v =>
                 {
-                    if (_syncingViewport) { return; }
+                    if (_syncingViewport)
+                    {
+                        return;
+                    }
+
                     _syncingViewport = true;
                     _viewModel.ViewportScale = v;
                     _syncingViewport = false;
@@ -400,7 +412,7 @@ namespace DagEdit
                 _currentPointerPosition = args.GetPosition(this);
 
                 // 패닝 델타는 줌 배율과 무관하게 스크린 픽셀 단위로 ViewportLocation에 적용한다.
-                _viewModel.ViewportLocation -= (_currentPointerPosition - _previousPointerPosition);
+                _viewModel.ViewportLocation -= _currentPointerPosition - _previousPointerPosition;
                 _previousPointerPosition = _currentPointerPosition;
                 IsPanning = true;
                 args.Handled = true;
@@ -602,8 +614,8 @@ namespace DagEdit
 
             var worldUnderCursor = ViewportTransform.ScreenToWorld(cursorPos, _viewModel.ViewportLocation, oldScale);
             _viewModel.ViewportLocation = new(
-                worldUnderCursor.X * newScale - cursorPos.X,
-                worldUnderCursor.Y * newScale - cursorPos.Y);
+                (worldUnderCursor.X * newScale) - cursorPos.X,
+                (worldUnderCursor.Y * newScale) - cursorPos.Y);
 
             _viewModel.ViewportScale = newScale;
             args.Handled = true;
@@ -755,7 +767,7 @@ namespace DagEdit
                 StrokeThickness = 1.5,
                 Fill = new SolidColorBrush(Color.FromArgb(40, 70, 130, 220)),
                 IsHitTestVisible = false,
-                IsVisible = false
+                IsVisible = false,
             };
             topLayer.Children.Add(_selectionRect);
         }
@@ -783,7 +795,8 @@ namespace DagEdit
                 {
                     if (dagItems.ConnectionItem.SourceAnchor.HasValue && dagItems.ConnectionItem.TargetAnchor.HasValue)
                     {
-                        var connection = new Connection(dagItems.ConnectionItem.SourceAnchor.Value,
+                        var connection = new Connection(
+                            dagItems.ConnectionItem.SourceAnchor.Value,
                             dagItems.ConnectionItem.TargetAnchor.Value);
 
                         connection.ConnectionId = dagItems.ConnectionItem.ConnectionId!.Value;

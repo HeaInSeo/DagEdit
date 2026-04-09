@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Input;
 
 namespace DagEdit
@@ -21,17 +21,20 @@ namespace DagEdit
             _keyModifiers = KeyModifiers.None;
         }
 
-        public PointerGesture(PointerUpdateKind kind, int counter) : this(kind)
+        public PointerGesture(PointerUpdateKind kind, int counter)
+            : this(kind)
         {
             _counter = counter;
         }
 
-        public PointerGesture(PointerUpdateKind kind, KeyModifiers modifiers) : this(kind)
+        public PointerGesture(PointerUpdateKind kind, KeyModifiers modifiers)
+            : this(kind)
         {
             _keyModifiers = modifiers;
         }
 
-        public PointerGesture(PointerUpdateKind kind, KeyModifiers modifiers, int counter) : this(kind, modifiers)
+        public PointerGesture(PointerUpdateKind kind, KeyModifiers modifiers, int counter)
+            : this(kind, modifiers)
         {
             _counter = counter;
         }

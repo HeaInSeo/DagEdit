@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.Collections;
 
@@ -11,7 +11,7 @@ namespace DagEdit
         StartNode,
         EndNode,
         RunnerNode,
-        Connection
+        Connection,
     }
 
     public class DagItems
@@ -20,19 +20,7 @@ namespace DagEdit
 
         private DagNode? _nodeItem;
 
-        public DagNode? NodeItem
-        {
-            get => _nodeItem;
-            set => _nodeItem = value;
-        }
-
         private DagConnection? _connectionItem;
-
-        public DagConnection? ConnectionItem
-        {
-            get => _connectionItem;
-            set => _connectionItem = value;
-        }
 
         #endregion
 
@@ -44,9 +32,28 @@ namespace DagEdit
 
         #endregion
 
+        #region Properties
+
+        public DagNode? NodeItem
+        {
+            get => _nodeItem;
+            set => _nodeItem = value;
+        }
+
+        public DagConnection? ConnectionItem
+        {
+            get => _connectionItem;
+            set => _connectionItem = value;
+        }
+
+        #endregion
+
         #region Methods
 
-        public void CreateDagConnection(Point? sourceAnchor, Guid? sourceNodeId, Point? targetAnchor,
+        public void CreateDagConnection(
+            Point? sourceAnchor,
+            Guid? sourceNodeId,
+            Point? targetAnchor,
             Guid? targetNodeId)
         {
             _connectionItem = new DagConnection
@@ -56,7 +63,7 @@ namespace DagEdit
                 TargetAnchor = targetAnchor,
                 SourceNodeId = sourceNodeId,
                 TargetNodeId = targetNodeId,
-                DAGItemType = DagItemsType.Connection
+                DAGItemType = DagItemsType.Connection,
             };
         }
 
@@ -66,7 +73,7 @@ namespace DagEdit
             {
                 NodeId = Guid.NewGuid(),
                 Location = location,
-                DAGItemType = DagItemsType.RunnerNode
+                DAGItemType = DagItemsType.RunnerNode,
             };
         }
 
