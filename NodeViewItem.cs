@@ -59,6 +59,13 @@ namespace DagEdit
     /// </summary>
     internal sealed class NodeViewItem : ISpatialItem
     {
+        // ─── Constructor ──────────────────────────────────────────────────────
+        private NodeViewItem(Guid nodeId, VCRect bounds)
+        {
+            NodeId = nodeId;
+            Bounds = bounds;
+        }
+
         /// <summary>원본 DagNode의 NodeId. viewer가 DagNode와 상관관계를 추적할 때 사용한다.</summary>
         public Guid NodeId { get; }
 
@@ -79,28 +86,7 @@ namespace DagEdit
         /// <summary>항상 표시. viewer에서 IsVisible=false 제어는 이번 spike 범위 밖.</summary>
         public bool IsVisible => true;
 
-        // ─── Constructor ──────────────────────────────────────────────────────
-
-        private NodeViewItem(Guid nodeId, VCRect bounds)
-        {
-            NodeId = nodeId;
-            Bounds = bounds;
-        }
-
-        // ─── In-place update ──────────────────────────────────────────────────
-
-        /// <summary>
-        /// 노드 위치가 변경되었을 때 Bounds를 in-place로 갱신한다.
-        /// 이 메서드는 object reference를 유지하면서 위치만 바꾼다 (VCA stable reference contract).
-        /// DagViewerProjectionAdapter.OnNodeMoved()만 호출한다.
-        /// </summary>
-        internal void UpdateLocation(Point location)
-        {
-            Bounds = new(location.X, location.Y, Constants.NodeWidth, Constants.NodeHeight);
-        }
-
         // ─── Factory ──────────────────────────────────────────────────────────
-
         /// <summary>
         /// DagNode에서 viewer projection을 생성한다.
         ///
@@ -118,6 +104,17 @@ namespace DagEdit
             return new NodeViewItem(
                 node.NodeId.Value,
                 new VCRect(loc.X, loc.Y, Constants.NodeWidth, Constants.NodeHeight));
+        }
+
+        // ─── In-place update ──────────────────────────────────────────────────
+        /// <summary>
+        /// 노드 위치가 변경되었을 때 Bounds를 in-place로 갱신한다.
+        /// 이 메서드는 object reference를 유지하면서 위치만 바꾼다 (VCA stable reference contract).
+        /// DagViewerProjectionAdapter.OnNodeMoved()만 호출한다.
+        /// </summary>
+        internal void UpdateLocation(Point location)
+        {
+            Bounds = new(location.X, location.Y, Constants.NodeWidth, Constants.NodeHeight);
         }
     }
 }

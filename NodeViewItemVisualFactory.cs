@@ -59,19 +59,6 @@ namespace DagEdit
         /// </summary>
         public int PoolCount => _pool.Count;
 
-        /// <summary>
-        /// H-2: 지정한 item을 _pool에서 제거한다.
-        ///
-        /// DagViewerProjectionAdapter.ItemRemoved 이벤트 수신자가 호출한다.
-        /// item이 _pool에 없으면 no-op.
-        ///
-        /// 이미 없는 경우 no-op — stable ref 계약과 reuse 규칙에 영향 없음.
-        /// </summary>
-        internal void RemoveFromPool(ISpatialItem item)
-        {
-            _pool.Remove(item);
-        }
-
         public void BeginRealize()
         {
         }
@@ -112,6 +99,19 @@ namespace DagEdit
 
         public void EndRealize()
         {
+        }
+
+        /// <summary>
+        /// H-2: 지정한 item을 _pool에서 제거한다.
+        ///
+        /// DagViewerProjectionAdapter.ItemRemoved 이벤트 수신자가 호출한다.
+        /// item이 _pool에 없으면 no-op.
+        ///
+        /// 이미 없는 경우 no-op — stable ref 계약과 reuse 규칙에 영향 없음.
+        /// </summary>
+        internal void RemoveFromPool(ISpatialItem item)
+        {
+            _pool.Remove(item);
         }
     }
 }

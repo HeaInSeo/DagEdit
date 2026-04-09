@@ -59,10 +59,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          BASELINE_BRANCH="${GITHUB_BASE_REF:-$GITHUB_REF_NAME}"
+          echo "Using baseline branch: $BASELINE_BRANCH"
+
           PREV_RUN_ID=$(gh run list \
             --repo "$GITHUB_REPOSITORY" \
             --workflow "inspectcode.yml" \
-            --branch "$GITHUB_REF_NAME" \
+            --branch "$BASELINE_BRANCH" \
             --status success \
             --limit 10 \
             --json databaseId \
@@ -145,6 +148,7 @@ jobs:
           repo       = os.environ.get("GITHUB_REPOSITORY", "")
           sha        = os.environ.get("GITHUB_SHA", "unknown")
           branch     = os.environ.get("GITHUB_REF_NAME", "unknown")
+          baseline_branch = os.environ.get("GITHUB_BASE_REF") or branch
           run_id     = os.environ.get("GITHUB_RUN_ID", "unknown")
           summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
           generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -214,6 +218,7 @@ jobs:
               f"## ReSharper InspectCode — {generated_at}",
               "",
               f"> **이번 실행** | branch: `{branch}` | commit: [`{sha[:7]}`]({commit_url}) | [run #{run_id}]({run_url})",
+              f"> **비교 기준 branch** | `{baseline_branch}`",
               "",
               total_headline,
               "",

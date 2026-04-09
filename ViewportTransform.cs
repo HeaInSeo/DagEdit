@@ -54,7 +54,7 @@ namespace DagEdit
         /// <returns>DagEditor 로컬 스크린 좌표.</returns>
         public static Point WorldToScreen(Point world, Point viewportLocation, double scale)
             => new(
-                world.X * scale - viewportLocation.X,
-                world.Y * scale - viewportLocation.Y);
+                (world.X * scale) - viewportLocation.X,
+                (world.Y * scale) - viewportLocation.Y);
     }
 }

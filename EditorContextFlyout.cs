@@ -1,15 +1,11 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Avalonia.Input;
 
 namespace DagEdit
 {
-    public class EditorContextFlyout : MenuFlyout
+    internal class EditorContextFlyout : MenuFlyout
     {
         #region Constructors
-
-        static EditorContextFlyout()
-        {
-        }
 
         public EditorContextFlyout()
         {
@@ -17,30 +13,23 @@ namespace DagEdit
         }
 
         // 이렇게 사용했을때는 editor 는 null 이 아님.
-        public EditorContextFlyout(DagEditor editor) : this()
+        public EditorContextFlyout(DagEditor editor)
+            : this()
         {
             var menuItem = SetupContextMenu(editor);
-            this.Items.Add(menuItem);
+            Items.Add(menuItem);
         }
 
         #endregion
 
         #region Methods
 
-        private void Initialize()
+        private static EditorMenuItem SetupContextMenu(DagEditor editor)
         {
-            this.Opened += (sender, e) => { };
-            this.Closed += (sender, e) => { };
-        }
-
-        private MenuItem SetupContextMenu(DagEditor editor)
-        {
-            DagEditor dagEditor = editor;
-
             // '파일(_F)' 메뉴 아이템 생성
             var fileMenuItem = new EditorMenuItem
             {
-                Header = "Node(_N)"
+                Header = "Node(_N)",
             };
 
             var newMenuItem = new EditorMenuItem
@@ -62,9 +51,14 @@ namespace DagEdit
             fileMenuItem.Items.Add(openMenuItem);
 
             // '파일(_F)' 메뉴 아이템을 ContextMenu에 추가
-            //contextMenu.Items.Add(fileMenuItem);
-
+            // contextMenu.Items.Add(fileMenuItem);
             return fileMenuItem;
+        }
+
+        private void Initialize()
+        {
+            Opened += (_, _) => { };
+            Closed += (_, _) => { };
         }
 
         #endregion

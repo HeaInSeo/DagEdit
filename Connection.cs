@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
@@ -45,7 +45,7 @@ namespace DagEdit
     public enum ConnectionDirection
     {
         Forward, // 앞쪽 방향
-        Backward // 뒤쪽 방향
+        Backward, // 뒤쪽 방향
     }
 
     /// <summary>
@@ -71,24 +71,11 @@ namespace DagEdit
         /// <summary>
         /// 화살표 머리 없음.
         /// </summary>
-        None
+        None,
     }
 
     public class Connection : Shape
     {
-        #region Feilds
-
-        private const double BaseOffset = 100d;
-
-        public Guid ConnectionId { get; set; }
-
-        private const double OffsetGrowthRate = 25d;
-        private const double Degrees = Math.PI / 180.0d;
-        private const double DefaultSpacing = 30d;
-        private const double DefaultSAngle = 45d;
-
-        #endregion
-
         #region Dependency Properties
 
         public static readonly StyledProperty<Point> SourceProperty =
@@ -123,6 +110,59 @@ namespace DagEdit
 
         public static readonly StyledProperty<double> AngleProperty =
             AvaloniaProperty.Register<Connection, double>(nameof(Angle), DefaultSAngle);
+
+        #endregion
+
+        #region Feilds
+
+        private const double BaseOffset = 100d;
+        private const double OffsetGrowthRate = 25d;
+        private const double Degrees = Math.PI / 180.0d;
+        private const double DefaultSpacing = 30d;
+        private const double DefaultSAngle = 45d;
+
+        #endregion
+
+        #region Constructors
+
+        static Connection()
+        {
+            StrokeThicknessProperty.OverrideDefaultValue<Connection>(3);
+            StrokeProperty.OverrideDefaultValue<Connection>(Brushes.DodgerBlue);
+            FillProperty.OverrideDefaultValue<Connection>(Brushes.DodgerBlue);
+            FocusableProperty.OverrideDefaultValue<Connection>(true);
+
+            // AffectsGeometry
+            AffectsGeometry<Connection>(
+                SourceProperty,
+                TargetProperty,
+                SourceOffsetProperty,
+                TargetOffsetProperty,
+                OffsetModeProperty,
+                DirectionProperty,
+                ArrowHeadEndsProperty,
+                SpacingProperty,
+                ArrowSizeProperty,
+                AngleProperty,
+                LineShapeModeProperty);
+        }
+
+        public Connection()
+        {
+        }
+
+        // 추가
+        public Connection(Point start, Point end)
+        {
+            Source = start;
+            Target = end;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public Guid ConnectionId { get; set; }
 
         public double Angle
         {
@@ -192,256 +232,7 @@ namespace DagEdit
 
         #endregion
 
-        #region Constructors
-
-        static Connection()
-        {
-            StrokeThicknessProperty.OverrideDefaultValue<Connection>(3);
-            StrokeProperty.OverrideDefaultValue<Connection>(Brushes.DodgerBlue);
-            FillProperty.OverrideDefaultValue<Connection>(Brushes.DodgerBlue);
-            FocusableProperty.OverrideDefaultValue<Connection>(true);
-
-            // AffectsGeometry
-            AffectsGeometry<Connection>(
-                SourceProperty,
-                TargetProperty,
-                SourceOffsetProperty,
-                TargetOffsetProperty,
-                OffsetModeProperty,
-                DirectionProperty,
-                ArrowHeadEndsProperty,
-                SpacingProperty,
-                ArrowSizeProperty,
-                AngleProperty,
-                LineShapeModeProperty
-            );
-        }
-
-        public Connection()
-        {
-        }
-
-        // 추가
-        public Connection(Point start, Point end)
-        {
-            Source = start;
-            Target = end;
-        }
-
-        #endregion
-
         #region Methods
-
-        private void DrawLineGeometry(IGeometryContext context, Point source, Point target)
-        {
-            var direction = Direction == ConnectionDirection.Forward ? 1d : -1d;
-            var spacing = new Vector(Spacing * direction, 0d);
-            var arrowOffset = new Vector(ArrowSize.Width * direction, 0d);
-            var startPoint = source + spacing;
-            var endPoint = Spacing > 0d ? target - arrowOffset : target;
-
-            context.BeginFigure(source, false);
-
-            switch (LineShapeMode)
-            {
-                case LineShape.Line:
-                    context.LineTo(startPoint);
-                    context.LineTo(endPoint - spacing);
-                    break;
-
-                // TODO 여기 버그 있음.
-                case LineShape.Circuit:
-                    Point p2 = GetControlPoint(startPoint, endPoint - spacing);
-                    context.LineTo(startPoint);
-                    context.LineTo(p2);
-                    context.LineTo(endPoint - spacing);
-
-                    // 살펴보기
-                    //context.LineTo(target);
-                    break;
-
-                case LineShape.Quadratic:
-                    Vector delta = target - source;
-                    double height = Math.Abs(delta.Y);
-                    double width = Math.Abs(delta.X);
-
-                    double smooth = Math.Min(BaseOffset, height);
-                    double offset = Math.Max(smooth, width / 2d);
-                    offset = Math.Min(BaseOffset + Math.Sqrt(width * OffsetGrowthRate), offset);
-
-                    var controlPoint = new Vector(offset * direction, 0d);
-                    context.CubicBezierTo(startPoint + controlPoint, endPoint - controlPoint, endPoint);
-                    break;
-            }
-
-            context.LineTo(endPoint);
-            context.EndFigure(false);
-        }
-
-        private Point GetControlPoint(Point source, Point target)
-        {
-            Vector delta = target - source;
-            double tangent = Math.Tan(Angle * Degrees); // 각도에 따른 탄젠트 값 계산
-
-            double dx = Math.Abs(delta.X);
-            double dy = Math.Abs(delta.Y);
-
-            double slopeWidth = dy / tangent; // 수직 거리와 탄젠트를 이용해 수평 길이 계산
-            double slopeHeight = dx * tangent; // 수평 거리와 탄젠트를 이용해 수직 길이 계산
-
-            if (dx > slopeWidth)
-            {
-                // 수평 거리가 계산된 수평 길이보다 큰 경우
-                return delta.X > 0d
-                    ? new Point(target.X - slopeWidth, source.Y) // 오른쪽 방향일 경우
-                    : new Point(source.X - slopeWidth, target.Y); // 왼쪽 방향일 경우
-            }
-
-            if (dy > slopeHeight)
-            {
-                // 수직 거리가 계산된 수직 길이보다 큰 경우
-                if (delta.Y > 0d)
-                {
-                    // 위쪽 방향일 경우
-                    return delta.X < 0d
-                        ? new Point(source.X, target.Y - slopeHeight) // 왼쪽 위 방향
-                        : new Point(target.X, source.Y + slopeHeight); // 오른쪽 위 방향
-                }
-                else if (delta.X < 0d)
-                {
-                    // 아래쪽 방향일 경우 (왼쪽 아래 방향)
-                    return new Point(source.X, target.Y + slopeHeight);
-                }
-            }
-
-            // 아래쪽 방향일 경우 (오른쪽 아래 방향)
-            return new Point(target.X, source.Y - slopeHeight);
-        }
-
-        private void DrawArrowGeometry(IGeometryContext context, Point source, Point target,
-            ConnectionDirection arrowDirection = ConnectionDirection.Forward)
-        {
-            var (from, to) = GetArrowHeadPoints(source, target, arrowDirection);
-
-            context.BeginFigure(target, true);
-            context.LineTo(from);
-            context.LineTo(to);
-
-            // 주석 지우지 말것!
-            // Stroke 색상 가져오기 Avalonia 에서는 필요 없음.
-            // var strokeColor = Stroke is SolidColorBrush strokeBrush ? strokeBrush.Color : Colors.Black;
-            // Fill 속성에 Stroke 색상 적용
-            //context.Fill(new SolidColorBrush(strokeColor));
-
-            context.EndFigure(true);
-        }
-
-        private void DrawRectGeometry(IGeometryContext context, Point source)
-        {
-            // TODO 사각형의 크기를 정의 (예: 10x10 픽셀)
-            double size = 10;
-            Rect rect = new(source.X - size / 2, source.Y - size / 2, size, size);
-
-            // 사각형 그리기
-            context.BeginFigure(rect.TopLeft, isFilled: true);
-            context.LineTo(new Point(rect.TopRight.X, rect.TopRight.Y));
-            context.LineTo(new Point(rect.BottomRight.X, rect.BottomRight.Y));
-            context.LineTo(new Point(rect.BottomLeft.X, rect.BottomLeft.Y));
-            context.LineTo(rect.TopLeft);
-            context.EndFigure(true);
-        }
-
-        private (Point From, Point To) GetArrowHeadPoints(Point source, Point target,
-            ConnectionDirection arrowDirection)
-        {
-            var headWidth = ArrowSize.Width;
-            var headHeight = ArrowSize.Height;
-            Point from;
-            Point to;
-
-            // Spacing이 1보다 작은 경우, 화살표의 머리 부분을 각도를 사용하여 계산.
-            if (Spacing < 1d)
-            {
-                var delta = source - target;
-                var angle = Math.Atan2(delta.Y, delta.X);
-                var sinT = Math.Sin(angle);
-                var cosT = Math.Cos(angle);
-
-                from = new(target.X + (headWidth * cosT - headHeight * sinT),
-                    target.Y + (headWidth * sinT + headHeight * cosT));
-                to = new(target.X + (headWidth * cosT + headHeight * sinT),
-                    target.Y - (headHeight * cosT - headWidth * sinT));
-            }
-
-            // Spacing이 1보다 큰 경우, 화살표의 머리 부분을 방향에 따라 계산.
-            else
-            {
-                var direction = arrowDirection == ConnectionDirection.Forward ? 1d : -1d;
-                from = new(target.X - headWidth * direction, target.Y + headHeight);
-                to = new(target.X - headWidth * direction, target.Y - headHeight);
-            }
-
-            return (from, to);
-        }
-
-        private (Vector SourceOffset, Vector TargetOffset) GetOffset()
-        {
-            Vector delta = Target - Source;
-            Vector delta2 = Source - Target;
-
-            return OffsetMode switch
-            {
-                ConnectionOffsetMode.Rectangle => (GetRectangleModeOffset(delta, SourceOffset),
-                    GetRectangleModeOffset(delta2, TargetOffset)),
-                ConnectionOffsetMode.Circle => (GetCircleModeOffset(delta, SourceOffset),
-                    GetCircleModeOffset(delta2, TargetOffset)),
-                ConnectionOffsetMode.Edge => (GetEdgeModeOffset(delta, SourceOffset),
-                    GetEdgeModeOffset(delta2, TargetOffset)),
-                ConnectionOffsetMode.None => (Constants.ZeroVector, Constants.ZeroVector),
-                _ => throw new ArgumentOutOfRangeException()
-            };
-        }
-
-        private static Vector GetEdgeModeOffset(Vector delta, Size offset)
-        {
-            var xOffset = Math.Min(Math.Abs(delta.X) / 2d, offset.Width) * Math.Sign(delta.X);
-            var yOffset = Math.Min(Math.Abs(delta.Y) / 2d, offset.Height) * Math.Sign(delta.Y);
-
-            return new Vector(xOffset, yOffset);
-        }
-
-        private static Vector GetCircleModeOffset(Vector delta, Size offset)
-        {
-            if (delta.SquaredLength > 0d)
-            {
-                delta.Normalize();
-            }
-
-            return new Vector(delta.X * offset.Width, delta.Y * offset.Height);
-        }
-
-        private static Vector GetRectangleModeOffset(Vector delta, Size offset)
-        {
-            if (delta.SquaredLength > 0d)
-            {
-                delta.Normalize();
-            }
-
-            var angle = Math.Atan2(delta.Y, delta.X);
-
-            if (offset.Width * 2d * Math.Abs(delta.Y) < offset.Height * 2d * Math.Abs(delta.X))
-            {
-                var x = Math.Sign(delta.X) * offset.Width;
-                var y = Math.Tan(angle) * x;
-                return new Vector(x, y);
-            }
-            else
-            {
-                var y = Math.Sign(delta.Y) * offset.Height;
-                var x = 1.0d / Math.Tan(angle) * y;
-                return new Vector(x, y);
-            }
-        }
 
         public void UpdateConnection(Point start, Point end)
         {
@@ -458,8 +249,6 @@ namespace DagEdit
         {
             Target = target;
         }
-
-        #endregion
 
         /// <inheritdoc />
         protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -524,5 +313,210 @@ namespace DagEdit
 
             return geometry;
         }
+
+        private static Vector GetEdgeModeOffset(Vector delta, Size offset)
+        {
+            var xOffset = Math.Min(Math.Abs(delta.X) / 2d, offset.Width) * Math.Sign(delta.X);
+            var yOffset = Math.Min(Math.Abs(delta.Y) / 2d, offset.Height) * Math.Sign(delta.Y);
+
+            return new Vector(xOffset, yOffset);
+        }
+
+        private static Vector GetCircleModeOffset(Vector delta, Size offset)
+        {
+            if (delta.SquaredLength > 0d)
+            {
+                delta.Normalize();
+            }
+
+            return new Vector(delta.X * offset.Width, delta.Y * offset.Height);
+        }
+
+        private static Vector GetRectangleModeOffset(Vector delta, Size offset)
+        {
+            if (delta.SquaredLength > 0d)
+            {
+                delta.Normalize();
+            }
+
+            var angle = Math.Atan2(delta.Y, delta.X);
+
+            if (offset.Width * 2d * Math.Abs(delta.Y) < offset.Height * 2d * Math.Abs(delta.X))
+            {
+                var x = Math.Sign(delta.X) * offset.Width;
+                var y = Math.Tan(angle) * x;
+                return new Vector(x, y);
+            }
+            else
+            {
+                var y = Math.Sign(delta.Y) * offset.Height;
+                var x = 1.0d / Math.Tan(angle) * y;
+                return new Vector(x, y);
+            }
+        }
+
+        private static void DrawRectGeometry(StreamGeometryContext context, Point source)
+        {
+            // TODO 사각형의 크기를 정의 (예: 10x10 픽셀)
+            double size = 10;
+            Rect rect = new(source.X - (size / 2), source.Y - (size / 2), size, size);
+
+            // 사각형 그리기
+            context.BeginFigure(rect.TopLeft, isFilled: true);
+            context.LineTo(new Point(rect.TopRight.X, rect.TopRight.Y));
+            context.LineTo(new Point(rect.BottomRight.X, rect.BottomRight.Y));
+            context.LineTo(new Point(rect.BottomLeft.X, rect.BottomLeft.Y));
+            context.LineTo(rect.TopLeft);
+            context.EndFigure(true);
+        }
+
+        private void DrawLineGeometry(StreamGeometryContext context, Point source, Point target)
+        {
+            var direction = Direction == ConnectionDirection.Forward ? 1d : -1d;
+            var spacing = new Vector(Spacing * direction, 0d);
+            var arrowOffset = new Vector(ArrowSize.Width * direction, 0d);
+            var startPoint = source + spacing;
+            var endPoint = Spacing > 0d ? target - arrowOffset : target;
+
+            context.BeginFigure(source, false);
+
+            switch (LineShapeMode)
+            {
+                case LineShape.Line:
+                    context.LineTo(startPoint);
+                    context.LineTo(endPoint - spacing);
+                    break;
+
+                // TODO 여기 버그 있음.
+                case LineShape.Circuit:
+                    Point p2 = GetControlPoint(startPoint, endPoint - spacing);
+                    context.LineTo(startPoint);
+                    context.LineTo(p2);
+                    context.LineTo(endPoint - spacing);
+                    break;
+
+                case LineShape.Quadratic:
+                    Vector delta = target - source;
+                    double height = Math.Abs(delta.Y);
+                    double width = Math.Abs(delta.X);
+
+                    double smooth = Math.Min(BaseOffset, height);
+                    double offset = Math.Max(smooth, width / 2d);
+                    offset = Math.Min(BaseOffset + Math.Sqrt(width * OffsetGrowthRate), offset);
+
+                    var controlPoint = new Vector(offset * direction, 0d);
+                    context.CubicBezierTo(startPoint + controlPoint, endPoint - controlPoint, endPoint);
+                    break;
+            }
+
+            context.LineTo(endPoint);
+            context.EndFigure(false);
+        }
+
+        private Point GetControlPoint(Point source, Point target)
+        {
+            Vector delta = target - source;
+            double tangent = Math.Tan(Angle * Degrees);
+
+            double dx = Math.Abs(delta.X);
+            double dy = Math.Abs(delta.Y);
+
+            double slopeWidth = dy / tangent;
+            double slopeHeight = dx * tangent;
+
+            if (dx > slopeWidth)
+            {
+                return delta.X > 0d
+                    ? new Point(target.X - slopeWidth, source.Y)
+                    : new Point(source.X - slopeWidth, target.Y);
+            }
+
+            if (dy > slopeHeight)
+            {
+                if (delta.Y > 0d)
+                {
+                    return delta.X < 0d
+                        ? new Point(source.X, target.Y - slopeHeight)
+                        : new Point(target.X, source.Y + slopeHeight);
+                }
+                else if (delta.X < 0d)
+                {
+                    return new Point(source.X, target.Y + slopeHeight);
+                }
+            }
+
+            return new Point(target.X, source.Y - slopeHeight);
+        }
+
+        private void DrawArrowGeometry(
+            StreamGeometryContext context,
+            Point source,
+            Point target,
+            ConnectionDirection arrowDirection = ConnectionDirection.Forward)
+        {
+            var (from, to) = GetArrowHeadPoints(source, target, arrowDirection);
+
+            context.BeginFigure(target, true);
+            context.LineTo(from);
+            context.LineTo(to);
+            context.EndFigure(true);
+        }
+
+        private (Point From, Point To) GetArrowHeadPoints(
+            Point source,
+            Point target,
+            ConnectionDirection arrowDirection)
+        {
+            var headWidth = ArrowSize.Width;
+            var headHeight = ArrowSize.Height;
+            Point from;
+            Point to;
+
+            if (Spacing < 1d)
+            {
+                var delta = source - target;
+                var angle = Math.Atan2(delta.Y, delta.X);
+                var sinT = Math.Sin(angle);
+                var cosT = Math.Cos(angle);
+
+                from = new(
+                    target.X + ((headWidth * cosT) - (headHeight * sinT)),
+                    target.Y + ((headWidth * sinT) + (headHeight * cosT)));
+                to = new(
+                    target.X + ((headWidth * cosT) + (headHeight * sinT)),
+                    target.Y - ((headHeight * cosT) - (headWidth * sinT)));
+            }
+            else
+            {
+                var direction = arrowDirection == ConnectionDirection.Forward ? 1d : -1d;
+                from = new(target.X - (headWidth * direction), target.Y + headHeight);
+                to = new(target.X - (headWidth * direction), target.Y - headHeight);
+            }
+
+            return (from, to);
+        }
+
+        private (Vector SourceOffset, Vector TargetOffset) GetOffset()
+        {
+            Vector delta = Target - Source;
+            Vector delta2 = Source - Target;
+
+            return OffsetMode switch
+            {
+                ConnectionOffsetMode.Rectangle => (
+                    GetRectangleModeOffset(delta, SourceOffset),
+                    GetRectangleModeOffset(delta2, TargetOffset)),
+                ConnectionOffsetMode.Circle => (
+                    GetCircleModeOffset(delta, SourceOffset),
+                    GetCircleModeOffset(delta2, TargetOffset)),
+                ConnectionOffsetMode.Edge => (
+                    GetEdgeModeOffset(delta, SourceOffset),
+                    GetEdgeModeOffset(delta2, TargetOffset)),
+                ConnectionOffsetMode.None => (Constants.ZeroVector, Constants.ZeroVector),
+                _ => throw new ArgumentOutOfRangeException(),
+            };
+        }
+
+        #endregion
     }
 }

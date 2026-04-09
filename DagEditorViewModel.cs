@@ -27,152 +27,13 @@ namespace DagEdit
     public sealed class DagEditorViewModel : ReactiveObject, IDisposable
     {
         private readonly CompositeDisposable _disposables = new();
-
-        public Dag Dag { get; } = new();
-
-        // ─── Items ────────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// DynamicData SourceList에서 파생된 읽기 전용 컬렉션.
-        /// DagEditor.axaml의 ItemsSource 바인딩 대상.
-        /// </summary>
-        public ReadOnlyObservableCollection<DagItems> Items => Dag.DAGItemsSource;
-
-        // ─── Viewport State ────────────────────────────────────────────────────
-        //
-        // ViewportLocation / ViewportScale 은 뷰포트 상태의 Single Source of Truth.
-        //
-        // 책임 방향:
-        //   ViewModel (여기)  ── WhenAnyValue ──▶  DagEditor StyledProperty (패스스루)
-        //                     ◀── GetObservable ──  (양방향, _syncingViewport 가드)
-        //
-        // VCA 매핑:
-        //   ViewportLocation  ≡  VirtualCanvas.Offset   (Point, 동일한 수식)
-        //   ViewportScale     ≡  VirtualCanvas.Scale    (double, 동일한 수식)
-        //   통합 시: VirtualCanvas.Offset ↔ ViewportLocation 을 양방향 바인딩하면 된다.
-
-        private Point _viewportLocation = Constants.ZeroPoint;
-
-        /// <summary>
-        /// 현재 뷰포트 오프셋 (ViewportLocation = VCA.Offset).
-        /// DagEditorCanvas TranslateTransform(-vl.X, -vl.Y) 의 소스.
-        /// </summary>
-        public Point ViewportLocation
-        {
-            get => _viewportLocation;
-            set => this.RaiseAndSetIfChanged(ref _viewportLocation, value);
-        }
-
-        private double _viewportScale = 1.0;
-
-        /// <summary>
-        /// 현재 줌 배율 (ViewportScale = VCA.Scale).
-        /// DagEditorCanvas ScaleTransform(s, s) 의 소스.
-        /// </summary>
-        public double ViewportScale
-        {
-            get => _viewportScale;
-            set => this.RaiseAndSetIfChanged(ref _viewportScale, value);
-        }
-
-        // ─── Reactive Counts ──────────────────────────────────────────────────
-
         private readonly ObservableAsPropertyHelper<int> _nodeCount;
         private readonly ObservableAsPropertyHelper<int> _connectionCount;
-
-        /// <summary>현재 그래프에 포함된 노드 수 (반응형 파생값).</summary>
-        public int NodeCount => _nodeCount.Value;
-
-        /// <summary>현재 그래프에 포함된 연결 수 (반응형 파생값).</summary>
-        public int ConnectionCount => _connectionCount.Value;
-
-        // ─── Viewer Adapter (G-0) ─────────────────────────────────────────────
-
         private readonly DagViewerProjectionAdapter _viewerAdapter = new();
-
-        /// <summary>
-        /// Phase 1 Viewer wiring용 adapter. MainWindow.OnLoaded에서 ProjectionChanged를 구독한다.
-        /// </summary>
-        internal DagViewerProjectionAdapter ViewerAdapter => _viewerAdapter;
-
-        // ─── H-3 Pin / Unpin (VCA 연동) ──────────────────────────────────────
-
-        /// <summary>
-        /// H-3: 노드를 VCA에 Pin 요청. DagEditor가 발생시키고 MainWindow가 ViewerCanvas.Pin()으로 처리.
-        /// </summary>
-        internal event EventHandler<Guid>? PinRequested;
-
-        /// <summary>
-        /// H-3: 노드의 VCA Pin 해제 요청. DagEditor가 발생시키고 MainWindow가 ViewerCanvas.Unpin()으로 처리.
-        /// </summary>
-        internal event EventHandler<Guid>? UnpinRequested;
-
-        internal void RequestPinNode(Guid nodeId) => PinRequested?.Invoke(this, nodeId);
-
-        internal void RequestUnpinNode(Guid nodeId) => UnpinRequested?.Invoke(this, nodeId);
-
-        // ─── Undo / Redo (Feature 2) ──────────────────────────────────────────
-
         private readonly UndoRedoStack _undoRedo = new();
 
-        public bool CanUndo => _undoRedo.CanUndo;
-
-        public bool CanRedo => _undoRedo.CanRedo;
-
-        /// <summary>
-        /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
-        /// MoveNodeCommand.Undo/Execute 가 adapter.Flush()를 호출해도 batch 안에서 suppressed.
-        /// </summary>
-        public void Undo()
-        {
-            _viewerAdapter.BeginBatch();
-            try
-            {
-                _undoRedo.Undo();
-            }
-            finally
-            {
-                _viewerAdapter.EndBatch();
-            }
-        }
-
-        /// <summary>
-        /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
-        /// </summary>
-        public void Redo()
-        {
-            _viewerAdapter.BeginBatch();
-            try
-            {
-                _undoRedo.Redo();
-            }
-            finally
-            {
-                _viewerAdapter.EndBatch();
-            }
-        }
-
-        /// <summary>
-        /// H-1: 외부 batch scope를 연다. adapter.BeginBatch() 위임.
-        /// 외부에서 여러 Execute* 호출을 하나의 ProjectionChanged로 묶고 싶을 때 사용.
-        /// 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 Flush가 발생한다.
-        /// </summary>
-        internal void BeginBatch() => _viewerAdapter.BeginBatch();
-
-        /// <summary>H-1: 외부 batch scope를 닫는다. adapter.EndBatch() 위임.</summary>
-        internal void EndBatch() => _viewerAdapter.EndBatch();
-
-        /// <summary>
-        /// H-1 viewer sync: MoveNodeCommand.Execute/Undo에서 직접 호출.
-        /// Undo/Redo 래핑 안에서 호출되므로 Flush는 EndBatch까지 suppressed.
-        /// </summary>
-        internal void NotifyViewerNodeMoved(Guid nodeId, Point location)
-        {
-            _viewerAdapter.OnNodeMovedById(nodeId, location);
-            _viewerAdapter.Flush();
-        }
-
-        // ─── Constructor ──────────────────────────────────────────────────────
+        private Point _viewportLocation = Constants.ZeroPoint;
+        private double _viewportScale = 1.0;
 
         public DagEditorViewModel()
         {
@@ -219,6 +80,118 @@ namespace DagEdit
                     _viewerAdapter.Flush();
                 })
                 .DisposeWith(_disposables);
+        }
+
+        // ─── H-3 Pin / Unpin (VCA 연동) ──────────────────────────────────────
+        /// <summary>
+        /// H-3: 노드를 VCA에 Pin 요청. DagEditor가 발생시키고 MainWindow가 ViewerCanvas.Pin()으로 처리.
+        /// </summary>
+        internal event EventHandler<Guid>? PinRequested;
+
+        /// <summary>
+        /// H-3: 노드의 VCA Pin 해제 요청. DagEditor가 발생시키고 MainWindow가 ViewerCanvas.Unpin()으로 처리.
+        /// </summary>
+        internal event EventHandler<Guid>? UnpinRequested;
+
+        public Dag Dag { get; } = new();
+
+        // ─── Items ────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// DynamicData SourceList에서 파생된 읽기 전용 컬렉션.
+        /// DagEditor.axaml의 ItemsSource 바인딩 대상.
+        /// </summary>
+        public ReadOnlyObservableCollection<DagItems> Items => Dag.DAGItemsSource;
+
+        // ─── Viewport State ────────────────────────────────────────────────────
+        //
+        // ViewportLocation / ViewportScale 은 뷰포트 상태의 Single Source of Truth.
+        //
+        // 책임 방향:
+        //   ViewModel (여기)  ── WhenAnyValue ──▶  DagEditor StyledProperty (패스스루)
+        //                     ◀── GetObservable ──  (양방향, _syncingViewport 가드)
+        //
+        // VCA 매핑:
+        //   ViewportLocation  ≡  VirtualCanvas.Offset   (Point, 동일한 수식)
+        //   ViewportScale     ≡  VirtualCanvas.Scale    (double, 동일한 수식)
+        //   통합 시: VirtualCanvas.Offset ↔ ViewportLocation 을 양방향 바인딩하면 된다.
+
+        /// <summary>
+        /// 현재 뷰포트 오프셋 (ViewportLocation = VCA.Offset).
+        /// DagEditorCanvas TranslateTransform(-vl.X, -vl.Y) 의 소스.
+        /// </summary>
+        public Point ViewportLocation
+        {
+            get => _viewportLocation;
+            set => this.RaiseAndSetIfChanged(ref _viewportLocation, value);
+        }
+
+        /// <summary>
+        /// 현재 줌 배율 (ViewportScale = VCA.Scale).
+        /// DagEditorCanvas ScaleTransform(s, s) 의 소스.
+        /// </summary>
+        public double ViewportScale
+        {
+            get => _viewportScale;
+            set => this.RaiseAndSetIfChanged(ref _viewportScale, value);
+        }
+
+        // ─── Reactive Counts ──────────────────────────────────────────────────
+
+        /// <summary>현재 그래프에 포함된 노드 수 (반응형 파생값).</summary>
+        public int NodeCount => _nodeCount.Value;
+
+        /// <summary>현재 그래프에 포함된 연결 수 (반응형 파생값).</summary>
+        public int ConnectionCount => _connectionCount.Value;
+
+        // ─── Undo / Redo (Feature 2) ──────────────────────────────────────────
+        public bool CanUndo => _undoRedo.CanUndo;
+
+        public bool CanRedo => _undoRedo.CanRedo;
+
+        // ─── Viewer Adapter (G-0) ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Phase 1 Viewer wiring용 adapter. MainWindow.OnLoaded에서 ProjectionChanged를 구독한다.
+        /// </summary>
+        internal DagViewerProjectionAdapter ViewerAdapter => _viewerAdapter;
+
+        public void Dispose()
+        {
+            _disposables.Dispose();
+        }
+
+        /// <summary>
+        /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
+        /// MoveNodeCommand.Undo/Execute 가 adapter.Flush()를 호출해도 batch 안에서 suppressed.
+        /// </summary>
+        public void Undo()
+        {
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Undo();
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
+        }
+
+        /// <summary>
+        /// H-1 batch: command 실행 중 발생하는 N회 Flush를 1회로 압축한다.
+        /// </summary>
+        public void Redo()
+        {
+            _viewerAdapter.BeginBatch();
+            try
+            {
+                _undoRedo.Redo();
+            }
+            finally
+            {
+                _viewerAdapter.EndBatch();
+            }
         }
 
         // ─── Execute (undo 스택에 push하는 사용자 동작) ───────────────────────
@@ -328,7 +301,6 @@ namespace DagEdit
         }
 
         // ─── Direct Dag Access (명령 없이 직접 접근; 주로 내부/테스트용) ────────
-
         public DagItems? AddDagNodeItem(Point? location) => Dag.AddDagNodeItem(location);
 
         public DagItems? AddDagConnectionItem(Point? source, Guid? sourceNodeId, Point? target, Guid? targetNodeId) =>
@@ -340,39 +312,28 @@ namespace DagEdit
 
         public DagNode? FindNode(Guid nodeId) => Dag.FindNode(nodeId);
 
-        // ─── Dispose ──────────────────────────────────────────────────────────
+        /// <summary>
+        /// H-1: 외부 batch scope를 연다. adapter.BeginBatch() 위임.
+        /// 외부에서 여러 Execute* 호출을 하나의 ProjectionChanged로 묶고 싶을 때 사용.
+        /// 중첩 가능 — 가장 바깥쪽 EndBatch()에서만 Flush가 발생한다.
+        /// </summary>
+        internal void BeginBatch() => _viewerAdapter.BeginBatch();
 
-        public void Dispose()
+        /// <summary>H-1: 외부 batch scope를 닫는다. adapter.EndBatch() 위임.</summary>
+        internal void EndBatch() => _viewerAdapter.EndBatch();
+
+        /// <summary>
+        /// H-1 viewer sync: MoveNodeCommand.Execute/Undo에서 직접 호출.
+        /// Undo/Redo 래핑 안에서 호출되므로 Flush는 EndBatch까지 suppressed.
+        /// </summary>
+        internal void NotifyViewerNodeMoved(Guid nodeId, Point location)
         {
-            _disposables.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// 이미 수행된 동작을 Undo/Redo 스택에 등록하기 위한 래퍼.
-    /// Execute()는 첫 번째 호출(등록 시)을 건너뛰고, 이후 Redo 경로에서만 inner를 수행한다.
-    /// </summary>
-    public sealed class AlreadyExecutedCommand : IUndoableCommand
-    {
-        private readonly IUndoableCommand _inner;
-        private bool _firstTime = true;
-
-        public AlreadyExecutedCommand(IUndoableCommand inner)
-        {
-            _inner = inner;
+            _viewerAdapter.OnNodeMovedById(nodeId, location);
+            _viewerAdapter.Flush();
         }
 
-        public void Execute()
-        {
-            if (_firstTime)
-            {
-                _firstTime = false;
-                return;
-            }
+        internal void RequestPinNode(Guid nodeId) => PinRequested?.Invoke(this, nodeId);
 
-            _inner.Execute();
-        }
-
-        public void Undo() => _inner.Undo();
+        internal void RequestUnpinNode(Guid nodeId) => UnpinRequested?.Invoke(this, nodeId);
     }
 }

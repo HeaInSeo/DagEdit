@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.Interactivity;
 
@@ -16,9 +16,13 @@ namespace DagEdit
         }
 
         // TODO 일단 이렇게 추가함.
-        public PendingConnectionEventArgs(RoutedEvent routedEvent, Connector? connectedConnector, Point? sourceAnchor,
+        public PendingConnectionEventArgs(
+            RoutedEvent routedEvent,
+            Connector? connectedConnector,
+            Point? sourceAnchor,
             Guid? sourceNodeId,
-            Point? targetAnchor, Guid? targetNodeId)
+            Point? targetAnchor,
+            Guid? targetNodeId)
             : base(routedEvent)
         {
             ConnectedConnector = connectedConnector;
@@ -28,7 +32,10 @@ namespace DagEdit
             TargetNodeId = targetNodeId;
         }
 
-        public PendingConnectionEventArgs(RoutedEvent routedEvent, Connector? connectedConnector, Point? sourceAnchor,
+        public PendingConnectionEventArgs(
+            RoutedEvent routedEvent,
+            Connector? connectedConnector,
+            Point? sourceAnchor,
             Vector? offset)
             : base(routedEvent)
         {

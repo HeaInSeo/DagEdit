@@ -77,78 +77,6 @@ namespace DagEdit
         public static readonly StyledProperty<double> ViewportScaleProperty =
             AvaloniaProperty.Register<PendingConnection, double>(nameof(ViewportScale), 1.0);
 
-        public Point SourceAnchor
-        {
-            get => GetValue(SourceAnchorProperty);
-            set => SetValue(SourceAnchorProperty, value);
-        }
-
-        public Point TargetAnchor
-        {
-            get => GetValue(TargetAnchorProperty);
-            set => SetValue(TargetAnchorProperty, value);
-        }
-
-        public object? SourceConnector
-        {
-            get => GetValue(SourceConnectorProperty);
-            set => SetValue(SourceConnectorProperty, value);
-        }
-
-        public object? TargetConnector
-        {
-            get => GetValue(TargetConnectorProperty);
-            set => SetValue(TargetConnectorProperty, value);
-        }
-
-        public bool EnablePreview
-        {
-            get => GetValue(EnablePreviewProperty);
-            set => SetValue(EnablePreviewProperty, value);
-        }
-
-        public object? PreviewTarget
-        {
-            get => GetValue(PreviewTargetProperty);
-            set => SetValue(PreviewTargetProperty, value);
-        }
-
-        public bool EnableSnapping
-        {
-            get => GetValue(EnableSnappingProperty);
-            set => SetValue(EnableSnappingProperty, value);
-        }
-
-        public double StrokeThickness
-        {
-            get => GetValue(StrokeThicknessProperty);
-            set => SetValue(StrokeThicknessProperty, value);
-        }
-
-        public ConnectionDirection Direction
-        {
-            get => GetValue(DirectionProperty);
-            set => SetValue(DirectionProperty, value);
-        }
-
-        public IBrush? SetFillAndStroke
-        {
-            get => GetValue(SetFillAndStrokeProperty);
-            set => SetValue(SetFillAndStrokeProperty, value);
-        }
-
-        public Point ViewportLocation
-        {
-            get => GetValue(ViewportLocationProperty);
-            set => SetValue(ViewportLocationProperty, value);
-        }
-
-        public double ViewportScale
-        {
-            get => GetValue(ViewportScaleProperty);
-            set => SetValue(ViewportScaleProperty, value);
-        }
-
         #endregion
 
         #region Fields
@@ -256,40 +184,88 @@ namespace DagEdit
 
         #endregion
 
-        #region Template
+        #region Properties
 
-        /// <summary>
-        /// C# FuncControlTemplate: AXAML PendingConnection.axaml의 &lt;Template&gt; 완전 대체.
-        ///
-        /// TemplateLayoutCanvas(PART_Canvas)
-        ///   └─ Connection(PART_Connection)
-        ///
-        /// Source/Target/Fill/Stroke는 OnApplyTemplate의 WhenAnyValue 구독이 갱신한다.
-        /// 초기값은 SetFillAndStroke(DodgerBlue), Padding(0,0,5,5)로 설정한다.
-        /// </summary>
-        private static FuncControlTemplate BuildTemplate()
+        public Point SourceAnchor
         {
-            return new FuncControlTemplate<PendingConnection>((pc, ns) =>
-            {
-                var connection = new Connection
-                {
-                    Fill = Brushes.DodgerBlue,
-                    Stroke = Brushes.DodgerBlue,
-                    StrokeThickness = 3.0,
-                };
+            get => GetValue(SourceAnchorProperty);
+            set => SetValue(SourceAnchorProperty, value);
+        }
 
-                ns.Register("PART_Connection", connection);
+        public Point TargetAnchor
+        {
+            get => GetValue(TargetAnchorProperty);
+            set => SetValue(TargetAnchorProperty, value);
+        }
 
-                var canvas = new TemplateLayoutCanvas
-                {
-                    Background = Brushes.Transparent,
-                };
+        public object? SourceConnector
+        {
+            get => GetValue(SourceConnectorProperty);
+            set => SetValue(SourceConnectorProperty, value);
+        }
 
-                canvas.Children.Add(connection);
-                ns.Register("PART_Canvas", canvas);
+        public object? TargetConnector
+        {
+            get => GetValue(TargetConnectorProperty);
+            set => SetValue(TargetConnectorProperty, value);
+        }
 
-                return canvas;
-            });
+        public bool EnablePreview
+        {
+            get => GetValue(EnablePreviewProperty);
+            set => SetValue(EnablePreviewProperty, value);
+        }
+
+        public object? PreviewTarget
+        {
+            get => GetValue(PreviewTargetProperty);
+            set => SetValue(PreviewTargetProperty, value);
+        }
+
+        public bool EnableSnapping
+        {
+            get => GetValue(EnableSnappingProperty);
+            set => SetValue(EnableSnappingProperty, value);
+        }
+
+        public double StrokeThickness
+        {
+            get => GetValue(StrokeThicknessProperty);
+            set => SetValue(StrokeThicknessProperty, value);
+        }
+
+        public ConnectionDirection Direction
+        {
+            get => GetValue(DirectionProperty);
+            set => SetValue(DirectionProperty, value);
+        }
+
+        public IBrush? SetFillAndStroke
+        {
+            get => GetValue(SetFillAndStrokeProperty);
+            set => SetValue(SetFillAndStrokeProperty, value);
+        }
+
+        public Point ViewportLocation
+        {
+            get => GetValue(ViewportLocationProperty);
+            set => SetValue(ViewportLocationProperty, value);
+        }
+
+        public double ViewportScale
+        {
+            get => GetValue(ViewportScaleProperty);
+            set => SetValue(ViewportScaleProperty, value);
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            _templateDisposables.Dispose();
+            _disposables.Dispose();
         }
 
         #endregion
@@ -353,14 +329,43 @@ namespace DagEdit
 
         #endregion
 
-        #region IDisposable
+        #region Template
 
-        public void Dispose()
+        /// <summary>
+        /// C# FuncControlTemplate: AXAML PendingConnection.axaml의 &lt;Template&gt; 완전 대체.
+        ///
+        /// TemplateLayoutCanvas(PART_Canvas)
+        ///   └─ Connection(PART_Connection)
+        ///
+        /// Source/Target/Fill/Stroke는 OnApplyTemplate의 WhenAnyValue 구독이 갱신한다.
+        /// 초기값은 SetFillAndStroke(DodgerBlue), Padding(0,0,5,5)로 설정한다.
+        /// </summary>
+        private static FuncControlTemplate<PendingConnection> BuildTemplate()
         {
-            _templateDisposables.Dispose();
-            _disposables.Dispose();
+            return new FuncControlTemplate<PendingConnection>((_, ns) =>
+            {
+                var connection = new Connection
+                {
+                    Fill = Brushes.DodgerBlue,
+                    Stroke = Brushes.DodgerBlue,
+                    StrokeThickness = 3.0,
+                };
+
+                ns.Register("PART_Connection", connection);
+
+                var canvas = new TemplateLayoutCanvas
+                {
+                    Background = Brushes.Transparent,
+                };
+
+                canvas.Children.Add(connection);
+                ns.Register("PART_Canvas", canvas);
+
+                return canvas;
+            });
         }
 
         #endregion
+
     }
 }

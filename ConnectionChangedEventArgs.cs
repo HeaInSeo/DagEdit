@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.Interactivity;
 
@@ -6,9 +6,15 @@ namespace DagEdit
 {
     public class ConnectionChangedEventArgs : RoutedEventArgs
     {
-        public ConnectionChangedEventArgs(RoutedEvent routedEvent, Guid? nodeId, Point? location, Point? sourceAnchor,
+        public ConnectionChangedEventArgs(
+            RoutedEvent routedEvent,
+            Guid? nodeId,
+            Point? location,
+            Point? sourceAnchor,
             Point? oldSourceAnchor,
-            Point? targetAnchor, Point? oldTargetAnchor, DagItemsType? dagItemsType)
+            Point? targetAnchor,
+            Point? oldTargetAnchor,
+            DagItemsType? dagItemsType)
             : base(routedEvent)
         {
             NodeId = nodeId;

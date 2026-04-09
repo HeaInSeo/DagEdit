@@ -16,14 +16,6 @@ namespace DagEdit
         private readonly Dictionary<Guid, DagNode> _nodeIndex = new();
         private bool _disposed;
 
-        public ReadOnlyObservableCollection<DagItems> DAGItemsSource => _readOnlyItems;
-
-        public IObservable<IChangeSet<DagItems>> Connect()
-        {
-            ThrowIfDisposed();
-            return _dagItemsSource.Connect();
-        }
-
         public Dag()
         {
             _dagItemsSource
@@ -31,6 +23,14 @@ namespace DagEdit
                 .Bind(out _readOnlyItems)
                 .Subscribe()
                 .DisposeWith(_disposables);
+        }
+
+        public ReadOnlyObservableCollection<DagItems> DAGItemsSource => _readOnlyItems;
+
+        public IObservable<IChangeSet<DagItems>> Connect()
+        {
+            ThrowIfDisposed();
+            return _dagItemsSource.Connect();
         }
 
         // ─── Add ──────────────────────────────────────────────────────────────
@@ -76,7 +76,6 @@ namespace DagEdit
         }
 
         // ─── Delete ───────────────────────────────────────────────────────────
-
         public bool DelDagConnectionItem(Guid? connectionId)
         {
             ThrowIfDisposed();
@@ -99,12 +98,12 @@ namespace DagEdit
             return true;
         }
 
-        public bool DelDagNodeItem(Guid? NodeId)
+        public bool DelDagNodeItem(Guid? nodeId)
         {
             ThrowIfDisposed();
 
             // 일부러 여기서는 ?. 안씀. 명시적으로 null 체크 함.
-            var itemToDelete = _dagItemsSource.Items.FirstOrDefault(i => i.NodeItem != null && i.NodeItem.NodeId == NodeId);
+            var itemToDelete = _dagItemsSource.Items.FirstOrDefault(i => i.NodeItem != null && i.NodeItem.NodeId == nodeId);
             if (itemToDelete != null)
             {
                 if (itemToDelete.NodeItem!.NodeId.HasValue)
@@ -119,7 +118,7 @@ namespace DagEdit
                     }
 
                     // 모델에서 먼저 제거하고, UI 참조는 후처리로 끊는다.
-                    _nodeIndex.Remove(NodeId!.Value);
+                    _nodeIndex.Remove(nodeId!.Value);
                     _dagItemsSource.Remove(itemToDelete);
                     itemToDelete.NodeItem.NodeInstance = null; // GC 를 위한 참조 해제
                     return true; // 삭제 성공
@@ -200,7 +199,6 @@ namespace DagEdit
         }
 
         // ─── Query ────────────────────────────────────────────────────────────
-
         public DagNode? FindNode(Guid nodeId) =>
             _nodeIndex.TryGetValue(nodeId, out var node) ? node : null;
 

@@ -1,8 +1,8 @@
 using System;
+using System.Reactive.Disposables;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using ReactiveUI;
-using System.Reactive.Disposables;
 
 namespace DagEdit
 {
@@ -125,8 +125,15 @@ namespace DagEdit
             // H-3: Pin/Unpin 명시적 unsubscribe
             if (_viewModelRef != null)
             {
-                if (_onPinRequested != null) { _viewModelRef.PinRequested -= _onPinRequested; }
-                if (_onUnpinRequested != null) { _viewModelRef.UnpinRequested -= _onUnpinRequested; }
+                if (_onPinRequested != null)
+                {
+                    _viewModelRef.PinRequested -= _onPinRequested;
+                }
+
+                if (_onUnpinRequested != null)
+                {
+                    _viewModelRef.UnpinRequested -= _onUnpinRequested;
+                }
             }
 
             _projectionChangedSubscription.Detach();
@@ -143,36 +150,6 @@ namespace DagEdit
 
             ViewerCanvas.Items = _viewModelRef.ViewerAdapter.BuildSnapshot();
             UpdateViewerStats(_viewModelRef);
-        }
-    }
-
-    internal sealed class ProjectionChangedSubscription
-    {
-        private DagViewerProjectionAdapter? _adapter;
-        private EventHandler? _handler;
-
-        public void Attach(DagViewerProjectionAdapter adapter, EventHandler handler)
-        {
-            if (ReferenceEquals(_adapter, adapter) && ReferenceEquals(_handler, handler))
-            {
-                return;
-            }
-
-            Detach();
-            _adapter = adapter;
-            _handler = handler;
-            _adapter.ProjectionChanged += _handler;
-        }
-
-        public void Detach()
-        {
-            if (_adapter != null && _handler != null)
-            {
-                _adapter.ProjectionChanged -= _handler;
-            }
-
-            _adapter = null;
-            _handler = null;
         }
     }
 }
