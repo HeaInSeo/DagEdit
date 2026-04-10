@@ -1,9 +1,10 @@
+using System;
 using Avalonia;
 using Avalonia.Input;
 
 namespace DagEdit
 {
-    public class PointerGesture
+    internal class PointerGesture
     {
         #region Fields
 
@@ -45,6 +46,8 @@ namespace DagEdit
 
         public bool Matches(object source, PointerEventArgs eventArgs)
         {
+            ArgumentNullException.ThrowIfNull(eventArgs);
+
             // source가 Visual 타입이 아니면, 조건에 맞지 않으므로 바로 false 반환
             if (source is not Visual targetElement)
             {

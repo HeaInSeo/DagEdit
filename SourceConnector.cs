@@ -7,7 +7,7 @@ using Avalonia.Input;
 
 namespace DagEdit
 {
-    public sealed class SourceConnector : Connector
+    internal sealed class SourceConnector : Connector
     {
         #region Dependency Properties
 

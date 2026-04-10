@@ -36,7 +36,7 @@ namespace DagEdit
     ///   WhenAnyValue 구독    = 소비자 고루틴    — for pt := range ch { partConn.Source = pt }
     ///   DistinctUntilChanged = "이전과 같으면 채널에 보내지 않는다" 관용구
     /// </summary>
-    public sealed class PendingConnection : ContentControl, IDisposable
+    internal sealed class PendingConnection : ContentControl, IDisposable
     {
         #region Dependency Properties
 
@@ -275,6 +275,7 @@ namespace DagEdit
         /// <inheritdoc />
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
+            ArgumentNullException.ThrowIfNull(e);
             base.OnApplyTemplate(e);
 
             // 이전 템플릿 구독 정리 — 테마 변경 등으로 재호출 시 누적 방지(#2)

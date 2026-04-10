@@ -115,7 +115,7 @@ public class DagBenchmarks
     /// DelDagNodeItem 내부의 FirstOrDefault 패턴과 동일한 조회 방식.
     /// </summary>
     [Benchmark(Description = "LINQ search for node by ID")]
-    public DagNode? FindNode_ByGuid()
+    public bool FindNode_ByGuid()
     {
         var dag = new Dag();
 
@@ -130,6 +130,6 @@ public class DagBenchmarks
 
         return dag.DAGItemsSource
             .FirstOrDefault(i => i.NodeItem != null && i.NodeItem.NodeId == lastNodeId)
-            ?.NodeItem;
+            ?.NodeItem != null;
     }
 }

@@ -3,7 +3,7 @@ using Avalonia;
 
 namespace DagEdit
 {
-    public enum DagItemsType
+    internal enum DagItemsType
     {
         // Connection 도 일단 1개 이상일지 생각해야함.
         // Node 역시 3개 이상일지 생각해야함.
@@ -13,7 +13,7 @@ namespace DagEdit
         Connection,
     }
 
-    public class DagItems
+    internal class DagItems
     {
         #region Fields
 
@@ -78,5 +78,4 @@ namespace DagEdit
 
         #endregion
     }
-
 }

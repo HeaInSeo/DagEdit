@@ -8,7 +8,7 @@ namespace DagEdit
      * TemplateLayoutCanvas 이 녀석은 ControlTemplate 안에서만 사용해야 한다.
      * 다른 곳에서 사용할 경우 오작동을? 일으킬 수 있다.
      */
-    public class TemplateLayoutCanvas : Canvas
+    internal class TemplateLayoutCanvas : Canvas
     {
         /// <inheritdoc />
         protected override Size MeasureOverride(Size availableSize)

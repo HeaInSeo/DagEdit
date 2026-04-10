@@ -2,7 +2,7 @@ using Avalonia.Input;
 
 namespace DagEdit
 {
-    public static class EditorGestures
+    internal static class EditorGestures
     {
         public static KeyGesture Delete { get; set; } = new(Key.Delete);
 

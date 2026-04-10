@@ -4,11 +4,9 @@ using Avalonia.Collections;
 
 namespace DagEdit
 {
-    public class DagNode
+    internal class DagNode
     {
         public Guid? NodeId { get; set; }
-
-        public Node? NodeInstance { get; set; }
 
         public Point? Location { get; set; }
 
@@ -23,6 +21,8 @@ namespace DagEdit
 
         public AvaloniaList<DagConnection> TargetConnections { get; } = new();
 
-        public DagItemsType DAGItemType { get; set; }
+        internal Node? NodeInstance { get; set; }
+
+        internal DagItemsType DAGItemType { get; set; }
     }
 }

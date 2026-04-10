@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 
 namespace DagEdit
 {
-    public class ConnectionChangedEventArgs : RoutedEventArgs
+    internal class ConnectionChangedEventArgs : RoutedEventArgs
     {
         public ConnectionChangedEventArgs(
             RoutedEvent routedEvent,

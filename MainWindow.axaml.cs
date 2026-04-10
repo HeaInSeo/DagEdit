@@ -6,11 +6,12 @@ using ReactiveUI;
 
 namespace DagEdit
 {
-    public partial class MainWindow : Window
+    internal partial class MainWindow : Window, IDisposable
     {
         private readonly CompositeDisposable _disposables = new();
         private readonly ProjectionChangedSubscription _projectionChangedSubscription = new();
         private NodeViewItemVisualFactory? _viewerFactory;
+        private bool _disposed;
 
         // H-2 pool cleanup: unsubscribe를 위해 adapter 참조와 delegate 저장
         private DagViewerProjectionAdapter? _viewerAdapterRef;
@@ -27,6 +28,46 @@ namespace DagEdit
             InitializeComponent();
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed || !disposing)
+            {
+                return;
+            }
+
+            _disposed = true;
+
+            // H-2: ItemRemoved 명시적 unsubscribe
+            if (_viewerAdapterRef != null && _onItemRemoved != null)
+            {
+                _viewerAdapterRef.ItemRemoved -= _onItemRemoved;
+            }
+
+            // H-3: Pin/Unpin 명시적 unsubscribe
+            if (_viewModelRef != null)
+            {
+                if (_onPinRequested != null)
+                {
+                    _viewModelRef.PinRequested -= _onPinRequested;
+                }
+
+                if (_onUnpinRequested != null)
+                {
+                    _viewModelRef.UnpinRequested -= _onUnpinRequested;
+                }
+            }
+
+            _projectionChangedSubscription.Detach();
+
+            _disposables.Dispose();
         }
 
         /// <summary>
@@ -116,29 +157,7 @@ namespace DagEdit
 
         private void OnUnloaded(object? sender, RoutedEventArgs e)
         {
-            // H-2: ItemRemoved 명시적 unsubscribe
-            if (_viewerAdapterRef != null && _onItemRemoved != null)
-            {
-                _viewerAdapterRef.ItemRemoved -= _onItemRemoved;
-            }
-
-            // H-3: Pin/Unpin 명시적 unsubscribe
-            if (_viewModelRef != null)
-            {
-                if (_onPinRequested != null)
-                {
-                    _viewModelRef.PinRequested -= _onPinRequested;
-                }
-
-                if (_onUnpinRequested != null)
-                {
-                    _viewModelRef.UnpinRequested -= _onUnpinRequested;
-                }
-            }
-
-            _projectionChangedSubscription.Detach();
-
-            _disposables.Dispose();
+            Dispose();
         }
 
         private void HandleProjectionChanged(object? sender, EventArgs e)

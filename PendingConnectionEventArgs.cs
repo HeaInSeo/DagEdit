@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 
 namespace DagEdit
 {
-    public class PendingConnectionEventArgs : RoutedEventArgs
+    internal class PendingConnectionEventArgs : RoutedEventArgs
     {
         public PendingConnectionEventArgs(RoutedEvent routedEvent, Connector? connectedConnector, Point? sourceAnchor)
             : base(routedEvent)

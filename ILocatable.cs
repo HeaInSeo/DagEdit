@@ -2,7 +2,7 @@ using Avalonia;
 
 namespace DagEdit
 {
-    public interface ILocatable
+    internal interface ILocatable
     {
         Point Location { get; }
     }

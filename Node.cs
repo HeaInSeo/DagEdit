@@ -70,7 +70,7 @@ namespace DagEdit
     ///     → Node가 소멸할 때 구독을 자동 해제. 메모리 누수 방지.
     ///        Go의 defer cancel() 패턴과 동일한 역할.
     /// </summary>
-    public class Node : BaseNode
+    internal class Node : BaseNode
     {
         #region Dependency Properties
 
@@ -159,7 +159,7 @@ namespace DagEdit
             : this()
         {
             Location = location;
-            (SourceAnchor, TargetAnchor) = FindAnchors(location);
+            (SourceAnchor, TargetAnchor) = NodeAnchors.FindAnchors(location);
         }
 
         #endregion
@@ -248,7 +248,7 @@ namespace DagEdit
         {
             Point? oldSourceAnchor = SourceAnchor;
             Point? oldTargetAnchor = TargetAnchor;
-            (SourceAnchor, TargetAnchor) = FindAnchors(newPosition);
+            (SourceAnchor, TargetAnchor) = NodeAnchors.FindAnchors(newPosition);
 
             RaiseConnectionChangedEvent(
                 _id,
@@ -280,6 +280,8 @@ namespace DagEdit
 
         protected override void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
+            ArgumentNullException.ThrowIfNull(args);
+
             if (ParentControl == null)
             {
                 throw new InvalidOperationException(
@@ -301,6 +303,8 @@ namespace DagEdit
 
         protected override void HandlePointerMoved(object? sender, PointerEventArgs args)
         {
+            ArgumentNullException.ThrowIfNull(args);
+
             if (ParentControl == null)
             {
                 throw new InvalidOperationException(
@@ -341,6 +345,8 @@ namespace DagEdit
 
         protected override void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
         {
+            ArgumentNullException.ThrowIfNull(args);
+
             if (ParentControl == null)
             {
                 throw new InvalidOperationException(
@@ -383,14 +389,6 @@ namespace DagEdit
         #endregion
 
         #region Helpers
-
-        private static (Point SourceAnchor, Point TargetAnchor) FindAnchors(Point location)
-        {
-            var sourceAnchor = new Point(location.X + Constants.NodeWidth, location.Y + (Constants.NodeHeight / 2));
-            var targetAnchor = new Point(location.X, location.Y + (Constants.NodeHeight / 2));
-            return (sourceAnchor, targetAnchor);
-        }
-
         private void RaiseConnectionChangedEvent(
             Guid? nodeId,
             Point? location,
