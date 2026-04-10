@@ -367,6 +367,11 @@ namespace DagEdit
                 fallback($"Error log write failed for '{targetPath}': {ex.Message}");
                 return false;
             }
+            catch (ArgumentException ex)
+            {
+                fallback($"Error log write failed for '{targetPath}': {ex.Message}");
+                return false;
+            }
         }
 
         private static void WriteDiagnosticFallback(string message)

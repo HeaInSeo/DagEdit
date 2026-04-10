@@ -853,6 +853,17 @@
 
 ---
 
+### [Step 66] CI follow-up test hardening
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `Extension.cs`의 `TryWriteErrorsToFile` 예외 처리 보강
+  - 대상: 잘못된 경로 문자열(`null char` 포함)에서 발생하는 `ArgumentException`도 fallback 경로로 흡수
+- **검증 지표**:
+  - 로컬 빌드 `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수 유지: `0 Warning(s)`, `0 Error(s)`
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |
