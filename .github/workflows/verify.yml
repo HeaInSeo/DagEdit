@@ -30,7 +30,7 @@ jobs:
     steps:
       # ── 1. 체크아웃 ─────────────────────────────────────────
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
@@ -289,7 +289,7 @@ jobs:
       # ── 7. 테스트 결과 업로드 ─────────────────────────────
       - name: Upload test results (TRX)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-trx
           path: ./test-results/*.trx
@@ -298,7 +298,7 @@ jobs:
       # ── 8. 커버리지 리포트 업로드 ─────────────────────────
       - name: Upload coverage report (Cobertura)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-cobertura
           path: ./test-results/**/coverage.cobertura.xml
@@ -306,7 +306,7 @@ jobs:
 
       - name: Upload build warning count artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-warning-count
           path: build-warning-count.json
@@ -439,7 +439,7 @@ jobs:
       # ── 18. 벤치마크 아티팩트 업로드 ─────────────────────
       - name: Upload benchmark results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-results
           path: ./benchmark-results/
@@ -553,7 +553,7 @@ jobs:
     steps:
       # ── 1. 체크아웃 ─────────────────────────────────────────
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
