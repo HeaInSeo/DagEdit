@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Avalonia;
@@ -10,7 +11,7 @@ using Avalonia.VisualTree;
 
 namespace DagEdit
 {
-    public static class Extension
+    internal static class Extension
     {
         #region Fields
 
@@ -27,6 +28,8 @@ namespace DagEdit
         // Subscribe 를 static 에서 사용하기 위해서
         public static IDisposable Subscribe<T>(this IObservable<T> observable, Action<T> action)
         {
+            ArgumentNullException.ThrowIfNull(observable);
+            ArgumentNullException.ThrowIfNull(action);
             return observable.Subscribe(new AnonymousObserver<T>(action));
         }
 
@@ -262,8 +265,8 @@ namespace DagEdit
             if (condition)
             {
                 string output =
-                    DateTime.Now.ToString("hh:mm:ss") + ": " +
-                    string.Format(format, args); // + Environment.NewLine + Environment.StackTrace;
+                    DateTime.Now.ToString("hh:mm:ss", CultureInfo.InvariantCulture) + ": " +
+                    string.Format(CultureInfo.InvariantCulture, format, args); // + Environment.NewLine + Environment.StackTrace;
 
                 // Console.WriteLine(output);
                 Debug.WriteLine(output);
@@ -274,7 +277,9 @@ namespace DagEdit
         {
             if (condition)
             {
-                string output = DateTime.Now.ToString("hh:mm:ss") + ": " + string.Format(format, args);
+                string output =
+                    DateTime.Now.ToString("hh:mm:ss", CultureInfo.InvariantCulture) + ": " +
+                    string.Format(CultureInfo.InvariantCulture, format, args);
                 WriteToFile(output);
             }
         }
@@ -307,7 +312,15 @@ namespace DagEdit
                 using var writer = new StreamWriter(LogFilePath, true);
                 writer.WriteLine(message);
             }
-            catch (Exception ex)
+            catch (IOException ex)
+            {
+                Debug.WriteLine("Log file write error: " + ex.Message);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Debug.WriteLine("Log file write error: " + ex.Message);
+            }
+            catch (NotSupportedException ex)
             {
                 Debug.WriteLine("Log file write error: " + ex.Message);
             }
@@ -339,7 +352,22 @@ namespace DagEdit
                 writer.WriteLine(message);
                 return true;
             }
-            catch (Exception ex)
+            catch (IOException ex)
+            {
+                fallback($"Error log write failed for '{targetPath}': {ex.Message}");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                fallback($"Error log write failed for '{targetPath}': {ex.Message}");
+                return false;
+            }
+            catch (NotSupportedException ex)
+            {
+                fallback($"Error log write failed for '{targetPath}': {ex.Message}");
+                return false;
+            }
+            catch (ArgumentException ex)
             {
                 fallback($"Error log write failed for '{targetPath}': {ex.Message}");
                 return false;

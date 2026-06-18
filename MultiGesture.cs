@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 
 namespace DagEdit
 {
-    public class MultiGesture
+    internal class MultiGesture
     {
         private readonly object[] _gestures;
         private readonly Match _match;
@@ -15,7 +15,7 @@ namespace DagEdit
             _match = match;
         }
 
-        public enum Match
+        internal enum Match
         {
             Any,
             All,

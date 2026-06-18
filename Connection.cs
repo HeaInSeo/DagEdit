@@ -7,7 +7,7 @@ using Avalonia.Platform;
 
 namespace DagEdit
 {
-    public enum ConnectionOffsetMode
+    internal enum ConnectionOffsetMode
     {
         /// <summary>
         /// 오프셋 없음.
@@ -31,7 +31,7 @@ namespace DagEdit
     }
 
     // TODO 향후 이름은 수정할 수 있음.
-    public enum LineShape
+    internal enum LineShape
     {
         Line,
         Circuit,
@@ -42,7 +42,7 @@ namespace DagEdit
     /// 연결이 지향하는 방향.
     /// </summary>
     /// 연결의 방향에 대한 정의를 한다.
-    public enum ConnectionDirection
+    internal enum ConnectionDirection
     {
         Forward, // 앞쪽 방향
         Backward, // 뒤쪽 방향
@@ -51,7 +51,7 @@ namespace DagEdit
     /// <summary>
     /// 화살표 머리가 그려지는 위치.
     /// </summary>
-    public enum ArrowHeadEnds
+    internal enum ArrowHeadEnds
     {
         /// <summary>
         /// 시작점에 화살표 머리.
@@ -74,7 +74,7 @@ namespace DagEdit
         None,
     }
 
-    public class Connection : Shape
+    internal class Connection : Shape
     {
         #region Dependency Properties
 

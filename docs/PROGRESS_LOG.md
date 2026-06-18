@@ -752,6 +752,118 @@
 
 ---
 
+### [Step 58] S4 수명주기 정리 22차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `DagEditorViewModel.cs`, `DagEditor.cs`, `MainWindow.axaml.cs` dispose 경로 보강
+  - 대상: `ObservableAsPropertyHelper`와 `UndoRedoStack` 명시 해제, `DagEditor.Dispose(bool)`와 `GC.SuppressFinalize` 추가, `MainWindow`에 `IDisposable` 구현 추가
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `69 Warning(s)` → `65 Warning(s)`
+
+---
+
+### [Step 59] S4 null/dispose 정리 23차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `MainWindow.axaml.cs`, `Dag.cs`, `DagEditor.cs`, `PendingConnection.cs`, `Node.cs` null/dispose 정리
+  - 대상: `MainWindow.Dispose(bool)` 패턴 정리, `RemoveDagItem`/`Restore*`/`OnApplyTemplate`/pointer handler 진입부에 `ArgumentNullException.ThrowIfNull` 추가
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `65 Warning(s)` → `55 Warning(s)`
+
+---
+
+### [Step 60] S3-S4 유틸리티 정리 24차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `Extension.cs`, `PointerGesture.cs`, `MultiGesture.cs`, `EditorMenuItem.cs`, `BrushResources.cs`, `Constants.cs`, `EditorGestures.cs`, `ViewportTransform.cs`, `TemplateLayoutCanvas.cs` 정리
+  - 대상: 내부 전용 유틸리티/헬퍼 타입을 `internal`로 축소, `Extension`의 `InvariantCulture` 적용과 catch 구체화, `Subscribe`/`Matches` null guard 추가
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `55 Warning(s)` → `38 Warning(s)`
+
+---
+
+### [Step 61] S2-S3 잔여 스타일 정리 25차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `DagEditor.cs`, `MainWindow.axaml.cs`, `Node.cs`, `DagItems.cs` 정리 및 `UndoableCommands.cs` 제거
+  - 대상: 빈 파일 제거, 불필요한 trailing blank line 제거, 일부 public/protected/private 멤버 순서 재배치
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `38 Warning(s)` → `35 Warning(s)`
+
+---
+
+### [Step 62] S3 API 표면 정리 26차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `DagEditorViewModel.cs`, `DagEditorCanvas.cs`, `MultiGesture.cs`, `Dag.cs` 접근성 재조정
+  - 대상:
+    - 앱 내부 전용 타입인 `DagEditorViewModel`, `DagEditorCanvas`, `MultiGesture.Match`를 `internal`로 축소
+    - 벤치마크 프로젝트가 직접 참조하는 `Dag`는 `public`으로 복구해 외부 계약 유지
+    - `MainWindow.axaml.cs` dispose 관련 멤버 순서 정리 유지
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `35 Warning(s)` → `29 Warning(s)`
+
+---
+
+### [Step 63] S3 API 표면 정리 27차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `DagEdit.csproj`, `App.axaml.cs`, `MainWindow.axaml.cs`, `Dag.cs`, `DagItems.cs`, `ILocatable.cs`, `BaseNode.cs`, `Node.cs`, `Connection.cs`, `Connector.cs`, `SourceConnector.cs`, `TargetConnector.cs`, `PendingConnection.cs`, `DagEditor.cs`, 각종 `*EventArgs.cs` 접근성 재조정
+  - 대상:
+    - `DagEdit.Benchmarks`를 `InternalsVisibleTo`로 열어 `Dag`와 `DagItems`를 `internal`로 축소
+    - 앱 내부 UI 컨트롤(`DagEditor`, `Node`, `Connection`, `Connector`, `SourceConnector`, `TargetConnector`, `PendingConnection`, `BaseNode`)과 관련 이벤트 args를 `internal`로 축소
+    - `App`, `MainWindow`를 `internal`로 축소
+    - 공개 모델 `DagNode`, `DagConnection`에는 내부 UI 참조 프로퍼티를 `internal`로 이동
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `29 Warning(s)` → `11 Warning(s)`
+
+---
+
+### [Step 64] S3 API 표면 정리 28차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `DagItems.cs`, `DagNode.cs`, `DagConnection.cs`, `Connection.cs` 내부 enum/멤버 노출 축소
+  - 대상:
+    - `DagItemsType`, `ConnectionOffsetMode`, `LineShape`, `ConnectionDirection`, `ArrowHeadEnds`를 `internal`로 축소
+    - `DagNode.DAGItemType`, `DagConnection.DAGItemType`, `NodeInstance`, `ConnectionInstance`, `SourceNodeInstance`, `TargetNodeInstance`를 내부 구현 멤버로 재배치
+    - 공개/내부 멤버 순서를 재정렬해 `SA1202` 잔여 제거
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `11 Warning(s)` → `2 Warning(s)`
+
+---
+
+### [Step 65] S3 API 표면 정리 29차 배치
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `DagNode.cs`, `DagConnection.cs`, `benchmarks/DagEdit.Benchmarks/DagBenchmarks.cs` 정리
+  - 대상:
+    - `DagNode`, `DagConnection`을 `internal`로 축소
+    - 벤치마크 `FindNode_ByGuid` 반환형을 내부 모델 타입 의존이 없는 `bool`로 조정
+    - friend assembly 경계를 유지하면서 공개 API 노출 2건 제거
+- **검증 지표**:
+  - `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수: `2 Warning(s)` → `0 Warning(s)`
+
+---
+
+### [Step 66] CI follow-up test hardening
+- **날짜**: 2026-04-10
+- **수행 내용**:
+  - `Extension.cs`의 `TryWriteErrorsToFile` 예외 처리 보강
+  - 대상: 잘못된 경로 문자열(`null char` 포함)에서 발생하는 `ArgumentException`도 fallback 경로로 흡수
+- **검증 지표**:
+  - 로컬 빌드 `dotnet build DagEdit.sln -c Release --no-restore -clp:Summary -v:minimal` 성공
+  - 경고 수 유지: `0 Warning(s)`, `0 Error(s)`
+
+---
+
 ## 향후 과제
 
 | 우선순위 | 내용 |

@@ -2,7 +2,7 @@ using Avalonia;
 
 namespace DagEdit
 {
-    public static class Constants
+    internal static class Constants
     {
         public const double AppliedThreshold = 12d * 12d;
         public const double NodeWidth = 200d;

@@ -24,7 +24,7 @@ namespace DagEdit
     /// - DagEditorViewModel : 데이터 조작, 뷰포트 상태, Undo/Redo 이력
     /// - DagEditor           : UI 입력 처리(PointerPressed 등), 렌더링 계약(AvaloniaProperty)
     /// </summary>
-    public sealed class DagEditorViewModel : ReactiveObject, IDisposable
+    internal sealed class DagEditorViewModel : ReactiveObject, IDisposable
     {
         private readonly CompositeDisposable _disposables = new();
         private readonly ObservableAsPropertyHelper<int> _nodeCount;
@@ -32,6 +32,7 @@ namespace DagEdit
         private readonly DagViewerProjectionAdapter _viewerAdapter = new();
         private readonly UndoRedoStack _undoRedo = new();
 
+        private bool _disposed;
         private Point _viewportLocation = Constants.ZeroPoint;
         private double _viewportScale = 1.0;
 
@@ -158,7 +159,17 @@ namespace DagEdit
 
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _connectionCount.Dispose();
+            _nodeCount.Dispose();
+            _undoRedo.Dispose();
             _disposables.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

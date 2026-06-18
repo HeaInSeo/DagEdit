@@ -31,7 +31,7 @@ namespace DagEdit
     ///   VCA.ActualViewbox = VCRect(Offset.X/Scale, Offset.Y/Scale, W/Scale, H/Scale)
     ///   DagEdit 등가: ScreenToWorld(Point(0,0), vl, s) = (vl.X/s, vl.Y/s) — 뷰포트 월드 원점
     ///</summary>
-    public static class ViewportTransform
+    internal static class ViewportTransform
     {
         /// <summary>
         /// DagEditor 기준 스크린 좌표를 캔버스 월드 좌표로 변환한다.

@@ -8,7 +8,7 @@ using DynamicData;
 
 namespace DagEdit
 {
-    public sealed class Dag : IDisposable
+internal sealed class Dag : IDisposable
     {
         private readonly SourceList<DagItems> _dagItemsSource = new();
         private readonly ReadOnlyObservableCollection<DagItems> _readOnlyItems;
@@ -137,6 +137,7 @@ namespace DagEdit
         public bool RemoveDagItem(DagItems item)
         {
             ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(item);
 
             if (item.ConnectionItem is { } conn)
             {
@@ -161,6 +162,7 @@ namespace DagEdit
         public bool RestoreDagNodeItem(DagItems item)
         {
             ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(item);
 
             if (item.NodeItem?.NodeId == null)
             {
@@ -180,6 +182,7 @@ namespace DagEdit
         public bool RestoreDagConnectionItem(DagItems item)
         {
             ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(item);
 
             if (item.ConnectionItem == null)
             {

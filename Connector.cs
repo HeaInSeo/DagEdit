@@ -9,7 +9,7 @@ using Avalonia.Media;
 
 namespace DagEdit
 {
-    public class Connector : TemplatedControl, IDisposable
+    internal class Connector : TemplatedControl, IDisposable
     {
         #region Fields
 

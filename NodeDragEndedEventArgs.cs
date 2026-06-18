@@ -8,7 +8,7 @@ namespace DagEdit
     /// DagEditor가 수신하여 drag pin을 해제한다.
     /// NodeMovedEvent와 달리 항상 발행된다. drag pin leak 방지.
     /// </summary>
-    public class NodeDragEndedEventArgs : RoutedEventArgs
+    internal class NodeDragEndedEventArgs : RoutedEventArgs
     {
         public NodeDragEndedEventArgs(RoutedEvent routedEvent, Guid nodeId)
             : base(routedEvent)

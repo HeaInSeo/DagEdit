@@ -15,7 +15,7 @@ using ReactiveUI;
 
 namespace DagEdit
 {
-    public class DagEditor : SelectingItemsControl, IDisposable
+    internal class DagEditor : SelectingItemsControl, IDisposable
     {
         #region Dependency Properties
 
@@ -120,23 +120,10 @@ namespace DagEdit
 
         // Viewport 양방향 동기화 재진입 방지 플래그 (Step 19)
         private bool _syncingViewport;
+        private bool _disposed;
 
         // TODO 일단 이렇게 남겨 두는데, Menu 디자인시 수정 해야 함.
         private EditorContextFlyout _contextMenu;
-
-        #endregion
-
-        #region Helpers
-
-        // ─── Selection Rectangle 보조 (Feature 1) ─────────────────────────────
-        private static Rect MakeNormalizedRect(Point a, Point b)
-        {
-            var x = Math.Min(a.X, b.X);
-            var y = Math.Min(a.Y, b.Y);
-            var w = Math.Abs(a.X - b.X);
-            var h = Math.Abs(a.Y - b.Y);
-            return new Rect(x, y, w, h);
-        }
 
         #endregion
 
@@ -304,8 +291,8 @@ namespace DagEdit
         // TODO Unload 와 관련 및 GC 관련 해서 생각해보자.
         public void Dispose()
         {
-            _disposables.Dispose();
-            _viewModel.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         // 외부에 바인딩해야 해야 함. 입력 파라미터는 없어야 함.
@@ -319,9 +306,24 @@ namespace DagEdit
             _viewModel.ExecuteAddNode(ContextMenuPoint); // Undo/Redo 스택에 등록
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed || !disposing)
+            {
+                return;
+            }
+
+            _disposed = true;
+            editorCanvas?.Dispose();
+            editorCanvas = null;
+            _disposables.Dispose();
+            _viewModel.Dispose();
+        }
+
         /// <inheritdoc />
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
+            ArgumentNullException.ThrowIfNull(e);
             base.OnApplyTemplate(e);
 
             topLayer = e.NameScope.Find<Canvas>("PART_TopLayer");
@@ -379,6 +381,20 @@ namespace DagEdit
 
             return new ContentControl { IsVisible = false };
         }
+
+        #region Helpers
+
+        // ─── Selection Rectangle 보조 (Feature 1) ─────────────────────────────
+        private static Rect MakeNormalizedRect(Point a, Point b)
+        {
+            var x = Math.Min(a.X, b.X);
+            var y = Math.Min(a.Y, b.Y);
+            var w = Math.Abs(a.X - b.X);
+            var h = Math.Abs(a.Y - b.Y);
+            return new Rect(x, y, w, h);
+        }
+
+        #endregion
 
         #endregion
 

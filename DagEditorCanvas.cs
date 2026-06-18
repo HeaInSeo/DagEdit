@@ -6,7 +6,7 @@ using Avalonia.Media;
 
 namespace DagEdit
 {
-    public sealed class DagEditorCanvas : Canvas, IDisposable
+    internal sealed class DagEditorCanvas : Canvas, IDisposable
     {
         #region Fields
 

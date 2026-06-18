@@ -4,7 +4,7 @@ using Avalonia.Markup.Xaml;
 
 namespace DagEdit
 {
-    public partial class App : Application
+    internal partial class App : Application
     {
         public override void Initialize()
         {

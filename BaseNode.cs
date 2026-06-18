@@ -10,7 +10,7 @@ using Avalonia.VisualTree;
 
 namespace DagEdit
 {
-    public class BaseNode : ContentControl, IDisposable, ILocatable
+    internal class BaseNode : ContentControl, IDisposable, ILocatable
     {
         #region Fields
 
